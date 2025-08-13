@@ -82,7 +82,7 @@ const Header: React.FC = () => {
           {/* Logo and Brand */}
           <div className="flex items-center space-x-8">
             <Link to="/dashboard" className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-blue-800 flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -101,10 +101,10 @@ const Header: React.FC = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium transition-colors ${
                     isCurrentPath(item.path)
-                      ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700'
-                      : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                      ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-700'
+                      : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
                   }`}
                 >
                   {item.icon}
@@ -138,7 +138,7 @@ const Header: React.FC = () => {
             {/* Logout Button */}
             <button
               onClick={handleLogout}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-1"
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 text-sm font-medium transition-colors flex items-center space-x-1"
               title="Sign out"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,10 +156,10 @@ const Header: React.FC = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
+                className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
                   isCurrentPath(item.path)
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
                 }`}
               >
                 {item.icon}

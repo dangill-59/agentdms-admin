@@ -217,9 +217,9 @@ const Documents: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
         <Header />
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-center h-96">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
@@ -229,14 +229,14 @@ const Documents: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
       <Header />
       
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
+      <main className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-lg shadow-lg p-8">
           {/* Page Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Documents</h1>
+            <h1 className="text-3xl font-bold text-blue-900">Documents</h1>
             <p className="mt-2 text-gray-600">
               Upload, process, and manage your document files.
             </p>
@@ -264,10 +264,10 @@ const Documents: React.FC = () => {
           {/* File Upload Section */}
           <div className="mb-8">
             <div
-              className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              className={`relative border-2 border-dashed p-8 text-center transition-colors ${
                 dragActive
                   ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-300 hover:border-gray-400'
+                  : 'border-blue-300 hover:border-blue-500 bg-blue-25'
               }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
@@ -283,12 +283,12 @@ const Documents: React.FC = () => {
               />
               
               <div className="space-y-4">
-                <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                <svg className="mx-auto h-12 w-12 text-blue-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                   <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 
                 <div>
-                  <p className="text-lg font-medium text-gray-900">
+                  <p className="text-lg font-medium text-blue-900">
                     Drop files here or click to browse
                   </p>
                   <p className="text-sm text-gray-600 mt-1">
@@ -299,7 +299,7 @@ const Documents: React.FC = () => {
                   </p>
                 </div>
                 
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm font-medium transition-colors">
+                <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-sm font-medium transition-colors shadow-md">
                   Select Files
                 </button>
               </div>
@@ -350,9 +350,9 @@ const Documents: React.FC = () => {
                 placeholder="Search documents..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-10 pr-4 py-3 border-2 border-blue-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50"
               />
-              <svg className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-blue-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
