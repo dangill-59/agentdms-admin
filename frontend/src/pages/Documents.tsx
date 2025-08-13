@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import type { Document } from '../types/api';
 import { documentService } from '../services/documents';
+import config from '../utils/config';
 import Header from '../components/Header';
 
 interface UploadProgress {
@@ -18,12 +19,12 @@ const Documents: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
   const [dragActive, setDragActive] = useState(false);
-  const [supportedFormats, setSupportedFormats] = useState<string[]>([
-    '.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tif', '.tiff', '.pdf', '.webp'
-  ]);
+  const [supportedFormats, setSupportedFormats] = useState<string[]>(
+    config.get('supportedFileTypes')
+  );
 
-  // Supported file formats (will be loaded from backend)
-  const maxFileSize = 50 * 1024 * 1024; // 50MB
+  // File configuration from config service
+  const maxFileSize = config.get('maxFileSize');
 
   useEffect(() => {
     fetchDocuments();
@@ -55,11 +56,11 @@ const Documents: React.FC = () => {
 
   const validateFile = (file: File): string | null => {
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-    if (!supportedFormats.includes(fileExtension)) {
+    if (!config.isSupportedFileType(fileExtension)) {
       return `File type ${fileExtension} is not supported. Supported formats: ${supportedFormats.join(', ')}`;
     }
     if (file.size > maxFileSize) {
-      return `File size exceeds the maximum limit of ${Math.round(maxFileSize / 1024 / 1024)}MB`;
+      return `File size exceeds the maximum limit of ${config.getFormattedMaxFileSize()}`;
     }
     return null;
   };
@@ -294,7 +295,7 @@ const Documents: React.FC = () => {
                     Supported formats: {supportedFormats.join(', ')}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    Maximum file size: {Math.round(maxFileSize / 1024 / 1024)}MB
+                    Maximum file size: {config.getFormattedMaxFileSize()}
                   </p>
                 </div>
                 

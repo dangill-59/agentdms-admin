@@ -1,17 +1,19 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosResponse } from 'axios';
 import type { ApiResponse } from '../types/api';
+import config from '../utils/config';
 
 class ApiService {
   private api: AxiosInstance;
   private baseURL: string;
 
   constructor() {
-    // Default to localhost for development, can be configured via environment variables
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5267/api';
+    // Use configuration service for base URL
+    this.baseURL = config.get('apiUrl');
     
     this.api = axios.create({
       baseURL: this.baseURL,
+      timeout: config.get('apiTimeout'),
       headers: {
         'Content-Type': 'application/json',
       },
@@ -53,15 +55,18 @@ class ApiService {
 
   // Token management
   public setToken(token: string): void {
-    localStorage.setItem('authToken', token);
+    const storageKey = config.get('tokenStorageKey');
+    localStorage.setItem(storageKey, token);
   }
 
   public getToken(): string | null {
-    return localStorage.getItem('authToken');
+    const storageKey = config.get('tokenStorageKey');
+    return localStorage.getItem(storageKey);
   }
 
   public removeToken(): void {
-    localStorage.removeItem('authToken');
+    const storageKey = config.get('tokenStorageKey');
+    localStorage.removeItem(storageKey);
   }
 
   // Base URL getter for external services

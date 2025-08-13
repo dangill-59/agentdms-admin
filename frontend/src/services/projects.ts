@@ -6,36 +6,43 @@ export class ProjectService {
 
   // Projects CRUD operations
   public async getProjects(page = 1, pageSize = 10): Promise<PaginatedResponse<Project>> {
-    // Mock data for demonstration
-    const mockProjects: Project[] = [
-      {
-        id: '1',
-        name: 'Sample Project 1',
-        description: 'A sample project for testing',
-        fileName: 'DefaultFilename',
-        createdAt: '2024-01-01T00:00:00Z',
-        modifiedAt: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '2',
-        name: 'Document Management System',
-        description: 'Main DMS project',
-        fileName: 'DefaultFilename',
-        createdAt: '2024-01-02T00:00:00Z',
-        modifiedAt: '2024-01-02T00:00:00Z'
-      }
-    ];
+    try {
+      const response = await apiService.get<PaginatedResponse<Project>>(`${this.basePath}?page=${page}&pageSize=${pageSize}`);
+      return response.data;
+    } catch (error) {
+      console.warn('Failed to fetch projects from backend, using demo data:', error);
+      
+      // Fallback to demo data for development
+      const mockProjects: Project[] = [
+        {
+          id: '1',
+          name: 'Sample Project 1',
+          description: 'A sample project for testing',
+          fileName: 'DefaultFilename',
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z'
+        },
+        {
+          id: '2',
+          name: 'Document Management System',
+          description: 'Main DMS project',
+          fileName: 'DefaultFilename',
+          createdAt: '2024-01-02T00:00:00Z',
+          modifiedAt: '2024-01-02T00:00:00Z'
+        }
+      ];
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-    return {
-      data: mockProjects,
-      totalCount: mockProjects.length,
-      page,
-      pageSize,
-      totalPages: Math.ceil(mockProjects.length / pageSize)
-    };
+      return {
+        data: mockProjects,
+        totalCount: mockProjects.length,
+        page,
+        pageSize,
+        totalPages: Math.ceil(mockProjects.length / pageSize)
+      };
+    }
   }
 
   public async getProject(id: string): Promise<Project> {
