@@ -97,7 +97,7 @@ const Documents: React.FC = () => {
     }
   }, []);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
