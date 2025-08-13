@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import type { Document } from '../types/api';
+import { documentService } from '../services/documents';
 import Header from '../components/Header';
 
 interface UploadProgress {
@@ -17,23 +18,34 @@ const Documents: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [supportedFormats, setSupportedFormats] = useState<string[]>([
+    '.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tif', '.tiff', '.pdf', '.webp'
+  ]);
 
-  // Supported file formats (matching agentdms backend)
-  const supportedFormats = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tif', '.tiff', '.pdf', '.webp'];
+  // Supported file formats (will be loaded from backend)
   const maxFileSize = 50 * 1024 * 1024; // 50MB
 
   useEffect(() => {
     fetchDocuments();
+    loadSupportedFormats();
   }, []);
+
+  const loadSupportedFormats = async () => {
+    try {
+      const formats = await documentService.getSupportedFormats();
+      setSupportedFormats(formats);
+    } catch (error) {
+      console.error('Failed to load supported formats:', error);
+      // Keep default formats
+    }
+  };
 
   const fetchDocuments = async () => {
     try {
       setIsLoading(true);
       setError('');
-      // TODO: Replace with real API call
-      // const response = await documentService.getDocuments();
-      // setDocuments(response.data);
-      setDocuments([]); // Mock empty for now
+      const response = await documentService.getDocuments();
+      setDocuments(response.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load documents');
     } finally {
@@ -110,76 +122,29 @@ const Documents: React.FC = () => {
     }]);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      // Create XMLHttpRequest for progress tracking
-      const xhr = new XMLHttpRequest();
-      
-      // Track upload progress
-      xhr.upload.onprogress = (progressEvent) => {
-        if (progressEvent.lengthComputable) {
-          const progress = Math.round((progressEvent.loaded / progressEvent.total) * 100);
-          setUploadProgress(prev => 
-            prev.map(item => 
-              item.fileName === file.name 
-                ? { ...item, progress }
-                : item
-            )
-          );
-        }
-      };
-
-      // Handle completion
-      xhr.onload = () => {
-        if (xhr.status === 200) {
-          try {
-            const response = JSON.parse(xhr.responseText);
-            setUploadProgress(prev =>
-              prev.map(item =>
-                item.fileName === file.name
-                  ? { ...item, status: 'processing', jobId: response.jobId }
-                  : item
-              )
-            );
-            
-            // Start polling for job completion
-            if (response.jobId) {
-              pollJobStatus(response.jobId, file.name);
-            }
-          } catch {
-            setUploadProgress(prev =>
-              prev.map(item =>
-                item.fileName === file.name
-                  ? { ...item, status: 'error', error: 'Failed to parse response' }
-                  : item
-              )
-            );
-          }
-        } else {
-          setUploadProgress(prev =>
-            prev.map(item =>
-              item.fileName === file.name
-                ? { ...item, status: 'error', error: `Upload failed: ${xhr.statusText}` }
-                : item
-            )
-          );
-        }
-      };
-
-      xhr.onerror = () => {
-        setUploadProgress(prev =>
-          prev.map(item =>
-            item.fileName === file.name
-              ? { ...item, status: 'error', error: 'Network error during upload' }
+      // Use the document service for upload
+      const response = await documentService.uploadFile(file, (progress) => {
+        setUploadProgress(prev => 
+          prev.map(item => 
+            item.fileName === file.name 
+              ? { ...item, progress }
               : item
           )
         );
-      };
+      });
 
-      // TODO: Use actual backend URL
-      xhr.open('POST', '/api/imageprocessing/upload');
-      xhr.send(formData);
+      setUploadProgress(prev =>
+        prev.map(item =>
+          item.fileName === file.name
+            ? { ...item, status: 'processing', jobId: response.jobId }
+            : item
+        )
+      );
+      
+      // Start polling for job completion
+      if (response.jobId) {
+        pollJobStatus(response.jobId, file.name);
+      }
 
     } catch (error) {
       setUploadProgress(prev =>
@@ -193,72 +158,38 @@ const Documents: React.FC = () => {
   };
 
   const pollJobStatus = async (jobId: string, fileName: string) => {
-    const maxAttempts = 60; // 5 minutes with 5-second intervals
-    let attempts = 0;
-
-    const poll = async () => {
-      try {
-        // TODO: Use actual API endpoint
-        const response = await fetch(`/api/imageprocessing/job/${jobId}/status`);
-        
-        if (response.ok) {
-          const status = await response.json();
-          
-          if (status.status === 'Completed') {
-            setUploadProgress(prev =>
-              prev.map(item =>
-                item.fileName === fileName
-                  ? { ...item, status: 'completed', progress: 100 }
-                  : item
-              )
-            );
-            
-            // Refresh documents list
-            fetchDocuments();
-            
-            // Remove from progress after a delay
-            setTimeout(() => {
-              setUploadProgress(prev => prev.filter(item => item.fileName !== fileName));
-            }, 3000);
-            
-            return;
-          } else if (status.status === 'Failed') {
-            setUploadProgress(prev =>
-              prev.map(item =>
-                item.fileName === fileName
-                  ? { ...item, status: 'error', error: status.errorMessage || 'Processing failed' }
-                  : item
-              )
-            );
-            return;
-          }
-          
-          // Continue polling
-          attempts++;
-          if (attempts < maxAttempts) {
-            setTimeout(poll, 5000);
-          } else {
-            setUploadProgress(prev =>
-              prev.map(item =>
-                item.fileName === fileName
-                  ? { ...item, status: 'error', error: 'Processing timeout' }
-                  : item
-              )
-            );
-          }
-        }
-      } catch {
-        setUploadProgress(prev =>
-          prev.map(item =>
-            item.fileName === fileName
-              ? { ...item, status: 'error', error: 'Failed to check processing status' }
-              : item
-          )
-        );
-      }
-    };
-
-    poll();
+    try {
+      await documentService.pollJobCompletion(jobId);
+      
+      setUploadProgress(prev =>
+        prev.map(item =>
+          item.fileName === fileName
+            ? { ...item, status: 'completed', progress: 100 }
+            : item
+        )
+      );
+      
+      // Refresh documents list
+      fetchDocuments();
+      
+      // Remove from progress after a delay
+      setTimeout(() => {
+        setUploadProgress(prev => prev.filter(item => item.fileName !== fileName));
+      }, 3000);
+      
+    } catch (error) {
+      setUploadProgress(prev =>
+        prev.map(item =>
+          item.fileName === fileName
+            ? { 
+                ...item, 
+                status: 'error', 
+                error: error instanceof Error ? error.message : 'Processing failed' 
+              }
+            : item
+        )
+      );
+    }
   };
 
   const filteredDocuments = documents.filter(doc =>

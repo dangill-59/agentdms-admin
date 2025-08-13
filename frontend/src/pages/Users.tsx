@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import type { User } from '../types/auth';
+import { userService } from '../services/users';
 import Header from '../components/Header';
 
 interface NewUser {
@@ -35,29 +36,8 @@ const Users: React.FC = () => {
     try {
       setIsLoading(true);
       setError('');
-      // TODO: Replace with real API call
-      // Mock data for demonstration
-      const mockUsers: User[] = [
-        {
-          id: '1',
-          name: 'Admin User',
-          email: 'admin@agentdms.com',
-          role: 'Administrator'
-        },
-        {
-          id: '2',
-          name: 'John Manager',
-          email: 'john@agentdms.com',
-          role: 'Manager'
-        },
-        {
-          id: '3',
-          name: 'Jane User',
-          email: 'jane@agentdms.com',
-          role: 'User'
-        }
-      ];
-      setUsers(mockUsers);
+      const response = await userService.getUsers();
+      setUsers(response.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load users');
     } finally {
@@ -73,13 +53,12 @@ const Users: React.FC = () => {
 
   const handleCreateUser = async () => {
     try {
-      // TODO: Replace with real API call
-      const createdUser: User = {
-        id: String(Date.now()),
+      const createdUser = await userService.createUser({
         name: newUser.name,
         email: newUser.email,
-        role: newUser.role
-      };
+        role: newUser.role,
+        password: newUser.password
+      });
       
       setUsers(prev => [...prev, createdUser]);
       setShowCreateModal(false);
@@ -103,13 +82,12 @@ const Users: React.FC = () => {
     if (!editingUser) return;
     
     try {
-      // TODO: Replace with real API call
-      const updatedUser: User = {
-        ...editingUser,
+      const updatedUser = await userService.updateUser(editingUser.id, {
         name: newUser.name,
         email: newUser.email,
-        role: newUser.role
-      };
+        role: newUser.role,
+        ...(newUser.password && { password: newUser.password })
+      });
       
       setUsers(prev => prev.map(u => u.id === editingUser.id ? updatedUser : u));
       setEditingUser(null);
@@ -123,7 +101,7 @@ const Users: React.FC = () => {
     if (!confirm('Are you sure you want to delete this user?')) return;
     
     try {
-      // TODO: Replace with real API call
+      await userService.deleteUser(userId);
       setUsers(prev => prev.filter(u => u.id !== userId));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete user');
