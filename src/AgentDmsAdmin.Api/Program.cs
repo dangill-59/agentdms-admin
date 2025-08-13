@@ -24,7 +24,11 @@ if (app.Environment.IsDevelopment())
     }
 }
 
-app.UseHttpsRedirection();
+// Uncomment the following line if you have HTTPS configured locally.
+// app.UseHttpsRedirection();
+
+// Root endpoint so you don’t get a 404 at /
+app.MapGet("/", () => "AgentDMS Admin Service is running.");
 
 // Basic health check endpoint
 app.MapGet("/health", () => new { Status = "Healthy", Timestamp = DateTime.UtcNow });
