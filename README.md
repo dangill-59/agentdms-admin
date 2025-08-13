@@ -24,6 +24,15 @@ AgentDmsAdmin/
 │       ├── Program.cs               # Application entry point
 │       ├── appsettings.json         # Configuration
 │       └── ...
+├── frontend/                        # React + TypeScript frontend
+│   ├── src/
+│   │   ├── auth/                    # Authentication context
+│   │   ├── components/              # Reusable UI components
+│   │   ├── pages/                   # Page components
+│   │   ├── services/                # API service layer
+│   │   └── types/                   # TypeScript definitions
+│   ├── package.json                 # Frontend dependencies
+│   └── README.md                    # Frontend documentation
 └── AgentDmsAdmin.sln                # Solution file
 ```
 
@@ -78,7 +87,15 @@ Project (1) ──────── (*) Document
 - SQLite (included with .NET runtime)
 - Visual Studio 2022 or VS Code with C# extension
 
-### Getting Started
+## Setup Instructions
+
+### Prerequisites
+- .NET 8.0 SDK or later
+- SQLite (included with .NET runtime)
+- Visual Studio 2022 or VS Code with C# extension
+- Node.js 18+ and npm (for frontend)
+
+### Backend Setup
 
 1. **Clone the repository**
    ```bash
@@ -99,13 +116,86 @@ Project (1) ──────── (*) Document
    
    This will create the SQLite database file (`agentdms.db`) in the API project directory.
 
-4. **Run the application**
+4. **Run the backend API**
    ```bash
    dotnet run --project src/AgentDmsAdmin.Api
    ```
 
-5. **Verify setup**
+5. **Verify backend setup**
    Navigate to `http://localhost:5267/health` to confirm the API is running.
+
+### Frontend Setup
+
+1. **Navigate to frontend directory**
+   ```bash
+   cd frontend
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Configure environment variables**
+   ```bash
+   cp .env.example .env
+   ```
+   
+   The default configuration should work with the backend running on `http://localhost:5267`.
+
+4. **Start the frontend development server**
+   ```bash
+   npm run dev
+   ```
+   
+   The frontend will be available at `http://localhost:5173`.
+
+### Full Stack Setup
+
+To run both backend and frontend simultaneously:
+
+1. **Terminal 1 - Backend**
+   ```bash
+   dotnet run --project src/AgentDmsAdmin.Api
+   ```
+
+2. **Terminal 2 - Frontend**
+   ```bash
+   cd frontend && npm run dev
+   ```
+
+3. **Access the application**
+   - Frontend: `http://localhost:5173`
+   - Backend API: `http://localhost:5267`
+   - Login with: `admin@agentdms.com` / `admin123`
+
+## Frontend Technologies
+
+The React frontend includes:
+
+### Core Technologies
+- **React 19** with TypeScript for type-safe component development
+- **Vite** for fast development and optimized production builds
+- **React Router v6** for client-side routing with protected routes
+- **Tailwind CSS** for modern, responsive styling
+
+### Authentication & Security
+- **JWT Authentication** with localStorage token management
+- **Protected Routes** with automatic redirect to login
+- **Auth Context** for global authentication state
+- **Automatic Token Injection** in API requests
+
+### API Integration
+- **Axios** HTTP client with interceptors
+- **Type-safe API responses** with TypeScript interfaces
+- **Error handling** for authentication failures
+- **Mock data** for development (easily replaceable with real APIs)
+
+### Development Features
+- **Hot Module Replacement** for fast development
+- **ESLint** for code quality
+- **TypeScript strict mode** for maximum type safety
+- **Environment variables** for configuration management
 
 ## Database Configuration
 
@@ -188,16 +278,22 @@ This foundation provides:
 - ✅ Database migrations ready for deployment
 - ✅ Seed data logic for default fields
 - ✅ ASP.NET Core API project structure
+- ✅ React + TypeScript frontend with Vite
+- ✅ JWT-based authentication system
+- ✅ Protected routes and navigation
+- ✅ Responsive UI with Tailwind CSS
+- ✅ API service layer with Axios
 
 **Recommended next development steps:**
 1. Add API controllers for CRUD operations
 2. Implement business logic services
 3. Add validation and error handling
 4. Implement file upload/storage functionality
-5. Add authentication and authorization
-6. Create unit and integration tests
-7. Add logging and monitoring
-8. Implement document processing (OCR, thumbnails)
+5. Add authentication and authorization to backend
+6. Connect frontend to real backend APIs (remove mock data)
+7. Create unit and integration tests
+8. Add logging and monitoring
+9. Implement document processing (OCR, thumbnails)
 
 ## Configuration
 
