@@ -11,6 +11,17 @@ builder.Services.AddDbContext<AgentDmsContext>(options =>
 
 builder.Services.AddScoped<DataSeeder>();
 
+// Add CORS policy for frontend
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend",
+        policy => policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+    );
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -26,6 +37,9 @@ if (app.Environment.IsDevelopment())
 
 // Uncomment the following line if you have HTTPS configured locally.
 // app.UseHttpsRedirection();
+
+// Enable CORS for frontend requests
+app.UseCors("AllowFrontend");
 
 // Root endpoint so you don’t get a 404 at /
 app.MapGet("/", () => "AgentDMS Admin Service is running.");
