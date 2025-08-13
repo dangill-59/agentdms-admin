@@ -64,6 +64,11 @@ class ApiService {
     localStorage.removeItem('authToken');
   }
 
+  // Base URL getter for external services
+  public getBaseURL(): string {
+    return this.baseURL;
+  }
+
   // Generic API methods
   public async get<T>(url: string): Promise<ApiResponse<T>> {
     const response = await this.api.get<ApiResponse<T>>(url);

@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { settingsService } from '../services/settings';
+import type { AppSettings } from '../services/settings';
 import Header from '../components/Header';
-
-interface AppSettings {
-  maxFileSize: number;
-  allowedFileTypes: string[];
-  autoProcessUploads: boolean;
-  enableNotifications: boolean;
-  retentionDays: number;
-}
 
 interface UserProfile {
   name: string;
@@ -36,11 +30,33 @@ const Settings: React.FC = () => {
 
   // App settings state
   const [appSettings, setAppSettings] = useState<AppSettings>({
-    maxFileSize: 50, // MB
+    maxFileSize: 50 * 1024 * 1024, // 50MB in bytes
     allowedFileTypes: ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tif', '.tiff', '.pdf', '.webp'],
     autoProcessUploads: true,
+    processingTimeout: 300,
+    retentionDays: 365,
     enableNotifications: true,
-    retentionDays: 365
+    emailNotifications: {
+      uploadCompleted: true,
+      processingStatus: true,
+      systemErrors: true
+    },
+    pushNotifications: {
+      uploadProgress: false,
+      processingCompletion: true
+    },
+    sessionTimeout: 120,
+    passwordPolicy: {
+      minLength: 8,
+      requireUppercase: true,
+      requireLowercase: true,
+      requireNumbers: true,
+      requireSpecialChars: false
+    },
+    theme: 'light',
+    defaultPageSize: 10,
+    dateFormat: 'MM/dd/yyyy',
+    timeFormat: '12h'
   });
 
   const tabs = [
@@ -57,9 +73,8 @@ const Settings: React.FC = () => {
   const loadSettings = async () => {
     try {
       setIsLoading(true);
-      // TODO: Load settings from API
-      // const settings = await settingsService.getSettings();
-      // setAppSettings(settings);
+      const settings = await settingsService.getAppSettings();
+      setAppSettings(settings);
     } catch (error) {
       console.warn('Failed to load settings:', error);
     } finally {
@@ -111,8 +126,8 @@ const Settings: React.FC = () => {
 
     try {
       setIsLoading(true);
-      // TODO: Update app settings via API
-      // await settingsService.updateSettings(appSettings);
+      const updatedSettings = await settingsService.updateAppSettings(appSettings);
+      setAppSettings(updatedSettings);
       setSuccess('Application settings updated successfully');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update settings');
@@ -339,8 +354,11 @@ const Settings: React.FC = () => {
                             type="number"
                             min="1"
                             max="500"
-                            value={appSettings.maxFileSize}
-                            onChange={(e) => setAppSettings({ ...appSettings, maxFileSize: parseInt(e.target.value) })}
+                            value={Math.round(appSettings.maxFileSize / 1024 / 1024)}
+                            onChange={(e) => setAppSettings({ 
+                              ...appSettings, 
+                              maxFileSize: parseInt(e.target.value) * 1024 * 1024 
+                            })}
                             className="mt-1 block w-full md:w-48 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                           />
                           <p className="mt-1 text-sm text-gray-500">Maximum size for uploaded files</p>
