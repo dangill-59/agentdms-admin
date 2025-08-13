@@ -1,6 +1,6 @@
 # AgentDMS Admin Backend
 
-A .NET 8 solution for managing AgentDMS admin data with Entity Framework Core. This backend provides data access and API functionality for managing projects, documents, custom fields, and document indexing.
+A .NET 8 solution for managing AgentDMS admin data with Entity Framework Core and SQLite. This backend provides data access and API functionality for managing projects, documents, custom fields, and document indexing.
 
 ## Project Structure
 
@@ -75,7 +75,7 @@ Project (1) ──────── (*) Document
 
 ### Prerequisites
 - .NET 8.0 SDK or later
-- SQL Server or LocalDB
+- SQLite (included with .NET runtime)
 - Visual Studio 2022 or VS Code with C# extension
 
 ### Getting Started
@@ -91,29 +91,40 @@ Project (1) ──────── (*) Document
    dotnet restore
    ```
 
-3. **Update connection string** (optional)
-   Edit `src/AgentDmsAdmin.Api/appsettings.json` to modify the database connection:
-   ```json
-   {
-     "ConnectionStrings": {
-       "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=AgentDmsAdminDb;Trusted_Connection=true;MultipleActiveResultSets=true"
-     }
-   }
-   ```
-
-4. **Apply database migrations**
+3. **Apply database migrations**
    ```bash
    cd src/AgentDmsAdmin.Api
    dotnet ef database update --project ../AgentDmsAdmin.Data
    ```
+   
+   This will create the SQLite database file (`agentdms.db`) in the API project directory.
 
-5. **Run the application**
+4. **Run the application**
    ```bash
    dotnet run --project src/AgentDmsAdmin.Api
    ```
 
-6. **Verify setup**
-   Navigate to `https://localhost:5001/health` to confirm the API is running.
+5. **Verify setup**
+   Navigate to `http://localhost:5267/health` to confirm the API is running.
+
+## Database Configuration
+
+This project uses **SQLite** for local development and testing. The database file (`agentdms.db`) is created automatically when migrations are applied.
+
+### Connection String
+The default connection string in `appsettings.json` and `appsettings.Development.json`:
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=agentdms.db"
+  }
+}
+```
+
+### Development Features
+- **Enhanced Logging**: `appsettings.Development.json` includes EF Core command logging for debugging
+- **Automatic Data Seeding**: Sample data is automatically created in development environment
+- **File-based Database**: Easy to reset by simply deleting the `agentdms.db` file
 
 ## Database Management
 
@@ -191,14 +202,27 @@ This foundation provides:
 ## Configuration
 
 Key configuration options in `appsettings.json`:
-- **ConnectionStrings:DefaultConnection** - Database connection string
+- **ConnectionStrings:DefaultConnection** - SQLite database connection string
 - **Logging** - Logging configuration
 - **AllowedHosts** - Allowed host headers
+
+### Development vs Production
+- **Development**: Uses SQLite with enhanced logging and automatic data seeding
+- **Production**: Can be configured to use any EF Core supported database provider
 
 ## Development Notes
 
 - All entities inherit from `BaseEntity` providing `Id`, `CreatedAt`, and `ModifiedAt` fields
-- Timestamps are automatically managed via `SaveChanges` override
+- Timestamps are automatically managed via `SaveChanges` override in code (no database defaults needed)
 - Foreign key cascading is configured appropriately (cascade for owned entities, restrict for shared references)
 - Indexes are added for performance on commonly queried fields
-- The solution uses Entity Framework 9.0 with SQL Server provider
+- The solution uses Entity Framework 9.0 with SQLite provider for development
+- SQLite database file (`agentdms.db`) is portable and can be easily backed up or shared
+
+## Database Provider Migration
+
+This project has been migrated from SQL Server to SQLite for improved local development experience:
+- **Simplified setup**: No SQL Server installation required
+- **Portable database**: Single file database that can be easily shared or backed up
+- **Cross-platform**: Works consistently across Windows, macOS, and Linux
+- **Faster development**: Instant database creation and reset capabilities

@@ -65,45 +65,8 @@ public class AgentDmsContext : DbContext
             .IsUnique();
 
         // Configure BaseEntity properties
-        modelBuilder.Entity<Project>()
-            .Property(p => p.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
-
-        modelBuilder.Entity<Project>()
-            .Property(p => p.ModifiedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
-
-        modelBuilder.Entity<CustomField>()
-            .Property(cf => cf.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
-
-        modelBuilder.Entity<CustomField>()
-            .Property(cf => cf.ModifiedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
-
-        modelBuilder.Entity<Document>()
-            .Property(d => d.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
-
-        modelBuilder.Entity<Document>()
-            .Property(d => d.ModifiedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
-
-        modelBuilder.Entity<DocumentFieldValue>()
-            .Property(dfv => dfv.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
-
-        modelBuilder.Entity<DocumentFieldValue>()
-            .Property(dfv => dfv.ModifiedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
-
-        modelBuilder.Entity<DocumentPage>()
-            .Property(dp => dp.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
-
-        modelBuilder.Entity<DocumentPage>()
-            .Property(dp => dp.ModifiedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+        // Note: SQLite doesn't support default value SQL expressions like GETUTCDATE()
+        // DateTime defaults are handled in code via UpdateTimestamps() method
 
         // Seed default custom fields
         SeedDefaultFields(modelBuilder);
