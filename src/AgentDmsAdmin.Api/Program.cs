@@ -11,6 +11,9 @@ builder.Services.AddDbContext<AgentDmsContext>(options =>
 
 builder.Services.AddScoped<DataSeeder>();
 
+// Add controllers support
+builder.Services.AddControllers();
+
 // Add CORS policy for frontend
 builder.Services.AddCors(options =>
 {
@@ -40,6 +43,9 @@ if (app.Environment.IsDevelopment())
 
 // Enable CORS for frontend requests
 app.UseCors("AllowFrontend");
+
+// Map controllers to /api route
+app.MapControllers();
 
 // Root endpoint so you don’t get a 404 at /
 app.MapGet("/", () => "AgentDMS Admin Service is running.");
