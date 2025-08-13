@@ -2,75 +2,165 @@ import type { LoginCredentials, AuthResponse, User } from '../types/auth';
 import { apiService } from './api';
 
 export class AuthService {
-  // Mock authentication for demo purposes
-  // In a real application, these would call actual backend endpoints
   public async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Mock validation - in real app, this would be validated by backend
-    if (credentials.email === 'admin@agentdms.com' && credentials.password === 'admin123') {
-      const user: User = {
-        id: '1',
-        email: credentials.email,
-        name: 'Admin User',
-        role: 'Administrator'
-      };
-
-      const token = 'mock-jwt-token-' + Date.now();
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
-
-      const response: AuthResponse = {
-        token,
-        user,
-        expiresAt
-      };
-
-      // Store token
-      apiService.setToken(token);
+    try {
+      // Try real backend authentication first
+      const response = await apiService.post<AuthResponse>('/auth/login', credentials);
       
-      return response;
-    } else {
-      throw new Error('Invalid email or password');
+      // Store token
+      apiService.setToken(response.data.token);
+      
+      return response.data;
+    } catch (error) {
+      // Fallback to demo authentication for development
+      console.warn('Backend authentication failed, using demo authentication:', error);
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Demo validation - remove this in production
+      if (credentials.email === 'admin@agentdms.com' && credentials.password === 'admin123') {
+        const user: User = {
+          id: '1',
+          email: credentials.email,
+          name: 'Admin User',
+          role: 'Administrator'
+        };
+
+        const token = 'demo-jwt-token-' + Date.now();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
+
+        const response: AuthResponse = {
+          token,
+          user,
+          expiresAt
+        };
+
+        // Store token
+        apiService.setToken(token);
+        
+        return response;
+      } else {
+        throw new Error('Invalid email or password');
+      }
     }
   }
 
   public async logout(): Promise<void> {
-    // In a real app, you might want to call a logout endpoint to invalidate the token
-    apiService.removeToken();
+    try {
+      // Try to call backend logout endpoint to invalidate the token
+      await apiService.post('/auth/logout');
+    } catch (error) {
+      console.warn('Backend logout failed:', error);
+    } finally {
+      // Always remove token locally
+      apiService.removeToken();
+    }
   }
 
   public async getCurrentUser(): Promise<User | null> {
     const token = apiService.getToken();
     if (!token) return null;
 
-    // In a real app, this would verify the token with the backend
-    // For now, return mock user if token exists
-    return {
-      id: '1',
-      email: 'admin@agentdms.com',
-      name: 'Admin User',
-      role: 'Administrator'
-    };
+    try {
+      // Try to get current user from backend
+      const response = await apiService.get<User>('/auth/me');
+      return response.data;
+    } catch (error) {
+      console.warn('Failed to get current user from backend:', error);
+      
+      // Fallback to demo user if token exists (for development)
+      if (token.startsWith('demo-jwt-token-')) {
+        return {
+          id: '1',
+          email: 'admin@agentdms.com',
+          name: 'Admin User',
+          role: 'Administrator'
+        };
+      }
+      
+      return null;
+    }
   }
 
   public async refreshToken(): Promise<string | null> {
-    // In a real app, this would refresh the JWT token
-    // For now, just return the existing token
-    return apiService.getToken();
+    try {
+      const response = await apiService.post<{ token: string; expiresAt: string }>('/auth/refresh');
+      const newToken = response.data.token;
+      
+      apiService.setToken(newToken);
+      return newToken;
+    } catch (error) {
+      console.warn('Token refresh failed:', error);
+      
+      // For demo tokens, just return the existing token
+      const currentToken = apiService.getToken();
+      if (currentToken?.startsWith('demo-jwt-token-')) {
+        return currentToken;
+      }
+      
+      return null;
+    }
   }
 
   public isTokenValid(): boolean {
     const token = apiService.getToken();
     if (!token) return false;
 
-    // In a real app, you would decode and validate the JWT token
+    // For demo tokens, always consider valid
+    if (token.startsWith('demo-jwt-token-')) {
+      return true;
+    }
+
+    // For real JWT tokens, you would decode and validate the token
     // For now, just check if token exists
-    return true;
+    try {
+      // You can add JWT token validation here
+      // const decoded = jwt.decode(token);
+      // return decoded && decoded.exp > Date.now() / 1000;
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   public getToken(): string | null {
     return apiService.getToken();
+  }
+
+  // Additional auth methods for real backend integration
+  public async register(userData: {
+    name: string;
+    email: string;
+    password: string;
+    role?: string;
+  }): Promise<AuthResponse> {
+    const response = await apiService.post<AuthResponse>('/auth/register', userData);
+    
+    // Store token
+    apiService.setToken(response.data.token);
+    
+    return response.data;
+  }
+
+  public async forgotPassword(email: string): Promise<void> {
+    await apiService.post('/auth/forgot-password', { email });
+  }
+
+  public async resetPassword(token: string, newPassword: string): Promise<void> {
+    await apiService.post('/auth/reset-password', { token, newPassword });
+  }
+
+  public async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await apiService.post('/auth/change-password', { currentPassword, newPassword });
+  }
+
+  public async verifyEmail(token: string): Promise<void> {
+    await apiService.post('/auth/verify-email', { token });
+  }
+
+  public async resendVerification(email: string): Promise<void> {
+    await apiService.post('/auth/resend-verification', { email });
   }
 }
 
