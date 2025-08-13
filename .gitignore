@@ -38,7 +38,6 @@ packages/
 *.db-wal
 
 # User-specific files
-appsettings.Development.json
 appsettings.Local.json
 
 # Temporary files
