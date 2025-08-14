@@ -46,6 +46,8 @@ public class DataSeeder
                 FieldType = CustomFieldType.Text,
                 IsRequired = true,
                 IsDefault = true,
+                IsRemovable = false,
+                Order = 1,
                 ProjectId = projectId
             },
             new CustomField
@@ -55,6 +57,8 @@ public class DataSeeder
                 FieldType = CustomFieldType.Date,
                 IsRequired = true,
                 IsDefault = true,
+                IsRemovable = false,
+                Order = 2,
                 ProjectId = projectId
             },
             new CustomField
@@ -64,6 +68,8 @@ public class DataSeeder
                 FieldType = CustomFieldType.Date,
                 IsRequired = true,
                 IsDefault = true,
+                IsRemovable = false,
+                Order = 3,
                 ProjectId = projectId
             }
         };

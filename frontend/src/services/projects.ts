@@ -1,4 +1,13 @@
-import type { Project, Document, CustomField, PaginatedResponse } from '../types/api';
+import type { 
+  Project, 
+  Document, 
+  CustomField, 
+  PaginatedResponse, 
+  CreateProjectRequest,
+  UpdateProjectRequest,
+  CreateCustomFieldRequest,
+  UpdateCustomFieldRequest 
+} from '../types/api';
 import { apiService } from './api';
 
 export class ProjectService {
@@ -7,8 +16,10 @@ export class ProjectService {
   // Projects CRUD operations
   public async getProjects(page = 1, pageSize = 10): Promise<PaginatedResponse<Project>> {
     try {
-      const response = await apiService.get<PaginatedResponse<Project>>(`${this.basePath}?page=${page}&pageSize=${pageSize}`);
-      return response.data;
+      // Make direct API call since backend returns data directly
+      const response = await fetch(`http://localhost:5267/api/projects?page=${page}&pageSize=${pageSize}`);
+      const data = await response.json();
+      return data;
     } catch (error) {
       console.warn('Failed to fetch projects from backend, using demo data:', error);
       
@@ -46,34 +57,86 @@ export class ProjectService {
   }
 
   public async getProject(id: string): Promise<Project> {
-    const response = await apiService.get<Project>(`${this.basePath}/${id}`);
-    return response.data;
+    const response = await fetch(`http://localhost:5267/api/projects/${id}`);
+    return await response.json();
   }
 
-  public async createProject(project: Omit<Project, 'id' | 'createdAt' | 'modifiedAt'>): Promise<Project> {
-    const response = await apiService.post<Project>(this.basePath, project);
-    return response.data;
+  public async createProject(request: CreateProjectRequest): Promise<Project> {
+    const response = await fetch('http://localhost:5267/api/projects', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+    return await response.json();
   }
 
-  public async updateProject(id: string, project: Partial<Project>): Promise<Project> {
-    const response = await apiService.put<Project>(`${this.basePath}/${id}`, project);
-    return response.data;
+  public async updateProject(id: string, request: UpdateProjectRequest): Promise<Project> {
+    const response = await fetch(`http://localhost:5267/api/projects/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+    return await response.json();
   }
 
   public async deleteProject(id: string): Promise<void> {
-    await apiService.delete(`${this.basePath}/${id}`);
+    await fetch(`http://localhost:5267/api/projects/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  public async cloneProject(id: string): Promise<Project> {
+    const response = await fetch(`http://localhost:5267/api/projects/${id}/clone`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return await response.json();
   }
 
   // Project documents
   public async getProjectDocuments(projectId: string): Promise<Document[]> {
-    const response = await apiService.get<Document[]>(`${this.basePath}/${projectId}/documents`);
-    return response.data;
+    const response = await fetch(`http://localhost:5267/api/projects/${projectId}/documents`);
+    return await response.json();
   }
 
   // Project custom fields
   public async getProjectCustomFields(projectId: string): Promise<CustomField[]> {
-    const response = await apiService.get<CustomField[]>(`${this.basePath}/${projectId}/custom-fields`);
-    return response.data;
+    const response = await fetch(`http://localhost:5267/api/projects/${projectId}/custom-fields`);
+    return await response.json();
+  }
+
+  public async createCustomField(projectId: string, request: CreateCustomFieldRequest): Promise<CustomField> {
+    const response = await fetch(`http://localhost:5267/api/projects/${projectId}/custom-fields`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+    return await response.json();
+  }
+
+  public async updateCustomField(projectId: string, fieldId: string, request: UpdateCustomFieldRequest): Promise<CustomField> {
+    const response = await fetch(`http://localhost:5267/api/projects/${projectId}/custom-fields/${fieldId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+    return await response.json();
+  }
+
+  public async deleteCustomField(projectId: string, fieldId: string): Promise<void> {
+    await fetch(`http://localhost:5267/api/projects/${projectId}/custom-fields/${fieldId}`, {
+      method: 'DELETE',
+    });
   }
 }
 

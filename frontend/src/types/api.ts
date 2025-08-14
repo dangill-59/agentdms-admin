@@ -28,11 +28,17 @@ export interface CustomField {
   id: string;
   projectId: string;
   name: string;
-  fieldType: 'Text' | 'Number' | 'Date' | 'Boolean' | 'LongText';
+  fieldType: 'Text' | 'Number' | 'Date' | 'Boolean' | 'LongText' | 'Currency' | 'UserList';
   isRequired: boolean;
   isDefault: boolean;
+  defaultValue?: string;
+  order: number;
+  roleVisibility?: string;
+  userListOptions?: string;
+  isRemovable: boolean;
   createdAt: string;
   modifiedAt: string;
+  description?: string;
 }
 
 export interface Document {
@@ -44,4 +50,39 @@ export interface Document {
   fileSize: number;
   createdAt: string;
   modifiedAt: string;
+}
+
+// Request types
+export interface CreateProjectRequest {
+  name: string;
+  description?: string;
+  fileName?: string;
+}
+
+export interface UpdateProjectRequest {
+  name?: string;
+  description?: string;
+  fileName?: string;
+}
+
+export interface CreateCustomFieldRequest {
+  name: string;
+  description?: string;
+  fieldType: string;
+  isRequired: boolean;
+  defaultValue?: string;
+  order: number;
+  roleVisibility?: string;
+  userListOptions?: string;
+}
+
+export interface UpdateCustomFieldRequest {
+  name?: string;
+  description?: string;
+  fieldType?: string;
+  isRequired?: boolean;
+  defaultValue?: string;
+  order?: number;
+  roleVisibility?: string;
+  userListOptions?: string;
 }
