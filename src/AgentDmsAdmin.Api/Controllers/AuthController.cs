@@ -7,6 +7,36 @@ namespace AgentDmsAdmin.Api.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
+    [HttpPost("login")]
+    public ActionResult<AuthResponse> Login([FromBody] LoginRequest request)
+    {
+        // Demo authentication - validate demo credentials
+        if (request.Email == "admin@agentdms.com" && request.Password == "admin123")
+        {
+            var user = new UserDto
+            {
+                Id = "1",
+                Email = request.Email,
+                Name = "Admin User",
+                Role = "Administrator"
+            };
+
+            var token = $"demo-jwt-token-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+            var expiresAt = DateTime.UtcNow.AddHours(24).ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+
+            var response = new AuthResponse
+            {
+                Token = token,
+                User = user,
+                ExpiresAt = expiresAt
+            };
+
+            return Ok(response);
+        }
+
+        return Unauthorized(new { message = "Invalid email or password" });
+    }
+
     [HttpGet("me")]
     public ActionResult<UserDto> GetCurrentUser()
     {
