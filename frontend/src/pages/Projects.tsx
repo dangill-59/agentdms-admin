@@ -20,7 +20,7 @@ const Projects: React.FC = () => {
       setIsLoading(true);
       setError('');
       const response = await projectService.getProjects();
-      setProjects(response.data);
+      setProjects(response.data ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load projects');
     } finally {
@@ -28,7 +28,7 @@ const Projects: React.FC = () => {
     }
   };
 
-  const filteredProjects = projects.filter(project =>
+  const filteredProjects = (projects ?? []).filter(project =>
     project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (project.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
   );
