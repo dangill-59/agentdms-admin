@@ -37,6 +37,14 @@ public class AuthController : ControllerBase
         return Unauthorized(new { message = "Invalid email or password" });
     }
 
+    [HttpPost("logout")]
+    public ActionResult Logout()
+    {
+        // Dummy logout endpoint for demo authentication
+        // In a real implementation, this would invalidate the JWT token
+        return Ok(new { message = "Logged out successfully" });
+    }
+
     [HttpGet("me")]
     public ActionResult<UserDto> GetCurrentUser()
     {
