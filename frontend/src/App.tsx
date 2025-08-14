@@ -4,6 +4,7 @@ import ProtectedRoute from './auth/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
+import ProjectFieldsPage from './pages/ProjectFieldsPage';
 import Documents from './pages/Documents';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
@@ -41,6 +42,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Projects />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/projects/:projectId/fields" 
+              element={
+                <ProtectedRoute>
+                  <ProjectFieldsPage />
                 </ProtectedRoute>
               } 
             />

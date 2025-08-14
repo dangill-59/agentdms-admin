@@ -30,9 +30,12 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    // Seed data in development
+    // Ensure database is created and seed data in development
     using (var scope = app.Services.CreateScope())
     {
+        var context = scope.ServiceProvider.GetRequiredService<AgentDmsContext>();
+        await context.Database.EnsureCreatedAsync();
+        
         var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
         await seeder.SeedSampleDataAsync();
     }
