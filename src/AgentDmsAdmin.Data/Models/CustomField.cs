@@ -9,7 +9,9 @@ public enum CustomFieldType
     Number,
     Date,
     Boolean,
-    LongText
+    LongText,
+    Currency,
+    UserList
 }
 
 public class CustomField : BaseEntity
@@ -30,6 +32,20 @@ public class CustomField : BaseEntity
     
     [MaxLength(500)]
     public string? DefaultValue { get; set; }
+    
+    // Field ordering
+    public int Order { get; set; }
+    
+    // Role-based visibility (comma-separated role names or "all" for everyone)
+    [MaxLength(500)]
+    public string? RoleVisibility { get; set; } = "all";
+    
+    // For UserList type - JSON array of user options
+    [MaxLength(2000)]
+    public string? UserListOptions { get; set; }
+    
+    // Whether field can be removed (default fields cannot be removed)
+    public bool IsRemovable { get; set; } = true;
     
     // Foreign key
     public int ProjectId { get; set; }

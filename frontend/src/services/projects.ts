@@ -1,4 +1,13 @@
-import type { Project, Document, CustomField, PaginatedResponse } from '../types/api';
+import type { 
+  Project, 
+  Document, 
+  CustomField, 
+  PaginatedResponse, 
+  CreateProjectRequest,
+  UpdateProjectRequest,
+  CreateCustomFieldRequest,
+  UpdateCustomFieldRequest 
+} from '../types/api';
 import { apiService } from './api';
 
 export class ProjectService {
@@ -50,18 +59,23 @@ export class ProjectService {
     return response.data;
   }
 
-  public async createProject(project: Omit<Project, 'id' | 'createdAt' | 'modifiedAt'>): Promise<Project> {
-    const response = await apiService.post<Project>(this.basePath, project);
+  public async createProject(request: CreateProjectRequest): Promise<Project> {
+    const response = await apiService.post<Project>(this.basePath, request);
     return response.data;
   }
 
-  public async updateProject(id: string, project: Partial<Project>): Promise<Project> {
-    const response = await apiService.put<Project>(`${this.basePath}/${id}`, project);
+  public async updateProject(id: string, request: UpdateProjectRequest): Promise<Project> {
+    const response = await apiService.put<Project>(`${this.basePath}/${id}`, request);
     return response.data;
   }
 
   public async deleteProject(id: string): Promise<void> {
     await apiService.delete(`${this.basePath}/${id}`);
+  }
+
+  public async cloneProject(id: string): Promise<Project> {
+    const response = await apiService.post<Project>(`${this.basePath}/${id}/clone`);
+    return response.data;
   }
 
   // Project documents
@@ -74,6 +88,20 @@ export class ProjectService {
   public async getProjectCustomFields(projectId: string): Promise<CustomField[]> {
     const response = await apiService.get<CustomField[]>(`${this.basePath}/${projectId}/custom-fields`);
     return response.data;
+  }
+
+  public async createCustomField(projectId: string, request: CreateCustomFieldRequest): Promise<CustomField> {
+    const response = await apiService.post<CustomField>(`${this.basePath}/${projectId}/custom-fields`, request);
+    return response.data;
+  }
+
+  public async updateCustomField(projectId: string, fieldId: string, request: UpdateCustomFieldRequest): Promise<CustomField> {
+    const response = await apiService.put<CustomField>(`${this.basePath}/${projectId}/custom-fields/${fieldId}`, request);
+    return response.data;
+  }
+
+  public async deleteCustomField(projectId: string, fieldId: string): Promise<void> {
+    await apiService.delete(`${this.basePath}/${projectId}/custom-fields/${fieldId}`);
   }
 }
 
