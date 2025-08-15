@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using AgentDmsAdmin.Api.Models;
 using AgentDmsAdmin.Data.Data;
 using AgentDmsAdmin.Data.Models;
@@ -13,11 +14,13 @@ public class ProjectsController : ControllerBase
 {
     private readonly AgentDmsContext _context;
     private readonly DataSeeder _dataSeeder;
+    private readonly ILogger<ProjectsController> _logger;
 
-    public ProjectsController(AgentDmsContext context, DataSeeder dataSeeder)
+    public ProjectsController(AgentDmsContext context, DataSeeder dataSeeder, ILogger<ProjectsController> logger)
     {
         _context = context;
         _dataSeeder = dataSeeder;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -58,6 +61,7 @@ public class ProjectsController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Failed to retrieve projects from database, falling back to demo data");
             // Fallback to demo data for development
             var projects = new List<ProjectDto>
             {
@@ -135,6 +139,7 @@ public class ProjectsController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error retrieving project with ID {ProjectId}", id);
             return StatusCode(500, $"Error retrieving project: {ex.Message}");
         }
     }
@@ -176,6 +181,7 @@ public class ProjectsController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error creating project with name {ProjectName}", request.Name);
             return StatusCode(500, $"Error creating project: {ex.Message}");
         }
     }
@@ -214,6 +220,7 @@ public class ProjectsController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error updating project with ID {ProjectId}", id);
             return StatusCode(500, $"Error updating project: {ex.Message}");
         }
     }
@@ -236,6 +243,7 @@ public class ProjectsController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error deleting project with ID {ProjectId}", id);
             return StatusCode(500, $"Error deleting project: {ex.Message}");
         }
     }
@@ -300,6 +308,7 @@ public class ProjectsController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error cloning project with ID {ProjectId}", id);
             return StatusCode(500, $"Error cloning project: {ex.Message}");
         }
     }
@@ -342,6 +351,7 @@ public class ProjectsController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error retrieving custom fields for project {ProjectId}", projectId);
             return StatusCode(500, $"Error retrieving custom fields: {ex.Message}");
         }
     }
@@ -407,6 +417,7 @@ public class ProjectsController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error creating custom field {FieldName} for project {ProjectId}", request.Name, projectId);
             return StatusCode(500, $"Error creating custom field: {ex.Message}");
         }
     }
@@ -465,6 +476,7 @@ public class ProjectsController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error updating custom field {FieldId} for project {ProjectId}", fieldId, projectId);
             return StatusCode(500, $"Error updating custom field: {ex.Message}");
         }
     }
@@ -494,6 +506,7 @@ public class ProjectsController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error deleting custom field {FieldId} for project {ProjectId}", fieldId, projectId);
             return StatusCode(500, $"Error deleting custom field: {ex.Message}");
         }
     }
