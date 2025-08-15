@@ -7,15 +7,19 @@ export class AuthService {
       // Try real backend authentication first
       const response = await apiService.post<AuthResponse>('/auth/login', credentials);
       
+      // The backend returns the auth response directly (not wrapped in ApiResponse.data)
+      // So response is actually the auth response itself
+      const authResponse = response as unknown as AuthResponse;
+      
       // Defensively check response structure
-      if (!response.data || !response.data.token) {
+      if (!authResponse || !authResponse.token) {
         throw new Error('Invalid backend response: missing authentication data or token');
       }
       
       // Store token
-      apiService.setToken(response.data.token);
+      apiService.setToken(authResponse.token);
       
-      return response.data;
+      return authResponse;
     } catch (error) {
       // Fallback to demo authentication for development
       console.warn('Backend authentication failed, using demo authentication:', error);
@@ -70,7 +74,11 @@ export class AuthService {
     try {
       // Try to get current user from backend
       const response = await apiService.get<User>('/auth/me');
-      return response.data;
+      
+      // The backend returns the user directly (not wrapped in ApiResponse.data)
+      const user = response as unknown as User;
+      
+      return user;
     } catch (error) {
       console.warn('Failed to get current user from backend:', error);
       
@@ -92,12 +100,15 @@ export class AuthService {
     try {
       const response = await apiService.post<{ token: string; expiresAt: string }>('/auth/refresh');
       
+      // The backend returns the token response directly (not wrapped in ApiResponse.data)
+      const tokenResponse = response as unknown as { token: string; expiresAt: string };
+      
       // Defensively check response structure
-      if (!response.data || !response.data.token) {
+      if (!tokenResponse || !tokenResponse.token) {
         throw new Error('Invalid backend response: missing token data');
       }
       
-      const newToken = response.data.token;
+      const newToken = tokenResponse.token;
       
       apiService.setToken(newToken);
       return newToken;
@@ -148,15 +159,18 @@ export class AuthService {
   }): Promise<AuthResponse> {
     const response = await apiService.post<AuthResponse>('/auth/register', userData);
     
+    // The backend returns the auth response directly (not wrapped in ApiResponse.data)
+    const authResponse = response as unknown as AuthResponse;
+    
     // Defensively check response structure
-    if (!response.data || !response.data.token) {
+    if (!authResponse || !authResponse.token) {
       throw new Error('Invalid backend response: missing authentication data or token');
     }
     
     // Store token
-    apiService.setToken(response.data.token);
+    apiService.setToken(authResponse.token);
     
-    return response.data;
+    return authResponse;
   }
 
   public async forgotPassword(email: string): Promise<void> {
