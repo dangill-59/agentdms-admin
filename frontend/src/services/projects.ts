@@ -8,11 +8,8 @@ import type {
   CreateCustomFieldRequest,
   UpdateCustomFieldRequest 
 } from '../types/api';
-import { apiService } from './api';
 
 export class ProjectService {
-  private readonly basePath = '/projects';
-
   // Projects CRUD operations
   public async getProjects(page = 1, pageSize = 10): Promise<PaginatedResponse<Project>> {
     try {
