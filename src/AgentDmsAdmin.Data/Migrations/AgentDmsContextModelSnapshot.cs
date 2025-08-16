@@ -76,7 +76,7 @@ namespace AgentDmsAdmin.Data.Migrations
 
                     b.HasIndex("ProjectId");
 
-                    b.ToTable("CustomFields");
+                    b.ToTable("CustomFields", (string)null);
                 });
 
             modelBuilder.Entity("AgentDmsAdmin.Data.Models.Document", b =>
@@ -121,7 +121,7 @@ namespace AgentDmsAdmin.Data.Migrations
 
                     b.HasIndex("ProjectId");
 
-                    b.ToTable("Documents");
+                    b.ToTable("Documents", (string)null);
                 });
 
             modelBuilder.Entity("AgentDmsAdmin.Data.Models.DocumentFieldValue", b =>
@@ -157,7 +157,7 @@ namespace AgentDmsAdmin.Data.Migrations
                     b.HasIndex("DocumentId", "CustomFieldId")
                         .IsUnique();
 
-                    b.ToTable("DocumentFieldValues");
+                    b.ToTable("DocumentFieldValues", (string)null);
                 });
 
             modelBuilder.Entity("AgentDmsAdmin.Data.Models.DocumentPage", b =>
@@ -202,7 +202,7 @@ namespace AgentDmsAdmin.Data.Migrations
                     b.HasIndex("DocumentId", "PageNumber")
                         .IsUnique();
 
-                    b.ToTable("DocumentPages");
+                    b.ToTable("DocumentPages", (string)null);
                 });
 
             modelBuilder.Entity("AgentDmsAdmin.Data.Models.Project", b =>
@@ -243,7 +243,7 @@ namespace AgentDmsAdmin.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Projects");
+                    b.ToTable("Projects", (string)null);
                 });
 
             modelBuilder.Entity("AgentDmsAdmin.Data.Models.CustomField", b =>
