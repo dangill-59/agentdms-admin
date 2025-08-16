@@ -218,6 +218,9 @@ The default connection string in `appsettings.json` and `appsettings.Development
 
 ## Database Management
 
+### Important: Migration Database Targeting
+Entity Framework migrations will automatically target the correct SQLite database file (`agentdms.db` in the API directory) based on the configuration in `appsettings.json`. The design-time factory reads the same connection string as the running application to ensure consistency.
+
 ### Creating New Migrations
 When you modify entity models, create a new migration:
 
@@ -232,11 +235,21 @@ cd src/AgentDmsAdmin.Api
 dotnet ef database update --project ../AgentDmsAdmin.Data
 ```
 
+This will apply migrations to the `agentdms.db` file in the API directory, which is the same database used by the running application.
+
 ### Rollback Migrations
 ```bash
 cd src/AgentDmsAdmin.Api
 dotnet ef database update <PreviousMigrationName> --project ../AgentDmsAdmin.Data
 ```
+
+### Verifying Migration Target
+To verify that migrations are targeting the correct database:
+1. Run the migration commands from the `src/AgentDmsAdmin.Api` directory
+2. Check that the `agentdms.db` file is created/updated in that directory
+3. The API application should run without schema errors
+
+**Note**: Always run EF commands from the API project directory to ensure the design-time factory can locate the correct configuration files.
 
 ## Data Seeding
 
