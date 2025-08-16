@@ -11,4 +11,7 @@ public abstract class BaseEntity
     public DateTime CreatedAt { get; set; }
     
     public DateTime ModifiedAt { get; set; }
+    
+    [MaxLength(255)]
+    public string? ModifiedBy { get; set; }
 }

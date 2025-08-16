@@ -24,11 +24,18 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<PaginatedResponse<ProjectDto>>> GetProjects([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    public async Task<ActionResult<PaginatedResponse<ProjectDto>>> GetProjects([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] bool includeArchived = false)
     {
         try
         {
             var query = _context.Projects.AsQueryable();
+            
+            // Filter active projects by default, unless includeArchived is true
+            if (!includeArchived)
+            {
+                query = query.Where(p => p.IsActive && !p.IsArchived);
+            }
+            
             var totalCount = await query.CountAsync();
             
             var projects = await query
@@ -42,7 +49,10 @@ public class ProjectsController : ControllerBase
                     Description = p.Description,
                     FileName = p.FileName,
                     CreatedAt = p.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                    ModifiedAt = p.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                    ModifiedAt = p.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    ModifiedBy = p.ModifiedBy,
+                    IsActive = p.IsActive,
+                    IsArchived = p.IsArchived
                 })
                 .ToListAsync();
 
@@ -72,7 +82,9 @@ public class ProjectsController : ControllerBase
                     Description = "A sample project for testing",
                     FileName = "DefaultFilename",
                     CreatedAt = "2024-01-01T00:00:00Z",
-                    ModifiedAt = "2024-01-01T00:00:00Z"
+                    ModifiedAt = "2024-01-01T00:00:00Z",
+                    IsActive = true,
+                    IsArchived = false
                 },
                 new ProjectDto
                 {
@@ -81,7 +93,9 @@ public class ProjectsController : ControllerBase
                     Description = "Main DMS project",
                     FileName = "DefaultFilename",
                     CreatedAt = "2024-01-02T00:00:00Z",
-                    ModifiedAt = "2024-01-02T00:00:00Z"
+                    ModifiedAt = "2024-01-02T00:00:00Z",
+                    IsActive = true,
+                    IsArchived = false
                 },
                 new ProjectDto
                 {
@@ -90,7 +104,9 @@ public class ProjectsController : ControllerBase
                     Description = "Large scale enterprise system",
                     FileName = "DefaultFilename",
                     CreatedAt = "2024-01-03T00:00:00Z",
-                    ModifiedAt = "2024-01-03T00:00:00Z"
+                    ModifiedAt = "2024-01-03T00:00:00Z",
+                    IsActive = true,
+                    IsArchived = false
                 }
             };
 
@@ -132,7 +148,10 @@ public class ProjectsController : ControllerBase
                 Description = project.Description,
                 FileName = project.FileName,
                 CreatedAt = project.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                ModifiedAt = project.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                ModifiedAt = project.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ModifiedBy = project.ModifiedBy,
+                IsActive = project.IsActive,
+                IsArchived = project.IsArchived
             };
 
             return Ok(projectDto);
@@ -174,7 +193,10 @@ public class ProjectsController : ControllerBase
                 Description = project.Description,
                 FileName = project.FileName,
                 CreatedAt = project.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                ModifiedAt = project.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                ModifiedAt = project.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ModifiedBy = project.ModifiedBy,
+                IsActive = project.IsActive,
+                IsArchived = project.IsArchived
             };
 
             return CreatedAtAction(nameof(GetProject), new { id = project.Id }, projectDto);
@@ -204,6 +226,10 @@ public class ProjectsController : ControllerBase
             if (!string.IsNullOrWhiteSpace(request.FileName))
                 project.FileName = request.FileName;
 
+            // Update auditing fields
+            project.ModifiedAt = DateTime.UtcNow;
+            project.ModifiedBy = "System"; // TODO: Get from current user context
+
             await _context.SaveChangesAsync();
 
             var projectDto = new ProjectDto
@@ -213,7 +239,10 @@ public class ProjectsController : ControllerBase
                 Description = project.Description,
                 FileName = project.FileName,
                 CreatedAt = project.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                ModifiedAt = project.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                ModifiedAt = project.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ModifiedBy = project.ModifiedBy,
+                IsActive = project.IsActive,
+                IsArchived = project.IsArchived
             };
 
             return Ok(projectDto);
@@ -225,8 +254,8 @@ public class ProjectsController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}")]
-    public async Task<ActionResult> DeleteProject(int id)
+    [HttpPatch("{id}/archive")]
+    public async Task<ActionResult<ProjectDto>> ArchiveProject(int id, [FromBody] ArchiveProjectRequest request)
     {
         try
         {
@@ -236,7 +265,62 @@ public class ProjectsController : ControllerBase
                 return NotFound($"Project with ID {id} not found.");
             }
 
-            _context.Projects.Remove(project);
+            project.IsArchived = request.IsArchived;
+            project.IsActive = !request.IsArchived; // When archived, make inactive
+            project.ModifiedAt = DateTime.UtcNow;
+            project.ModifiedBy = "System"; // TODO: Get from current user context
+
+            await _context.SaveChangesAsync();
+
+            var projectDto = new ProjectDto
+            {
+                Id = project.Id.ToString(),
+                Name = project.Name,
+                Description = project.Description,
+                FileName = project.FileName,
+                CreatedAt = project.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ModifiedAt = project.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ModifiedBy = project.ModifiedBy,
+                IsActive = project.IsActive,
+                IsArchived = project.IsArchived
+            };
+
+            return Ok(projectDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error archiving project with ID {ProjectId}", id);
+            return StatusCode(500, $"Error archiving project: {ex.Message}");
+        }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteProject(int id, [FromQuery] bool hardDelete = false)
+    {
+        try
+        {
+            var project = await _context.Projects.FindAsync(id);
+            if (project == null)
+            {
+                return NotFound($"Project with ID {id} not found.");
+            }
+
+            if (hardDelete)
+            {
+                // Hard delete - completely remove from database
+                _context.Projects.Remove(project);
+                _logger.LogInformation("Hard deleting project {ProjectId}", id);
+            }
+            else
+            {
+                // Soft delete - mark as inactive and archived
+                project.IsActive = false;
+                project.IsArchived = true;
+                project.ModifiedAt = DateTime.UtcNow;
+                project.ModifiedBy = "System"; // TODO: Get from current user context
+                _logger.LogInformation("Soft deleting (archiving) project {ProjectId}", id);
+            }
+
             await _context.SaveChangesAsync();
 
             return NoContent();
@@ -301,7 +385,10 @@ public class ProjectsController : ControllerBase
                 Description = clonedProject.Description,
                 FileName = clonedProject.FileName,
                 CreatedAt = clonedProject.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                ModifiedAt = clonedProject.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                ModifiedAt = clonedProject.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ModifiedBy = clonedProject.ModifiedBy,
+                IsActive = clonedProject.IsActive,
+                IsArchived = clonedProject.IsArchived
             };
 
             return CreatedAtAction(nameof(GetProject), new { id = clonedProject.Id }, projectDto);

@@ -12,6 +12,7 @@ const Projects: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [includeArchived, setIncludeArchived] = useState(false);
   const [formData, setFormData] = useState<CreateProjectRequest>({
     name: '',
     description: '',
@@ -23,11 +24,15 @@ const Projects: React.FC = () => {
     fetchProjects();
   }, []);
 
+  useEffect(() => {
+    fetchProjects();
+  }, [includeArchived]);
+
   const fetchProjects = async () => {
     try {
       setIsLoading(true);
       setError('');
-      const response = await projectService.getProjects();
+      const response = await projectService.getProjects(1, 50, includeArchived);
       setProjects(response.data ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load projects');
@@ -73,18 +78,36 @@ const Projects: React.FC = () => {
     }
   };
 
-  const handleDeleteProject = async (projectId: string) => {
-    if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+  const handleDeleteProject = async (projectId: string, hardDelete = false) => {
+    const action = hardDelete ? 'permanently delete' : 'archive';
+    if (!confirm(`Are you sure you want to ${action} this project? ${hardDelete ? 'This action cannot be undone.' : 'You can restore it later.'}`)) {
       return;
     }
 
     try {
       setIsLoading(true);
-      await projectService.deleteProject(projectId);
+      if (hardDelete) {
+        await projectService.deleteProject(projectId, true);
+      } else {
+        await projectService.archiveProject(projectId, true);
+      }
       await fetchProjects();
       setError('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete project');
+      setError(err instanceof Error ? err.message : `Failed to ${action} project`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRestoreProject = async (projectId: string) => {
+    try {
+      setIsLoading(true);
+      await projectService.archiveProject(projectId, false);
+      await fetchProjects();
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to restore project');
     } finally {
       setIsLoading(false);
     }
@@ -212,8 +235,8 @@ const Projects: React.FC = () => {
           </div>
         )}
 
-        {/* Search Bar */}
-        <div className="mb-6">
+        {/* Search Bar and Controls */}
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="relative max-w-md">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
@@ -228,6 +251,24 @@ const Projects: React.FC = () => {
               className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
+          
+          {/* Archive Toggle */}
+          <div className="flex items-center">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeArchived}
+                onChange={(e) => setIncludeArchived(e.target.checked)}
+                className="sr-only"
+              />
+              <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${includeArchived ? 'bg-blue-600' : 'bg-gray-200'}`}>
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${includeArchived ? 'translate-x-6' : 'translate-x-1'}`} />
+              </div>
+              <span className="ml-3 text-sm text-gray-700">
+                Show archived projects
+              </span>
+            </label>
+          </div>
         </div>
 
         {/* Projects Grid */}
@@ -240,6 +281,7 @@ const Projects: React.FC = () => {
                 onEdit={handleEditProject}
                 onClone={handleCloneProject}
                 onDelete={handleDeleteProject}
+                onRestore={handleRestoreProject}
               />
             ))
           ) : (

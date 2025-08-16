@@ -22,6 +22,9 @@ export interface Project {
   fileName: string;
   createdAt: string;
   modifiedAt: string;
+  modifiedBy?: string;
+  isActive: boolean;
+  isArchived: boolean;
 }
 
 export interface CustomField {
@@ -63,6 +66,10 @@ export interface UpdateProjectRequest {
   name?: string;
   description?: string;
   fileName?: string;
+}
+
+export interface ArchiveProjectRequest {
+  isArchived: boolean;
 }
 
 export interface CreateCustomFieldRequest {
