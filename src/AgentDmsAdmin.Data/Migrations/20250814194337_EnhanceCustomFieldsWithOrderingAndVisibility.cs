@@ -15,7 +15,7 @@ namespace AgentDmsAdmin.Data.Migrations
                 table: "CustomFields",
                 type: "INTEGER",
                 nullable: false,
-                defaultValue: false);
+                defaultValue: true);
 
             migrationBuilder.AddColumn<int>(
                 name: "Order",
