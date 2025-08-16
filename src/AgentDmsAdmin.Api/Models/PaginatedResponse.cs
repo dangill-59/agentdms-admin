@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace AgentDmsAdmin.Api.Models;
 
 public class PaginatedResponse<T>
