@@ -319,26 +319,28 @@ public class ProjectsController : ControllerBase
     {
         try
         {
+            // Check if project exists first
             var project = await _context.Projects.FindAsync(projectId);
             if (project == null)
             {
                 return NotFound($"Project with ID {projectId} not found.");
             }
 
+            // Query custom fields - this should return an empty list if none exist
             var customFields = await _context.CustomFields
                 .Where(cf => cf.ProjectId == projectId)
                 .OrderBy(cf => cf.Order)
                 .Select(cf => new CustomFieldDto
                 {
                     Id = cf.Id.ToString(),
-                    Name = cf.Name,
+                    Name = cf.Name ?? string.Empty,
                     Description = cf.Description,
                     FieldType = cf.FieldType.ToString(),
                     IsRequired = cf.IsRequired,
                     IsDefault = cf.IsDefault,
                     DefaultValue = cf.DefaultValue,
                     Order = cf.Order,
-                    RoleVisibility = cf.RoleVisibility,
+                    RoleVisibility = cf.RoleVisibility ?? "all",
                     UserListOptions = cf.UserListOptions,
                     IsRemovable = cf.IsRemovable,
                     ProjectId = cf.ProjectId.ToString(),
@@ -349,10 +351,23 @@ public class ProjectsController : ControllerBase
 
             return Ok(customFields);
         }
+        catch (InvalidOperationException ex)
+        {
+            // Database connectivity or query issues
+            _logger.LogError(ex, "Database error retrieving custom fields for project {ProjectId}", projectId);
+            return StatusCode(500, "Database error occurred while retrieving custom fields.");
+        }
+        catch (ArgumentException ex)
+        {
+            // Invalid data format issues
+            _logger.LogError(ex, "Data format error retrieving custom fields for project {ProjectId}", projectId);
+            return StatusCode(500, "Data format error occurred while retrieving custom fields.");
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving custom fields for project {ProjectId}", projectId);
-            return StatusCode(500, $"Error retrieving custom fields: {ex.Message}");
+            // Unexpected errors
+            _logger.LogError(ex, "Unexpected error retrieving custom fields for project {ProjectId}", projectId);
+            return StatusCode(500, "An unexpected error occurred while retrieving custom fields.");
         }
     }
 
