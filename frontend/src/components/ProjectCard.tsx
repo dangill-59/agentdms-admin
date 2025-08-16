@@ -6,10 +6,11 @@ interface ProjectCardProps {
   project: Project;
   onEdit?: (project: Project) => void;
   onClone?: (projectId: string) => Promise<void>;
-  onDelete?: (projectId: string) => Promise<void>;
+  onDelete?: (projectId: string, hardDelete?: boolean) => Promise<void>;
+  onRestore?: (projectId: string) => Promise<void>;
 }
 
-const ProjectCard: React.FC<ProjectCardProps> = ({ project, onEdit, onClone, onDelete }) => {
+const ProjectCard: React.FC<ProjectCardProps> = ({ project, onEdit, onClone, onDelete, onRestore }) => {
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -45,11 +46,23 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onEdit, onClone, onD
     setShowDropdown(false);
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (hardDelete = false) => {
     if (onDelete && !isProcessing) {
       try {
         setIsProcessing(true);
-        await onDelete(project.id);
+        await onDelete(project.id, hardDelete);
+      } finally {
+        setIsProcessing(false);
+      }
+    }
+    setShowDropdown(false);
+  };
+
+  const handleRestore = async () => {
+    if (onRestore && !isProcessing) {
+      try {
+        setIsProcessing(true);
+        await onRestore(project.id);
       } finally {
         setIsProcessing(false);
       }
@@ -63,19 +76,37 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onEdit, onClone, onD
   };
 
   return (
-    <div className="bg-white shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 border-blue-500 relative">
+    <div className={`bg-white shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 relative ${
+      project.isArchived ? 'border-gray-400 opacity-75' : 'border-blue-500'
+    }`}>
       <div className="p-6">
+        {/* Archived Badge */}
+        {project.isArchived && (
+          <div className="absolute top-2 right-2">
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8l4 4L19 2" />
+              </svg>
+              Archived
+            </span>
+          </div>
+        )}
+        
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-start space-x-4 flex-1">
             <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-blue-500 flex items-center justify-center">
+              <div className={`w-12 h-12 flex items-center justify-center ${
+                project.isArchived ? 'bg-gray-400' : 'bg-blue-500'
+              }`}>
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
               </div>
             </div>
             <div className="flex-grow min-w-0">
-              <h3 className="text-xl font-bold text-blue-900 mb-2 truncate">
+              <h3 className={`text-xl font-bold mb-2 truncate ${
+                project.isArchived ? 'text-gray-600' : 'text-blue-900'
+              }`}>
                 {project.name}
               </h3>
               {project.description && (
@@ -109,45 +140,85 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onEdit, onClone, onD
                 {/* Dropdown Menu */}
                 <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-20">
                   <div className="py-1">
-                    <button
-                      onClick={handleEdit}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                    >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Edit Project
-                    </button>
-                    <button
-                      onClick={handleManageFields}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                    >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                      </svg>
-                      Manage Fields
-                    </button>
-                    <button
-                      onClick={handleClone}
-                      disabled={isProcessing}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center disabled:opacity-50"
-                    >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      Clone Project
-                    </button>
-                    <hr className="my-1 border-gray-200" />
-                    <button
-                      onClick={handleDelete}
-                      disabled={isProcessing}
-                      className="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 flex items-center disabled:opacity-50"
-                    >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      Delete Project
-                    </button>
+                    {!project.isArchived && (
+                      <>
+                        <button
+                          onClick={handleEdit}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                        >
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Edit Project
+                        </button>
+                        <button
+                          onClick={handleManageFields}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                        >
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                          </svg>
+                          Manage Fields
+                        </button>
+                        <button
+                          onClick={handleClone}
+                          disabled={isProcessing}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center disabled:opacity-50"
+                        >
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          Clone Project
+                        </button>
+                        <hr className="my-1 border-gray-200" />
+                        <button
+                          onClick={() => handleDelete(false)}
+                          disabled={isProcessing}
+                          className="w-full text-left px-4 py-2 text-sm text-orange-700 hover:bg-orange-50 flex items-center disabled:opacity-50"
+                        >
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8l4 4L19 2" />
+                          </svg>
+                          Archive Project
+                        </button>
+                        <button
+                          onClick={() => handleDelete(true)}
+                          disabled={isProcessing}
+                          className="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 flex items-center disabled:opacity-50"
+                        >
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete Permanently
+                        </button>
+                      </>
+                    )}
+                    
+                    {project.isArchived && (
+                      <>
+                        <button
+                          onClick={handleRestore}
+                          disabled={isProcessing}
+                          className="w-full text-left px-4 py-2 text-sm text-green-700 hover:bg-green-50 flex items-center disabled:opacity-50"
+                        >
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Restore Project
+                        </button>
+                        <hr className="my-1 border-gray-200" />
+                        <button
+                          onClick={() => handleDelete(true)}
+                          disabled={isProcessing}
+                          className="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 flex items-center disabled:opacity-50"
+                        >
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete Permanently
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </>
@@ -176,13 +247,23 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onEdit, onClone, onD
         <div className="flex space-x-3">
           <button 
             onClick={handleView}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 text-sm font-medium transition-colors shadow-md flex-1"
+            disabled={project.isArchived}
+            className={`px-6 py-2 text-sm font-medium transition-colors shadow-md flex-1 ${
+              project.isArchived 
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
           >
             View Documents
           </button>
           <button 
             onClick={handleManageFields}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 text-sm font-medium transition-colors border border-gray-300"
+            disabled={project.isArchived}
+            className={`px-6 py-2 text-sm font-medium transition-colors border ${
+              project.isArchived
+                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300'
+            }`}
           >
             Fields
           </button>

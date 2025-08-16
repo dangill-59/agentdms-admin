@@ -17,6 +17,10 @@ public class Project : BaseEntity
     [MaxLength(255)]
     public string FileName { get; set; } = string.Empty; // Default field
     
+    public bool IsActive { get; set; } = true;
+    
+    public bool IsArchived { get; set; } = false;
+    
     // Navigation properties
     public ICollection<Document> Documents { get; set; } = new List<Document>();
     public ICollection<CustomField> CustomFields { get; set; } = new List<CustomField>();

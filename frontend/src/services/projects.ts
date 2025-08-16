@@ -11,10 +11,10 @@ import type {
 
 export class ProjectService {
   // Projects CRUD operations
-  public async getProjects(page = 1, pageSize = 10): Promise<PaginatedResponse<Project>> {
+  public async getProjects(page = 1, pageSize = 10, includeArchived = false): Promise<PaginatedResponse<Project>> {
     try {
       // Make direct API call since backend returns data directly
-      const response = await fetch(`http://localhost:5267/api/projects?page=${page}&pageSize=${pageSize}`);
+      const response = await fetch(`http://localhost:5267/api/projects?page=${page}&pageSize=${pageSize}&includeArchived=${includeArchived}`);
       const data = await response.json();
       return data;
     } catch (error) {
@@ -28,7 +28,9 @@ export class ProjectService {
           description: 'A sample project for testing',
           fileName: 'DefaultFilename',
           createdAt: '2024-01-01T00:00:00Z',
-          modifiedAt: '2024-01-01T00:00:00Z'
+          modifiedAt: '2024-01-01T00:00:00Z',
+          isActive: true,
+          isArchived: false
         },
         {
           id: '2',
@@ -36,7 +38,9 @@ export class ProjectService {
           description: 'Main DMS project',
           fileName: 'DefaultFilename',
           createdAt: '2024-01-02T00:00:00Z',
-          modifiedAt: '2024-01-02T00:00:00Z'
+          modifiedAt: '2024-01-02T00:00:00Z',
+          isActive: true,
+          isArchived: false
         }
       ];
 
@@ -80,10 +84,21 @@ export class ProjectService {
     return await response.json();
   }
 
-  public async deleteProject(id: string): Promise<void> {
-    await fetch(`http://localhost:5267/api/projects/${id}`, {
+  public async deleteProject(id: string, hardDelete = false): Promise<void> {
+    await fetch(`http://localhost:5267/api/projects/${id}?hardDelete=${hardDelete}`, {
       method: 'DELETE',
     });
+  }
+
+  public async archiveProject(id: string, isArchived: boolean): Promise<Project> {
+    const response = await fetch(`http://localhost:5267/api/projects/${id}/archive`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ isArchived }),
+    });
+    return await response.json();
   }
 
   public async cloneProject(id: string): Promise<Project> {
