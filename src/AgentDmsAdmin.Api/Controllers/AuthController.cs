@@ -16,9 +16,8 @@ public class AuthController : ControllerBase
             var user = new UserDto
             {
                 Id = "1",
-                Email = request.Email,
-                Name = "Admin User",
-                Role = "Administrator"
+                Username = "admin",
+                Email = request.Email
             };
 
             var token = $"demo-jwt-token-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
@@ -52,9 +51,8 @@ public class AuthController : ControllerBase
         var user = new UserDto
         {
             Id = "1",
-            Email = "admin@agentdms.com",
-            Name = "Admin User",
-            Role = "Administrator"
+            Username = "admin",
+            Email = "admin@agentdms.com"
         };
 
         return Ok(user);

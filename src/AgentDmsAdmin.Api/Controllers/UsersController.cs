@@ -16,23 +16,20 @@ public class UsersController : ControllerBase
         new UserDto
         {
             Id = "1",
-            Name = "Admin User",
-            Email = "admin@agentdms.com",
-            Role = "Administrator"
+            Username = "admin",
+            Email = "admin@agentdms.com"
         },
         new UserDto
         {
             Id = "2",
-            Name = "John Manager",
-            Email = "john@agentdms.com",
-            Role = "Manager"
+            Username = "johnmanager",
+            Email = "john@agentdms.com"
         },
         new UserDto
         {
             Id = "3",
-            Name = "Jane User",
-            Email = "jane@agentdms.com",
-            Role = "User"
+            Username = "janeuser",
+            Email = "jane@agentdms.com"
         }
     };
 
@@ -66,13 +63,13 @@ public class UsersController : ControllerBase
     public ActionResult<UserDto> CreateUser([FromBody] CreateUserRequest request)
     {
         // MOCK IMPLEMENTATION - Replace with real database persistence
-        // In production: validate email uniqueness, hash password, validate role, etc.
+        // In production: validate email uniqueness, hash password, validate username, etc.
         
-        if (string.IsNullOrWhiteSpace(request.Name) || 
+        if (string.IsNullOrWhiteSpace(request.Username) || 
             string.IsNullOrWhiteSpace(request.Email) || 
-            string.IsNullOrWhiteSpace(request.Role))
+            string.IsNullOrWhiteSpace(request.PasswordHash))
         {
-            return BadRequest("Name, email, and role are required.");
+            return BadRequest("Username, email, and password hash are required.");
         }
 
         // Check if email already exists (mock validation)
@@ -81,12 +78,17 @@ public class UsersController : ControllerBase
             return BadRequest("A user with this email already exists.");
         }
 
+        // Check if username already exists (mock validation)
+        if (MockUsers.Any(u => u.Username.Equals(request.Username, StringComparison.OrdinalIgnoreCase)))
+        {
+            return BadRequest("A user with this username already exists.");
+        }
+
         var newUser = new UserDto
         {
             Id = _nextId++.ToString(),
-            Name = request.Name.Trim(),
-            Email = request.Email.Trim().ToLowerInvariant(),
-            Role = request.Role.Trim()
+            Username = request.Username.Trim(),
+            Email = request.Email.Trim().ToLowerInvariant()
         };
 
         MockUsers.Add(newUser);
