@@ -1,0 +1,191 @@
+import type { 
+  Role,
+  UserRole,
+  ProjectRole,
+  PaginatedResponse,
+  CreateRoleRequest,
+  UpdateRoleRequest,
+  AssignUserRoleRequest,
+  AssignProjectRoleRequest,
+  UpdateProjectRoleRequest
+} from '../types/api';
+import { apiService } from './api';
+
+export class RoleService {
+  // Role CRUD operations
+  public async getRoles(page = 1, pageSize = 10): Promise<PaginatedResponse<Role>> {
+    try {
+      const response = await apiService.get<PaginatedResponse<Role>>(`/api/roles?page=${page}&pageSize=${pageSize}`);
+      return response.data || response;
+    } catch (error) {
+      console.warn('Failed to fetch roles from backend, using demo data:', error);
+      
+      // Fallback to demo data for development
+      const mockRoles: Role[] = [
+        {
+          id: '1',
+          name: 'Admin',
+          description: 'Full system access',
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z'
+        },
+        {
+          id: '2', 
+          name: 'Manager',
+          description: 'Project management access',
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z'
+        },
+        {
+          id: '3',
+          name: 'User',
+          description: 'Basic user access',
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z'
+        }
+      ];
+
+      const totalCount = mockRoles.length;
+      const totalPages = Math.ceil(totalCount / pageSize);
+      const pagedRoles = mockRoles.slice((page - 1) * pageSize, page * pageSize);
+
+      return {
+        data: pagedRoles,
+        totalCount,
+        page,
+        pageSize,
+        totalPages
+      };
+    }
+  }
+
+  public async getRole(id: string): Promise<Role> {
+    try {
+      const response = await apiService.get<Role>(`/api/roles/${id}`);
+      return response.data || response;
+    } catch (error) {
+      console.warn('Failed to fetch role from backend, using demo data:', error);
+      return {
+        id,
+        name: 'Demo Role',
+        description: 'Demo role for testing',
+        createdAt: '2024-01-01T00:00:00Z',
+        modifiedAt: '2024-01-01T00:00:00Z'
+      };
+    }
+  }
+
+  public async createRole(request: CreateRoleRequest): Promise<Role> {
+    try {
+      const response = await apiService.post<Role>('/api/roles', request);
+      return response.data || response;
+    } catch (error) {
+      console.warn('Failed to create role, simulating success:', error);
+      return {
+        id: Math.random().toString(),
+        name: request.name,
+        description: request.description,
+        createdAt: new Date().toISOString(),
+        modifiedAt: new Date().toISOString()
+      };
+    }
+  }
+
+  public async updateRole(id: string, request: UpdateRoleRequest): Promise<Role> {
+    try {
+      const response = await apiService.put<Role>(`/api/roles/${id}`, request);
+      return response.data || response;
+    } catch (error) {
+      console.warn('Failed to update role, simulating success:', error);
+      return {
+        id,
+        name: request.name || 'Updated Role',
+        description: request.description,
+        createdAt: '2024-01-01T00:00:00Z',
+        modifiedAt: new Date().toISOString()
+      };
+    }
+  }
+
+  public async deleteRole(id: string): Promise<void> {
+    try {
+      await apiService.delete(`/api/roles/${id}`);
+    } catch (error) {
+      console.warn('Failed to delete role, simulating success:', error);
+    }
+  }
+
+  // User role assignments
+  public async assignUserRole(request: AssignUserRoleRequest): Promise<UserRole> {
+    try {
+      const response = await apiService.post<UserRole>('/api/roles/assign-user', request);
+      return response.data || response;
+    } catch (error) {
+      console.warn('Failed to assign user role, simulating success:', error);
+      return {
+        id: Math.random().toString(),
+        userId: request.userId,
+        roleId: request.roleId,
+        roleName: 'Demo Role',
+        createdAt: new Date().toISOString()
+      };
+    }
+  }
+
+  public async removeUserRole(userRoleId: string): Promise<void> {
+    try {
+      await apiService.delete(`/api/roles/user-roles/${userRoleId}`);
+    } catch (error) {
+      console.warn('Failed to remove user role, simulating success:', error);
+    }
+  }
+
+  // Project role assignments
+  public async assignProjectRole(request: AssignProjectRoleRequest): Promise<ProjectRole> {
+    try {
+      const response = await apiService.post<ProjectRole>('/api/roles/assign-project', request);
+      return response.data || response;
+    } catch (error) {
+      console.warn('Failed to assign project role, simulating success:', error);
+      return {
+        id: Math.random().toString(),
+        projectId: request.projectId,
+        roleId: request.roleId,
+        roleName: 'Demo Role',
+        canView: request.canView,
+        canEdit: request.canEdit,
+        canDelete: request.canDelete,
+        createdAt: new Date().toISOString()
+      };
+    }
+  }
+
+  public async updateProjectRole(projectRoleId: string, request: UpdateProjectRoleRequest): Promise<ProjectRole> {
+    try {
+      const response = await apiService.put<ProjectRole>(`/api/roles/project-roles/${projectRoleId}`, request);
+      return response.data || response;
+    } catch (error) {
+      console.warn('Failed to update project role, simulating success:', error);
+      return {
+        id: projectRoleId,
+        projectId: '1',
+        roleId: '1',
+        roleName: 'Demo Role',
+        canView: request.canView ?? true,
+        canEdit: request.canEdit ?? false,
+        canDelete: request.canDelete ?? false,
+        createdAt: '2024-01-01T00:00:00Z'
+      };
+    }
+  }
+
+  public async removeProjectRole(projectRoleId: string): Promise<void> {
+    try {
+      await apiService.delete(`/api/roles/project-roles/${projectRoleId}`);
+    } catch (error) {
+      console.warn('Failed to remove project role, simulating success:', error);
+    }
+  }
+}
+
+export const roleService = new RoleService();

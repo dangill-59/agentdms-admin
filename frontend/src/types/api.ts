@@ -14,6 +14,34 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
+// Role types
+export interface Role {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  modifiedAt: string;
+}
+
+export interface UserRole {
+  id: string;
+  userId: string;
+  roleId: string;
+  roleName: string;
+  createdAt: string;
+}
+
+export interface ProjectRole {
+  id: string;
+  projectId: string;
+  roleId: string;
+  roleName: string;
+  canView: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  createdAt: string;
+}
+
 // Project types (based on backend entities)
 export interface Project {
   id: string;
@@ -25,6 +53,7 @@ export interface Project {
   modifiedBy?: string;
   isActive: boolean;
   isArchived: boolean;
+  projectRoles: ProjectRole[];
 }
 
 export interface CustomField {
@@ -92,4 +121,34 @@ export interface UpdateCustomFieldRequest {
   order?: number;
   roleVisibility?: string;
   userListOptions?: string;
+}
+
+// Role request types
+export interface CreateRoleRequest {
+  name: string;
+  description?: string;
+}
+
+export interface UpdateRoleRequest {
+  name?: string;
+  description?: string;
+}
+
+export interface AssignUserRoleRequest {
+  userId: string;
+  roleId: string;
+}
+
+export interface AssignProjectRoleRequest {
+  projectId: string;
+  roleId: string;
+  canView: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+}
+
+export interface UpdateProjectRoleRequest {
+  canView?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
