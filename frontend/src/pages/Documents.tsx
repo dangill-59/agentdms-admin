@@ -26,11 +26,6 @@ const Documents: React.FC = () => {
   // File configuration from config service
   const maxFileSize = config.get('maxFileSize');
 
-  useEffect(() => {
-    fetchDocuments();
-    loadSupportedFormats();
-  }, []);
-
   const loadSupportedFormats = async () => {
     try {
       const formats = await documentService.getSupportedFormats();
@@ -41,7 +36,7 @@ const Documents: React.FC = () => {
     }
   };
 
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     try {
       setIsLoading(true);
       setError('');
@@ -52,69 +47,44 @@ const Documents: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const validateFile = (file: File): string | null => {
-    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-    if (!config.isSupportedFileType(fileExtension)) {
-      return `File type ${fileExtension} is not supported. Supported formats: ${supportedFormats.join(', ')}`;
-    }
-    if (file.size > maxFileSize) {
-      return `File size exceeds the maximum limit of ${config.getFormattedMaxFileSize()}`;
-    }
-    return null;
-  };
-
-  const handleFiles = async (files: File[]) => {
-    const validFiles: File[] = [];
-    const errors: string[] = [];
-
-    files.forEach(file => {
-      const error = validateFile(file);
-      if (error) {
-        errors.push(`${file.name}: ${error}`);
-      } else {
-        validFiles.push(file);
-      }
-    });
-
-    if (errors.length > 0) {
-      setError(errors.join('\n'));
-      return;
-    }
-
-    // Start uploads
-    validFiles.forEach(file => uploadFile(file));
-  };
-
-  const handleDrag = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
   }, []);
 
-   
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFiles(Array.from(e.dataTransfer.files));
+  const pollJobStatus = useCallback(async (jobId: string, fileName: string) => {
+    try {
+      await documentService.pollJobCompletion(jobId);
+      
+      setUploadProgress(prev =>
+        prev.map(item =>
+          item.fileName === fileName
+            ? { ...item, status: 'completed', progress: 100 }
+            : item
+        )
+      );
+      
+      // Refresh documents list
+      fetchDocuments();
+      
+      // Remove from progress after a delay
+      setTimeout(() => {
+        setUploadProgress(prev => prev.filter(item => item.fileName !== fileName));
+      }, 3000);
+      
+    } catch (error) {
+      setUploadProgress(prev =>
+        prev.map(item =>
+          item.fileName === fileName
+            ? { 
+                ...item, 
+                status: 'error', 
+                error: error instanceof Error ? error.message : 'Processing failed' 
+              }
+            : item
+        )
+      );
     }
-  }, []);
+  }, [fetchDocuments]);
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      handleFiles(Array.from(e.target.files));
-    }
-  };
-
-  const uploadFile = async (file: File) => {
+  const uploadFile = useCallback(async (file: File) => {
     // Add to upload progress
     setUploadProgress(prev => [...prev, {
       fileName: file.name,
@@ -156,40 +126,70 @@ const Documents: React.FC = () => {
         )
       );
     }
-  };
+  }, [pollJobStatus]);
 
-  const pollJobStatus = async (jobId: string, fileName: string) => {
-    try {
-      await documentService.pollJobCompletion(jobId);
-      
-      setUploadProgress(prev =>
-        prev.map(item =>
-          item.fileName === fileName
-            ? { ...item, status: 'completed', progress: 100 }
-            : item
-        )
-      );
-      
-      // Refresh documents list
-      fetchDocuments();
-      
-      // Remove from progress after a delay
-      setTimeout(() => {
-        setUploadProgress(prev => prev.filter(item => item.fileName !== fileName));
-      }, 3000);
-      
-    } catch (error) {
-      setUploadProgress(prev =>
-        prev.map(item =>
-          item.fileName === fileName
-            ? { 
-                ...item, 
-                status: 'error', 
-                error: error instanceof Error ? error.message : 'Processing failed' 
-              }
-            : item
-        )
-      );
+  const validateFile = useCallback((file: File): string | null => {
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!config.isSupportedFileType(fileExtension)) {
+      return `File type ${fileExtension} is not supported. Supported formats: ${supportedFormats.join(', ')}`;
+    }
+    if (file.size > maxFileSize) {
+      return `File size exceeds the maximum limit of ${config.getFormattedMaxFileSize()}`;
+    }
+    return null;
+  }, [supportedFormats, maxFileSize]);
+
+  const handleFiles = useCallback(async (files: File[]) => {
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    files.forEach(file => {
+      const error = validateFile(file);
+      if (error) {
+        errors.push(`${file.name}: ${error}`);
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    if (errors.length > 0) {
+      setError(errors.join('\n'));
+      return;
+    }
+
+    // Start uploads
+    validFiles.forEach(file => uploadFile(file));
+  }, [validateFile, uploadFile]);
+
+  useEffect(() => {
+    fetchDocuments();
+    loadSupportedFormats();
+  }, [fetchDocuments]);
+
+  const handleDrag = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  }, []);
+
+   
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFiles(Array.from(e.dataTransfer.files));
+    }
+  }, [handleFiles]);
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      handleFiles(Array.from(e.target.files));
     }
   };
 
