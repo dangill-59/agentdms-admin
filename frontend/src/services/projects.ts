@@ -30,7 +30,29 @@ export class ProjectService {
           createdAt: '2024-01-01T00:00:00Z',
           modifiedAt: '2024-01-01T00:00:00Z',
           isActive: true,
-          isArchived: false
+          isArchived: false,
+          projectRoles: [
+            {
+              id: '1',
+              projectId: '1',
+              roleId: '1',
+              roleName: 'Admin',
+              canView: true,
+              canEdit: true,
+              canDelete: true,
+              createdAt: '2024-01-01T00:00:00Z'
+            },
+            {
+              id: '2',
+              projectId: '1',
+              roleId: '2',
+              roleName: 'Manager',
+              canView: true,
+              canEdit: true,
+              canDelete: false,
+              createdAt: '2024-01-01T00:00:00Z'
+            }
+          ]
         },
         {
           id: '2',
@@ -40,7 +62,19 @@ export class ProjectService {
           createdAt: '2024-01-02T00:00:00Z',
           modifiedAt: '2024-01-02T00:00:00Z',
           isActive: true,
-          isArchived: false
+          isArchived: false,
+          projectRoles: [
+            {
+              id: '3',
+              projectId: '2',
+              roleId: '1',
+              roleName: 'Admin',
+              canView: true,
+              canEdit: true,
+              canDelete: true,
+              createdAt: '2024-01-01T00:00:00Z'
+            }
+          ]
         }
       ];
 

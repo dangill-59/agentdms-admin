@@ -1,7 +1,11 @@
+// Import role types from api.ts to avoid duplication
+import type { UserRole } from './api';
+
 export interface User {
   id: string;
   username: string;
   email: string;
+  roles: UserRole[];
 }
 
 export interface LoginCredentials {
@@ -22,13 +26,4 @@ export interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
-}
-
-// Extending for user management
-export interface PaginatedResponse<T> {
-  data: T[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
 }
