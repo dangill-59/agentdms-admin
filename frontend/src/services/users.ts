@@ -5,22 +5,17 @@ export interface CreateUserRequest {
   Username: string;
   Email: string;
   PasswordHash: string;
-  Role: string;
 }
 
 export interface UpdateUserRequest {
   Username?: string;
   Email?: string;
-  Role?: string;
   PasswordHash?: string;
 }
 
 export interface UserStats {
   totalUsers: number;
   activeUsers: number;
-  administratorCount: number;
-  managerCount: number;
-  userCount: number;
 }
 
 export class UserService {
@@ -37,21 +32,18 @@ export class UserService {
       const mockUsers: User[] = [
         {
           id: '1',
-          name: 'Admin User',
-          email: 'admin@agentdms.com',
-          role: 'Administrator'
+          username: 'admin',
+          email: 'admin@agentdms.com'
         },
         {
           id: '2',
-          name: 'John Manager',
-          email: 'john@agentdms.com',
-          role: 'Manager'
+          username: 'johnmanager',
+          email: 'john@agentdms.com'
         },
         {
           id: '3',
-          name: 'Jane User',
-          email: 'jane@agentdms.com',
-          role: 'User'
+          username: 'janeuser',
+          email: 'jane@agentdms.com'
         }
       ];
       
@@ -105,18 +97,6 @@ export class UserService {
         managerCount: 1,
         userCount: 1
       };
-    }
-  }
-
-  // Role management
-  public async getRoles(): Promise<string[]> {
-    try {
-      const response = await apiService.get<string[]>(`${this.basePath}/roles`);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch roles:', error);
-      // Return default roles
-      return ['Administrator', 'Manager', 'User'];
     }
   }
 
