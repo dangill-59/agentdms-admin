@@ -1,0 +1,1 @@
+{ "settings": { "documentationRules": { "companyName": "AgentDMS", "documentInternalElements": true, "documentPrivateElements": false, "fileNamingConvention": "stylecop", "xmlHeader": false }, "orderingRules": { "usingDirectivesPlacement": "outsideNamespace" } } }
