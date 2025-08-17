@@ -1,9 +1,7 @@
 export interface User {
   id: string;
+  username: string;
   email: string;
-  username?: string; // Database schema uses Username
-  name?: string; // Fallback for API responses that might still use name
-  role: string;
 }
 
 export interface LoginCredentials {
