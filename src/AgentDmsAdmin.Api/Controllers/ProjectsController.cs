@@ -39,6 +39,8 @@ public class ProjectsController : ControllerBase
             var totalCount = await query.CountAsync();
             
             var projects = await query
+                .Include(p => p.ProjectRoles)
+                .ThenInclude(pr => pr.Role)
                 .OrderByDescending(p => p.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -52,7 +54,18 @@ public class ProjectsController : ControllerBase
                     ModifiedAt = p.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                     ModifiedBy = p.ModifiedBy,
                     IsActive = p.IsActive,
-                    IsArchived = p.IsArchived
+                    IsArchived = p.IsArchived,
+                    ProjectRoles = p.ProjectRoles.Select(pr => new ProjectRoleDto
+                    {
+                        Id = pr.Id.ToString(),
+                        ProjectId = pr.ProjectId.ToString(),
+                        RoleId = pr.RoleId.ToString(),
+                        RoleName = pr.Role.Name,
+                        CanView = pr.CanView,
+                        CanEdit = pr.CanEdit,
+                        CanDelete = pr.CanDelete,
+                        CreatedAt = pr.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                    }).ToList()
                 })
                 .ToListAsync();
 
@@ -135,7 +148,11 @@ public class ProjectsController : ControllerBase
     {
         try
         {
-            var project = await _context.Projects.FindAsync(id);
+            var project = await _context.Projects
+                .Include(p => p.ProjectRoles)
+                .ThenInclude(pr => pr.Role)
+                .FirstOrDefaultAsync(p => p.Id == id);
+            
             if (project == null)
             {
                 return NotFound($"Project with ID {id} not found.");
@@ -151,7 +168,18 @@ public class ProjectsController : ControllerBase
                 ModifiedAt = project.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                 ModifiedBy = project.ModifiedBy,
                 IsActive = project.IsActive,
-                IsArchived = project.IsArchived
+                IsArchived = project.IsArchived,
+                ProjectRoles = project.ProjectRoles.Select(pr => new ProjectRoleDto
+                {
+                    Id = pr.Id.ToString(),
+                    ProjectId = pr.ProjectId.ToString(),
+                    RoleId = pr.RoleId.ToString(),
+                    RoleName = pr.Role.Name,
+                    CanView = pr.CanView,
+                    CanEdit = pr.CanEdit,
+                    CanDelete = pr.CanDelete,
+                    CreatedAt = pr.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                }).ToList()
             };
 
             return Ok(projectDto);
