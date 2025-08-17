@@ -37,7 +37,7 @@ const Users: React.FC = () => {
       setIsLoading(true);
       setError('');
       const response = await userService.getUsers();
-      setUsers(response.data);
+      setUsers(response.data ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load users');
     } finally {
