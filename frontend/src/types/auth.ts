@@ -1,7 +1,8 @@
 export interface User {
   id: string;
   email: string;
-  name: string;
+  username?: string; // Database schema uses Username
+  name?: string; // Fallback for API responses that might still use name
   role: string;
 }
 

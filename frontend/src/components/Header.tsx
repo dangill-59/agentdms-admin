@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import type { User } from '../types/auth';
 
 interface NavItem {
   name: string;
@@ -12,6 +13,18 @@ interface NavItem {
 const Header: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
+
+  // Helper function to safely get display name from user object
+  const getUserDisplayName = (user: User | null): string => {
+    if (!user) return 'Unknown User';
+    return user.username || user.name || user.email || 'Unknown User';
+  };
+  
+  // Helper function to get first letter for avatar
+  const getUserInitial = (user: User | null): string => {
+    const displayName = getUserDisplayName(user);
+    return displayName.charAt(0).toUpperCase();
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -118,20 +131,20 @@ const Header: React.FC = () => {
           <div className="flex items-center space-x-4">
             {/* User Info */}
             <div className="text-right hidden sm:block">
-              <div className="text-sm font-medium text-gray-900">{user?.name}</div>
+              <div className="text-sm font-medium text-gray-900">{getUserDisplayName(user)}</div>
               <div className="text-xs text-gray-500 flex items-center">
                 <span className={`inline-block w-2 h-2 rounded-full mr-1 ${
                   user?.role === 'Administrator' ? 'bg-red-400' : 
                   user?.role === 'Manager' ? 'bg-yellow-400' : 'bg-green-400'
                 }`}></span>
-                {user?.role}
+                {user?.role || 'User'}
               </div>
             </div>
 
             {/* Profile Avatar */}
             <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
               <span className="text-sm font-medium text-gray-700">
-                {user?.name?.charAt(0).toUpperCase()}
+                {getUserInitial(user)}
               </span>
             </div>
             

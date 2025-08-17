@@ -21,7 +21,7 @@ const Settings: React.FC = () => {
 
   // User profile state
   const [userProfile, setUserProfile] = useState<UserProfile>({
-    name: user?.name || '',
+    name: user?.username || user?.name || user?.email || '',
     email: user?.email || '',
     currentPassword: '',
     newPassword: '',
