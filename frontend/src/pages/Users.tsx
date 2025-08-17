@@ -13,6 +13,17 @@ interface NewUser {
 
 const Users: React.FC = () => {
   const { user: currentUser } = useAuth();
+  
+  // Helper function to safely get display name from user object
+  const getUserDisplayName = (user: User): string => {
+    return user?.username || user?.name || user?.email || 'Unknown User';
+  };
+  
+  // Helper function to get first letter for avatar
+  const getUserInitial = (user: User): string => {
+    const displayName = getUserDisplayName(user);
+    return displayName.charAt(0).toUpperCase();
+  };
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -46,9 +57,11 @@ const Users: React.FC = () => {
   };
 
   const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase())
+    (user && (
+      getUserDisplayName(user).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.role && user.role.toLowerCase().includes(searchTerm.toLowerCase()))
+    ))
   );
 
   const handleCreateUser = async () => {
@@ -71,9 +84,9 @@ const Users: React.FC = () => {
   const handleEditUser = (user: User) => {
     setEditingUser(user);
     setNewUser({
-      name: user.name,
-      email: user.email,
-      role: user.role,
+      name: getUserDisplayName(user),
+      email: user.email || '',
+      role: user.role || 'User',
       password: ''
     });
   };
@@ -283,19 +296,19 @@ const Users: React.FC = () => {
                             <div className="flex items-center">
                               <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
                                 <span className="text-sm font-medium text-gray-700">
-                                  {user.name.charAt(0).toUpperCase()}
+                                  {getUserInitial(user)}
                                 </span>
                               </div>
                               <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                                <div className="text-sm text-gray-500">{user.email}</div>
+                                <div className="text-sm font-medium text-gray-900">{getUserDisplayName(user)}</div>
+                                <div className="text-sm text-gray-500">{user.email || 'No email'}</div>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
-                              {getRoleIcon(user.role)}
-                              <span>{user.role}</span>
+                            <span className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(user.role || 'User')}`}>
+                              {getRoleIcon(user.role || 'User')}
+                              <span>{user.role || 'User'}</span>
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -363,7 +376,7 @@ const Users: React.FC = () => {
                   </div>
                   <div className="ml-4">
                     <div className="text-2xl font-bold text-gray-900">
-                      {users.filter(u => u.role === 'Administrator').length}
+                      {users.filter(u => u && u.role === 'Administrator').length}
                     </div>
                     <div className="text-gray-600">Administrators</div>
                   </div>
