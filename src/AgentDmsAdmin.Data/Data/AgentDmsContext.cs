@@ -14,6 +14,7 @@ public class AgentDmsContext : DbContext
     public DbSet<Document> Documents { get; set; }
     public DbSet<DocumentFieldValue> DocumentFieldValues { get; set; }
     public DbSet<DocumentPage> DocumentPages { get; set; }
+    public DbSet<User> Users { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -62,6 +63,15 @@ public class AgentDmsContext : DbContext
 
         modelBuilder.Entity<DocumentFieldValue>()
             .HasIndex(dfv => new { dfv.DocumentId, dfv.CustomFieldId })
+            .IsUnique();
+
+        // Configure User entity constraints
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.Username)
+            .IsUnique();
+
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.Email)
             .IsUnique();
 
         // Configure BaseEntity properties
