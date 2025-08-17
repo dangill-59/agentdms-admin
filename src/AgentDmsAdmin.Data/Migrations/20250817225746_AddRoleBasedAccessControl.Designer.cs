@@ -3,6 +3,7 @@ using System;
 using AgentDmsAdmin.Data.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AgentDmsAdmin.Data.Migrations
 {
     [DbContext(typeof(AgentDmsContext))]
-    partial class AgentDmsContextModelSnapshot : ModelSnapshot
+    [Migration("20250817225746_AddRoleBasedAccessControl")]
+    partial class AddRoleBasedAccessControl
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.8");

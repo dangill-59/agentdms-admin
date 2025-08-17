@@ -11,6 +11,7 @@ public class ProjectDto
     public string? ModifiedBy { get; set; }
     public bool IsActive { get; set; } = true;
     public bool IsArchived { get; set; } = false;
+    public List<ProjectRoleDto> ProjectRoles { get; set; } = new List<ProjectRoleDto>();
 }
 
 public class CreateProjectRequest

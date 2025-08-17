@@ -15,6 +15,9 @@ public class AgentDmsContext : DbContext
     public DbSet<DocumentFieldValue> DocumentFieldValues { get; set; }
     public DbSet<DocumentPage> DocumentPages { get; set; }
     public DbSet<User> Users { get; set; }
+    public DbSet<Role> Roles { get; set; }
+    public DbSet<UserRole> UserRoles { get; set; }
+    public DbSet<ProjectRole> ProjectRoles { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -72,6 +75,45 @@ public class AgentDmsContext : DbContext
 
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Email)
+            .IsUnique();
+
+        // Configure Role entity constraints
+        modelBuilder.Entity<Role>()
+            .HasIndex(r => r.Name)
+            .IsUnique();
+
+        // Configure UserRole relationships
+        modelBuilder.Entity<UserRole>()
+            .HasOne(ur => ur.User)
+            .WithMany(u => u.UserRoles)
+            .HasForeignKey(ur => ur.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<UserRole>()
+            .HasOne(ur => ur.Role)
+            .WithMany(r => r.UserRoles)
+            .HasForeignKey(ur => ur.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<UserRole>()
+            .HasIndex(ur => new { ur.UserId, ur.RoleId })
+            .IsUnique();
+
+        // Configure ProjectRole relationships
+        modelBuilder.Entity<ProjectRole>()
+            .HasOne(pr => pr.Project)
+            .WithMany(p => p.ProjectRoles)
+            .HasForeignKey(pr => pr.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ProjectRole>()
+            .HasOne(pr => pr.Role)
+            .WithMany(r => r.ProjectRoles)
+            .HasForeignKey(pr => pr.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ProjectRole>()
+            .HasIndex(pr => new { pr.ProjectId, pr.RoleId })
             .IsUnique();
 
         // Configure BaseEntity properties

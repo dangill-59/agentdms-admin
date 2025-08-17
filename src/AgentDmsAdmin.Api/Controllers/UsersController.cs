@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using AgentDmsAdmin.Api.Models;
+using AgentDmsAdmin.Data.Data;
+using AgentDmsAdmin.Data.Models;
 
 namespace AgentDmsAdmin.Api.Controllers;
 
@@ -7,106 +10,141 @@ namespace AgentDmsAdmin.Api.Controllers;
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
-    // MOCK/DEMO CONTROLLER - This is for development/demo purposes only
-    // In production, this should be replaced with proper database persistence
-    // and user management with proper authentication, validation, and security
+    private readonly AgentDmsContext _context;
+    private readonly ILogger<UsersController> _logger;
 
-    private static readonly List<UserDto> MockUsers = new()
+    public UsersController(AgentDmsContext context, ILogger<UsersController> logger)
     {
-        new UserDto
-        {
-            Id = "1",
-            Username = "admin",
-            Email = "admin@agentdms.com"
-        },
-        new UserDto
-        {
-            Id = "2",
-            Username = "johnmanager",
-            Email = "john@agentdms.com"
-        },
-        new UserDto
-        {
-            Id = "3",
-            Username = "janeuser",
-            Email = "jane@agentdms.com"
-        }
-    };
-
-    private static int _nextId = 4; // For generating new user IDs
+        _context = context;
+        _logger = logger;
+    }
 
     [HttpGet]
-    public ActionResult<PaginatedResponse<UserDto>> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    public async Task<ActionResult<PaginatedResponse<UserDto>>> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        // MOCK IMPLEMENTATION - Replace with real database query
-        var totalCount = MockUsers.Count;
-        var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
-        
-        var pagedUsers = MockUsers
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToList();
-
-        var response = new PaginatedResponse<UserDto>
+        try
         {
-            Data = pagedUsers,
-            TotalCount = totalCount,
-            Page = page,
-            PageSize = pageSize,
-            TotalPages = totalPages
-        };
+            var totalCount = await _context.Users.CountAsync();
+            
+            var users = await _context.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .OrderByDescending(u => u.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(u => new UserDto
+                {
+                    Id = u.Id.ToString(),
+                    Username = u.Username,
+                    Email = u.Email,
+                    Roles = u.UserRoles.Select(ur => new UserRoleDto
+                    {
+                        Id = ur.Id.ToString(),
+                        UserId = ur.UserId.ToString(),
+                        RoleId = ur.RoleId.ToString(),
+                        RoleName = ur.Role.Name,
+                        CreatedAt = ur.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                    }).ToList()
+                })
+                .ToListAsync();
 
-        return Ok(response);
+            var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+            var response = new PaginatedResponse<UserDto>
+            {
+                Data = users,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = totalPages
+            };
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting users");
+            return StatusCode(500, "An error occurred while retrieving users");
+        }
     }
 
     [HttpPost]
-    public ActionResult<UserDto> CreateUser([FromBody] CreateUserRequest request)
+    public async Task<ActionResult<UserDto>> CreateUser([FromBody] CreateUserRequest request)
     {
-        // MOCK IMPLEMENTATION - Replace with real database persistence
-        // In production: validate email uniqueness, hash password, validate username, etc.
-        
-        if (string.IsNullOrWhiteSpace(request.Username) || 
-            string.IsNullOrWhiteSpace(request.Email) || 
-            string.IsNullOrWhiteSpace(request.PasswordHash))
+        try
         {
-            return BadRequest("Username, email, and password hash are required.");
+            // Check if username or email already exists
+            var existingUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.Username == request.Username || u.Email == request.Email);
+
+            if (existingUser != null)
+            {
+                return BadRequest("Username or email already exists.");
+            }
+
+            var user = new User
+            {
+                Username = request.Username,
+                Email = request.Email,
+                PasswordHash = request.PasswordHash // In production, this should be hashed
+            };
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            var userDto = new UserDto
+            {
+                Id = user.Id.ToString(),
+                Username = user.Username,
+                Email = user.Email,
+                Roles = new List<UserRoleDto>()
+            };
+
+            return CreatedAtAction(nameof(GetUser), new { id = user.Id }, userDto);
         }
-
-        // Check if email already exists (mock validation)
-        if (MockUsers.Any(u => u.Email.Equals(request.Email, StringComparison.OrdinalIgnoreCase)))
+        catch (Exception ex)
         {
-            return BadRequest("A user with this email already exists.");
+            _logger.LogError(ex, "Error creating user");
+            return StatusCode(500, "An error occurred while creating the user");
         }
-
-        // Check if username already exists (mock validation)
-        if (MockUsers.Any(u => u.Username.Equals(request.Username, StringComparison.OrdinalIgnoreCase)))
-        {
-            return BadRequest("A user with this username already exists.");
-        }
-
-        var newUser = new UserDto
-        {
-            Id = _nextId++.ToString(),
-            Username = request.Username.Trim(),
-            Email = request.Email.Trim().ToLowerInvariant()
-        };
-
-        MockUsers.Add(newUser);
-
-        return CreatedAtAction(nameof(GetUser), new { id = newUser.Id }, newUser);
     }
 
     [HttpGet("{id}")]
-    public ActionResult<UserDto> GetUser(string id)
+    public async Task<ActionResult<UserDto>> GetUser(int id)
     {
-        // MOCK IMPLEMENTATION - Replace with real database query
-        var user = MockUsers.FirstOrDefault(u => u.Id == id);
-        
-        if (user == null)
+        try
         {
-            return NotFound($"User with ID {id} not found.");
-        }
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Id == id);
+            
+            if (user == null)
+            {
+                return NotFound($"User with ID {id} not found.");
+            }
 
-        return Ok(user);
+            var userDto = new UserDto
+            {
+                Id = user.Id.ToString(),
+                Username = user.Username,
+                Email = user.Email,
+                Roles = user.UserRoles.Select(ur => new UserRoleDto
+                {
+                    Id = ur.Id.ToString(),
+                    UserId = ur.UserId.ToString(),
+                    RoleId = ur.RoleId.ToString(),
+                    RoleName = ur.Role.Name,
+                    CreatedAt = ur.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                }).ToList()
+            };
+
+            return Ok(userDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting user {UserId}", id);
+            return StatusCode(500, "An error occurred while retrieving the user");
+        }
     }
 }

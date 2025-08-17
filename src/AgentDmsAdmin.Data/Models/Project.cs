@@ -24,4 +24,5 @@ public class Project : BaseEntity
     // Navigation properties
     public ICollection<Document> Documents { get; set; } = new List<Document>();
     public ICollection<CustomField> CustomFields { get; set; } = new List<CustomField>();
+    public ICollection<ProjectRole> ProjectRoles { get; set; } = new List<ProjectRole>();
 }
