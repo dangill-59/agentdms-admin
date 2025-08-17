@@ -2,17 +2,17 @@ import type { User, PaginatedResponse } from '../types/auth';
 import { apiService } from './api';
 
 export interface CreateUserRequest {
-  name: string;
-  email: string;
-  password: string;
-  role: string;
+  Username: string;
+  Email: string;
+  PasswordHash: string;
+  Role: string;
 }
 
 export interface UpdateUserRequest {
-  name?: string;
-  email?: string;
-  role?: string;
-  password?: string;
+  Username?: string;
+  Email?: string;
+  Role?: string;
+  PasswordHash?: string;
 }
 
 export interface UserStats {
@@ -144,7 +144,7 @@ export class UserService {
   }
 
   // User profile operations
-  public async updateProfile(profileData: { name: string; email: string }): Promise<User> {
+  public async updateProfile(profileData: { Username: string; Email: string }): Promise<User> {
     const response = await apiService.put<User>('/profile', profileData);
     return response.data;
   }

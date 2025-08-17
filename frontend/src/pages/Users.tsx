@@ -67,10 +67,10 @@ const Users: React.FC = () => {
   const handleCreateUser = async () => {
     try {
       const createdUser = await userService.createUser({
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        password: newUser.password
+        Username: newUser.name,
+        Email: newUser.email,
+        Role: newUser.role,
+        PasswordHash: newUser.password
       });
       
       setUsers(prev => [...prev, createdUser]);
@@ -96,10 +96,10 @@ const Users: React.FC = () => {
     
     try {
       const updatedUser = await userService.updateUser(editingUser.id, {
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        ...(newUser.password && { password: newUser.password })
+        Username: newUser.name,
+        Email: newUser.email,
+        Role: newUser.role,
+        ...(newUser.password && { PasswordHash: newUser.password })
       });
       
       setUsers(prev => prev.map(u => u.id === editingUser.id ? updatedUser : u));
