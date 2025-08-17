@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import type { Project, CreateProjectRequest, UpdateProjectRequest } from '../types/api';
 import { projectService } from '../services/projects';
 import ProjectCard from '../components/ProjectCard';
@@ -20,15 +20,7 @@ const Projects: React.FC = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  useEffect(() => {
-    fetchProjects();
-  }, [includeArchived]);
-
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
       setIsLoading(true);
       setError('');
@@ -39,7 +31,15 @@ const Projects: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [includeArchived]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [includeArchived, fetchProjects]);
 
   const filteredProjects = (projects ?? []).filter(project =>
     project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
