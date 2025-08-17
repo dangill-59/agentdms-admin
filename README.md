@@ -308,6 +308,74 @@ This foundation provides:
 8. Add logging and monitoring
 9. Implement document processing (OCR, thumbnails)
 
+## Security Best Practices
+
+### Authentication & Authorization
+- **JWT Token Security**: Tokens are stored in localStorage with automatic expiration handling
+- **Protected Routes**: All application routes require authentication except `/login`
+- **API Security**: All API requests include Bearer token authentication
+- **Session Management**: Invalid or expired tokens trigger automatic logout
+
+### Data Protection
+- **Input Validation**: Implement proper validation on all user inputs (both frontend and backend)
+- **SQL Injection Prevention**: Use Entity Framework parameterized queries and LINQ
+- **XSS Protection**: Sanitize user inputs and use proper content security policies
+- **CORS Configuration**: Configure CORS policies appropriately for your deployment environment
+
+### Environment Security
+- **Environment Variables**: Store sensitive configuration in environment variables, not code
+- **Secret Management**: Never commit API keys, connection strings, or other secrets to source control
+- **Database Security**: Use appropriate database authentication and access controls in production
+- **HTTPS Only**: Always use HTTPS in production environments
+
+### Development Security
+- **Demo Credentials**: Change default demo credentials before production deployment
+- **Debug Information**: Disable detailed error messages in production
+- **Logging**: Avoid logging sensitive information (passwords, tokens, personal data)
+- **Dependencies**: Regularly audit and update dependencies for security vulnerabilities
+
+## Project Hygiene Guidelines
+
+### Code Quality
+- **TypeScript**: Use TypeScript strict mode for maximum type safety
+- **Linting**: Run ESLint and fix all warnings before committing
+- **Code Review**: All changes must go through pull request review process
+- **Testing**: Write unit tests for business logic and integration tests for API endpoints
+
+### Git Workflow
+- **Branching**: Use feature branches for all changes, never commit directly to main
+- **Commit Messages**: Write clear, descriptive commit messages following conventional commits
+- **Pull Requests**: Use the provided PR template and complete all checklist items
+- **Issue Tracking**: Link PRs to issues using "Fixes #issue-number" format
+
+### Documentation
+- **README Updates**: Keep README.md current with any architectural or setup changes
+- **CHANGELOG**: Document all notable changes following [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format
+- **Code Comments**: Comment complex business logic and architectural decisions
+- **API Documentation**: Document API endpoints and data models
+
+### Dependency Management
+- **Package Updates**: Regularly update dependencies and test for compatibility
+- **Security Audits**: Run `npm audit` and `dotnet list package --vulnerable` regularly
+- **Lock Files**: Commit package-lock.json and ensure consistent dependency versions
+- **Minimal Dependencies**: Only add dependencies that provide clear value
+
+### Build & Deployment
+- **Build Validation**: Ensure all code builds successfully before merging
+- **Environment Parity**: Keep development, staging, and production environments as similar as possible
+- **Configuration Management**: Use environment-specific configuration files
+- **Database Migrations**: Test all database migrations in non-production environments first
+
+### Contributing Guidelines
+1. **Fork and Clone**: Fork the repository and clone your fork locally
+2. **Create Feature Branch**: Create a descriptive branch name (e.g., `feature/document-upload`, `fix/auth-redirect`)
+3. **Make Changes**: Implement your changes following existing code patterns
+4. **Write Tests**: Add or update tests to cover your changes
+5. **Run Tests**: Ensure all tests pass locally before pushing
+6. **Update Documentation**: Update README, CHANGELOG, and inline documentation as needed
+7. **Submit PR**: Use the pull request template and request review
+8. **Address Feedback**: Respond to review comments and make requested changes
+
 ## Configuration
 
 Key configuration options in `appsettings.json`:
