@@ -3,9 +3,10 @@ import { useAuth } from '../hooks/useAuth';
 import { settingsService } from '../services/settings';
 import type { AppSettings } from '../services/settings';
 import Header from '../components/Header';
+import { getUserDisplayName } from '../utils/userHelpers';
 
 interface UserProfile {
-  name: string;
+  username: string;
   email: string;
   currentPassword: string;
   newPassword: string;
@@ -21,7 +22,7 @@ const Settings: React.FC = () => {
 
   // User profile state
   const [userProfile, setUserProfile] = useState<UserProfile>({
-    name: user?.username || user?.name || user?.email || '',
+    username: getUserDisplayName(user),
     email: user?.email || '',
     currentPassword: '',
     newPassword: '',
@@ -252,12 +253,12 @@ const Settings: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div>
                             <label className="block text-sm font-medium text-gray-700">
-                              Full Name
+                              Username
                             </label>
                             <input
                               type="text"
-                              value={userProfile.name}
-                              onChange={(e) => setUserProfile({ ...userProfile, name: e.target.value })}
+                              value={userProfile.username}
+                              onChange={(e) => setUserProfile({ ...userProfile, username: e.target.value })}
                               className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                               required
                             />

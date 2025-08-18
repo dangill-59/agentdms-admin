@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import type { User } from '../types/auth';
+import { getUserDisplayName, getUserPrimaryRole, userIsAdmin, canAccessNavItem } from '../utils/userHelpers';
 
 interface NavItem {
   name: string;
@@ -13,12 +14,6 @@ interface NavItem {
 const Header: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
-
-  // Helper function to safely get display name from user object
-  const getUserDisplayName = (user: User | null): string => {
-    if (!user) return 'Unknown User';
-    return user.username || user.name || user.email || 'Unknown User';
-  };
   
   // Helper function to get first letter for avatar
   const getUserInitial = (user: User | null): string => {
@@ -83,7 +78,7 @@ const Header: React.FC = () => {
   // Filter navigation items based on user role
   const visibleNavItems = navigationItems.filter(item => {
     if (!item.roles) return true;
-    return user?.role && item.roles.includes(user.role);
+    return canAccessNavItem(user, item.roles);
   });
 
   const isCurrentPath = (path: string) => location.pathname === path;
@@ -134,10 +129,9 @@ const Header: React.FC = () => {
               <div className="text-sm font-medium text-gray-900">{getUserDisplayName(user)}</div>
               <div className="text-xs text-gray-500 flex items-center">
                 <span className={`inline-block w-2 h-2 rounded-full mr-1 ${
-                  user?.role === 'Administrator' ? 'bg-red-400' : 
-                  user?.role === 'Manager' ? 'bg-yellow-400' : 'bg-green-400'
+                  userIsAdmin(user) ? 'bg-red-400' : 'bg-green-400'
                 }`}></span>
-                {user?.role || 'User'}
+                {user ? getUserPrimaryRole(user) : 'User'}
               </div>
             </div>
 

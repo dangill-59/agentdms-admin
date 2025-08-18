@@ -3,9 +3,10 @@ import { useAuth } from '../hooks/useAuth';
 import type { User } from '../types/auth';
 import { userService } from '../services/users';
 import Header from '../components/Header';
+import { getUserDisplayName, getUserPrimaryRole, userIsAdmin, getRoleColor, getRoleIcon } from '../utils/userHelpers';
 
 interface NewUser {
-  name: string;
+  username: string;
   email: string;
   role: string;
   password: string;
@@ -14,16 +15,12 @@ interface NewUser {
 const Users: React.FC = () => {
   const { user: currentUser } = useAuth();
   
-  // Helper function to safely get display name from user object
-  const getUserDisplayName = (user: User): string => {
-    return user?.username || user?.name || user?.email || 'Unknown User';
-  };
-  
   // Helper function to get first letter for avatar
   const getUserInitial = (user: User): string => {
     const displayName = getUserDisplayName(user);
     return displayName.charAt(0).toUpperCase();
   };
+
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -31,7 +28,7 @@ const Users: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [newUser, setNewUser] = useState<NewUser>({
-    name: '',
+    username: '',
     email: '',
     role: 'User',
     password: ''
@@ -60,22 +57,21 @@ const Users: React.FC = () => {
     (user && (
       getUserDisplayName(user).toLowerCase().includes(searchTerm.toLowerCase()) ||
       (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (user.role && user.role.toLowerCase().includes(searchTerm.toLowerCase()))
+      (getUserPrimaryRole(user) && getUserPrimaryRole(user).toLowerCase().includes(searchTerm.toLowerCase()))
     ))
   );
 
   const handleCreateUser = async () => {
     try {
       const createdUser = await userService.createUser({
-        Username: newUser.name,
-        Email: newUser.email,
-        Role: newUser.role,
-        PasswordHash: newUser.password
+        username: newUser.username,
+        email: newUser.email,
+        passwordHash: newUser.password
       });
       
       setUsers(prev => [...prev, createdUser]);
       setShowCreateModal(false);
-      setNewUser({ name: '', email: '', role: 'User', password: '' });
+      setNewUser({ username: '', email: '', role: 'User', password: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create user');
     }
@@ -84,9 +80,9 @@ const Users: React.FC = () => {
   const handleEditUser = (user: User) => {
     setEditingUser(user);
     setNewUser({
-      name: getUserDisplayName(user),
+      username: getUserDisplayName(user),
       email: user.email || '',
-      role: user.role || 'User',
+      role: getUserPrimaryRole(user) || 'User',
       password: ''
     });
   };
@@ -96,15 +92,14 @@ const Users: React.FC = () => {
     
     try {
       const updatedUser = await userService.updateUser(editingUser.id, {
-        Username: newUser.name,
-        Email: newUser.email,
-        Role: newUser.role,
-        ...(newUser.password && { PasswordHash: newUser.password })
+        username: newUser.username,
+        email: newUser.email,
+        ...(newUser.password && { passwordHash: newUser.password })
       });
       
       setUsers(prev => prev.map(u => u.id === editingUser.id ? updatedUser : u));
       setEditingUser(null);
-      setNewUser({ name: '', email: '', role: 'User', password: '' });
+      setNewUser({ username: '', email: '', role: 'User', password: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update user');
     }
@@ -121,42 +116,8 @@ const Users: React.FC = () => {
     }
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'Administrator': return 'bg-red-100 text-red-800';
-      case 'Manager': return 'bg-yellow-100 text-yellow-800';
-      case 'User': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'Administrator':
-        return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-        );
-      case 'Manager':
-        return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-          </svg>
-        );
-      case 'User':
-        return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-        );
-      default:
-        return null;
-    }
-  };
-
   // Only administrators can access user management
-  if (currentUser?.role !== 'Administrator') {
+  if (!userIsAdmin(currentUser)) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -306,9 +267,9 @@ const Users: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(user.role || 'User')}`}>
-                              {getRoleIcon(user.role || 'User')}
-                              <span>{user.role || 'User'}</span>
+                            <span className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(getUserPrimaryRole(user))}`}>
+                              {getRoleIcon(getUserPrimaryRole(user))}
+                              <span>{getUserPrimaryRole(user)}</span>
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -376,7 +337,7 @@ const Users: React.FC = () => {
                   </div>
                   <div className="ml-4">
                     <div className="text-2xl font-bold text-gray-900">
-                      {users.filter(u => u && u.role === 'Administrator').length}
+                      {users.filter(u => u && userIsAdmin(u)).length}
                     </div>
                     <div className="text-gray-600">Administrators</div>
                   </div>
@@ -413,7 +374,7 @@ const Users: React.FC = () => {
                 onClick={() => {
                   setShowCreateModal(false);
                   setEditingUser(null);
-                  setNewUser({ name: '', email: '', role: 'User', password: '' });
+                  setNewUser({ username: '', email: '', role: 'User', password: '' });
                 }}
                 className="text-gray-400 hover:text-gray-600"
               >
@@ -426,14 +387,14 @@ const Users: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Name
+                  Username
                 </label>
                 <input
                   type="text"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                  value={newUser.username}
+                  onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter full name"
+                  placeholder="Enter username"
                 />
               </div>
 
@@ -486,7 +447,7 @@ const Users: React.FC = () => {
                 onClick={() => {
                   setShowCreateModal(false);
                   setEditingUser(null);
-                  setNewUser({ name: '', email: '', role: 'User', password: '' });
+                  setNewUser({ username: '', email: '', role: 'User', password: '' });
                 }}
                 className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium"
               >
@@ -495,7 +456,7 @@ const Users: React.FC = () => {
               <button
                 onClick={editingUser ? handleUpdateUser : handleCreateUser}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                disabled={!newUser.name || !newUser.email || (!editingUser && !newUser.password)}
+                disabled={!newUser.username || !newUser.email || (!editingUser && !newUser.password)}
               >
                 {editingUser ? 'Update' : 'Create'}
               </button>

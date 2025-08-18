@@ -31,9 +31,17 @@ export class AuthService {
       if (credentials.email === 'admin@agentdms.com' && credentials.password === 'admin123') {
         const user: User = {
           id: '1',
+          username: 'admin',
           email: credentials.email,
-          name: 'Admin User',
-          role: 'Administrator'
+          roles: [
+            {
+              id: '1',
+              userId: '1',
+              roleId: '1',
+              roleName: 'Administrator',
+              createdAt: new Date().toISOString()
+            }
+          ]
         };
 
         const token = 'demo-jwt-token-' + Date.now();
@@ -86,9 +94,17 @@ export class AuthService {
       if (token.startsWith('demo-jwt-token-')) {
         return {
           id: '1',
+          username: 'admin',
           email: 'admin@agentdms.com',
-          name: 'Admin User',
-          role: 'Administrator'
+          roles: [
+            {
+              id: '1',
+              userId: '1',
+              roleId: '1',
+              roleName: 'Administrator',
+              createdAt: new Date().toISOString()
+            }
+          ]
         };
       }
       
@@ -152,7 +168,7 @@ export class AuthService {
 
   // Additional auth methods for real backend integration
   public async register(userData: {
-    name: string;
+    username: string;
     email: string;
     password: string;
     role?: string;

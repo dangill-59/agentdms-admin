@@ -1,5 +1,4 @@
 import type { User } from '../types/auth';
-import type { UserRole } from '../types/api';
 
 /**
  * Get the display name for a user

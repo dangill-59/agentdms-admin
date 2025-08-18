@@ -1,5 +1,5 @@
 import type { User } from '../types/auth';
-import type { UserRole, PaginatedResponse } from '../types/api';
+import type { PaginatedResponse } from '../types/api';
 import { apiService } from './api';
 
 export class UserService {
