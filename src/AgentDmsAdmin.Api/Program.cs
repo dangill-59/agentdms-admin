@@ -38,6 +38,7 @@ if (app.Environment.IsDevelopment())
         
         var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
         await seeder.SeedSampleDataAsync();
+        await seeder.SeedAdminUserAsync();
     }
 }
 
