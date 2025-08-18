@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import type { Project } from '../types/api';
+import type { Project, CreateProjectRequest } from '../types/api';
 import { projectService } from '../services/projects';
 import ProjectCard from '../components/ProjectCard';
 import Header from '../components/Header';
@@ -13,6 +13,12 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [formData, setFormData] = useState<CreateProjectRequest>({
+    name: '',
+    description: '',
+    fileName: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchProjects();
@@ -38,7 +44,41 @@ const Dashboard: React.FC = () => {
   );
 
   const handleCreateProject = () => {
+    setFormData({
+      name: '',
+      description: '',
+      fileName: ''
+    });
     setShowCreateModal(true);
+  };
+
+  const handleSubmitCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim()) {
+      setError('Project name is required');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError('');
+      await projectService.createProject({
+        name: formData.name.trim(),
+        description: formData.description?.trim() || undefined,
+        fileName: formData.fileName?.trim() || undefined
+      });
+      await fetchProjects();
+      setShowCreateModal(false);
+      setFormData({
+        name: '',
+        description: '',
+        fileName: ''
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create project');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isLoading) {
@@ -213,20 +253,78 @@ const Dashboard: React.FC = () => {
         </div>
       </main>
 
-      {/* Create Project Modal - Placeholder */}
+      {/* Create Project Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-blue-900 bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white shadow-2xl p-8 w-full max-w-md border-t-4 border-blue-500">
-            <h3 className="text-xl font-bold text-blue-900 mb-4">Create New Project</h3>
-            <p className="text-gray-600 mb-6">Project creation will be implemented in the next phase.</p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 text-sm font-medium transition-colors shadow-md"
-              >
-                Close
-              </button>
-            </div>
+          <div className="bg-white shadow-2xl rounded-lg p-8 w-full max-w-md border-t-4 border-blue-500">
+            <h3 className="text-xl font-bold text-blue-900 mb-6">Create New Project</h3>
+            <form onSubmit={handleSubmitCreate} className="space-y-4">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                  Project Name *
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter project name"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter project description"
+                />
+              </div>
+              <div>
+                <label htmlFor="fileName" className="block text-sm font-medium text-gray-700 mb-1">
+                  Default Filename
+                </label>
+                <input
+                  type="text"
+                  id="fileName"
+                  value={formData.fileName}
+                  onChange={(e) => setFormData({ ...formData, fileName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="DefaultFilename"
+                />
+              </div>
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setFormData({
+                      name: '',
+                      description: '',
+                      fileName: ''
+                    });
+                    setError('');
+                  }}
+                  disabled={isSubmitting}
+                  className="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 text-white px-6 py-2 text-sm font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !formData.name.trim()}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-2 text-sm font-medium transition-colors"
+                >
+                  {isSubmitting ? 'Creating...' : 'Create Project'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

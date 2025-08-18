@@ -78,6 +78,10 @@ const Header: React.FC = () => {
   // Filter navigation items based on user role
   const visibleNavItems = navigationItems.filter(item => {
     if (!item.roles) return true;
+    // Special handling for Users page - use userIsAdmin function
+    if (item.path === '/users') {
+      return userIsAdmin(user);
+    }
     return canAccessNavItem(user, item.roles);
   });
 
