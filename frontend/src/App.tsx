@@ -7,6 +7,7 @@ import Projects from './pages/Projects';
 import ProjectFieldsPage from './pages/ProjectFieldsPage';
 import Documents from './pages/Documents';
 import Users from './pages/Users';
+import Roles from './pages/Roles';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 import './App.css';
@@ -69,6 +70,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Users />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/roles" 
+              element={
+                <ProtectedRoute>
+                  <Roles />
                 </ProtectedRoute>
               } 
             />
