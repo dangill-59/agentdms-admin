@@ -79,6 +79,58 @@ public class DataSeeder
     }
 
     /// <summary>
+    /// Seeds the default administrator user if one does not exist
+    /// </summary>
+    public async Task SeedAdminUserAsync()
+    {
+        // Check if admin user already exists
+        var existingAdmin = await _context.Users
+            .FirstOrDefaultAsync(u => u.Username == "admin");
+
+        if (existingAdmin != null)
+        {
+            return; // Admin user already exists
+        }
+
+        // Create the default admin user
+        var adminUser = new User
+        {
+            Username = "admin",
+            Email = "admin@example.com",
+            PasswordHash = "$2b$10$G9QZmbY/8I7gQ7lS.YY2zOQgf9U6Qf2iFsdj4A1EV8dS9Zq8KHQHq" // bcrypt hash for 'admin123'
+        };
+
+        _context.Users.Add(adminUser);
+        await _context.SaveChangesAsync();
+
+        // Create Administrator role if it doesn't exist
+        var adminRole = await _context.Roles
+            .FirstOrDefaultAsync(r => r.Name == "Administrator");
+
+        if (adminRole == null)
+        {
+            adminRole = new Role
+            {
+                Name = "Administrator",
+                Description = "Full system administrator with all permissions"
+            };
+
+            _context.Roles.Add(adminRole);
+            await _context.SaveChangesAsync();
+        }
+
+        // Assign Administrator role to admin user
+        var userRole = new UserRole
+        {
+            UserId = adminUser.Id,
+            RoleId = adminRole.Id
+        };
+
+        _context.UserRoles.Add(userRole);
+        await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
     /// Seeds sample data for testing and development
     /// </summary>
     public async Task SeedSampleDataAsync()
