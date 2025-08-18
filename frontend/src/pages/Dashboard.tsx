@@ -4,6 +4,7 @@ import type { Project } from '../types/api';
 import { projectService } from '../services/projects';
 import ProjectCard from '../components/ProjectCard';
 import Header from '../components/Header';
+import { getUserDisplayName } from '../utils/userHelpers';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -62,7 +63,7 @@ const Dashboard: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h1 className="text-3xl font-bold text-blue-900">
-                  Welcome back, {user?.name}!
+                  Welcome back, {getUserDisplayName(user)}!
                 </h1>
                 <p className="mt-2 text-gray-600">
                   Manage your document projects and access your files.
