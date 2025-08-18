@@ -15,9 +15,23 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Restore error state from localStorage on component mount (for dev HMR resilience)
+  React.useEffect(() => {
+    const savedError = sessionStorage.getItem('login-error');
+    if (savedError) {
+      setError(savedError);
+      sessionStorage.removeItem('login-error');
+    }
+  }, []);
+
+  const clearError = () => {
+    setError('');
+    sessionStorage.removeItem('login-error');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    clearError();
     setIsLoading(true);
 
     try {
@@ -26,7 +40,10 @@ const Login: React.FC = () => {
       const from = location.state?.from?.pathname || '/dashboard';
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      setError(errorMessage);
+      // Persist error in sessionStorage for development HMR resilience
+      sessionStorage.setItem('login-error', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -38,6 +55,10 @@ const Login: React.FC = () => {
       ...prev,
       [name]: value,
     }));
+    // Clear error when user starts typing
+    if (error) {
+      clearError();
+    }
   };
 
   return (
