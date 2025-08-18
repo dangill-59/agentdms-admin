@@ -96,7 +96,7 @@ public class DataSeeder
         var adminUser = new User
         {
             Username = "admin",
-            Email = "admin@example.com",
+            Email = "admin@agentdms.com", // Updated to match frontend demo credentials
             PasswordHash = "$2b$10$G9QZmbY/8I7gQ7lS.YY2zOQgf9U6Qf2iFsdj4A1EV8dS9Zq8KHQHq" // bcrypt hash for 'admin123'
         };
 

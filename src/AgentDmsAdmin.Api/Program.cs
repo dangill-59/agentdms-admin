@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using AgentDmsAdmin.Data.Data;
 using AgentDmsAdmin.Data.Services;
+using AgentDmsAdmin.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,9 @@ builder.Services.AddDbContext<AgentDmsContext>(options =>
         ?? "Data Source=agentdms.db"));
 
 builder.Services.AddScoped<DataSeeder>();
+
+// Add JWT service for authentication
+builder.Services.AddScoped<IJwtService, JwtService>();
 
 // Add controllers support
 builder.Services.AddControllers();
