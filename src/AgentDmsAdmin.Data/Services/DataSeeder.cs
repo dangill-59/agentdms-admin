@@ -79,6 +79,109 @@ public class DataSeeder
     }
 
     /// <summary>
+    /// Seeds the initial permissions if they don't exist
+    /// </summary>
+    public async Task SeedPermissionsAsync()
+    {
+        var permissions = new[]
+        {
+            new { Name = "workspace.admin", Description = "Full administrative access (manage projects, users, roles, settings)" },
+            new { Name = "document.view", Description = "View documents" },
+            new { Name = "document.edit", Description = "Edit documents" },
+            new { Name = "document.delete", Description = "Delete documents" },
+            new { Name = "document.print", Description = "Print, email, or download documents" },
+            new { Name = "document.annotate", Description = "Annotate documents (add notes, highlights, comments)" }
+        };
+
+        foreach (var permissionData in permissions)
+        {
+            var existingPermission = await _context.Permissions
+                .FirstOrDefaultAsync(p => p.Name == permissionData.Name);
+
+            if (existingPermission == null)
+            {
+                var permission = new Permission
+                {
+                    Name = permissionData.Name,
+                    Description = permissionData.Description
+                };
+
+                _context.Permissions.Add(permission);
+            }
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Seeds the Super Admin user with all permissions if it doesn't exist
+    /// </summary>
+    public async Task SeedSuperAdminUserAsync()
+    {
+        // Check if super admin user already exists
+        var existingSuperAdmin = await _context.Users
+            .FirstOrDefaultAsync(u => u.Username == "superadmin");
+
+        if (existingSuperAdmin != null)
+        {
+            return; // Super Admin user already exists
+        }
+
+        // Create the Super Admin user
+        var superAdminUser = new User
+        {
+            Username = "superadmin",
+            Email = "superadmin@agentdms.com",
+            PasswordHash = "$2b$10$G9QZmbY/8I7gQ7lS.YY2zOQgf9U6Qf2iFsdj4A1EV8dS9Zq8KHQHq", // bcrypt hash for 'admin123'
+            IsImmutable = true // Super Admin is immutable
+        };
+
+        _context.Users.Add(superAdminUser);
+        await _context.SaveChangesAsync();
+
+        // Create Super Admin role if it doesn't exist
+        var superAdminRole = await _context.Roles
+            .FirstOrDefaultAsync(r => r.Name == "Super Admin");
+
+        if (superAdminRole == null)
+        {
+            superAdminRole = new Role
+            {
+                Name = "Super Admin",
+                Description = "Super Administrator with all permissions"
+            };
+
+            _context.Roles.Add(superAdminRole);
+            await _context.SaveChangesAsync();
+
+            // Assign all permissions to Super Admin role
+            var allPermissions = await _context.Permissions.ToListAsync();
+            foreach (var permission in allPermissions)
+            {
+                var rolePermission = new RolePermission
+                {
+                    RoleId = superAdminRole.Id,
+                    PermissionId = permission.Id
+                };
+
+                _context.RolePermissions.Add(rolePermission);
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        // Assign Super Admin role to super admin user
+        var userRole = new UserRole
+        {
+            UserId = superAdminUser.Id,
+            RoleId = superAdminRole.Id
+        };
+
+        _context.UserRoles.Add(userRole);
+        await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
     /// Seeds the default administrator user if one does not exist
     /// </summary>
     public async Task SeedAdminUserAsync()
