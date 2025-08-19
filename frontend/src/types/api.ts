@@ -21,6 +21,24 @@ export interface Role {
   description?: string;
   createdAt: string;
   modifiedAt: string;
+  permissions?: Permission[];
+}
+
+export interface Permission {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  modifiedAt: string;
+}
+
+export interface RolePermission {
+  id: string;
+  roleId: string;
+  permissionId: string;
+  permissionName: string;
+  permissionDescription?: string;
+  createdAt: string;
 }
 
 export interface UserRole {
@@ -151,4 +169,20 @@ export interface UpdateProjectRoleRequest {
   canView?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
+}
+
+// Permission request types
+export interface CreatePermissionRequest {
+  name: string;
+  description?: string;
+}
+
+export interface UpdatePermissionRequest {
+  name?: string;
+  description?: string;
+}
+
+export interface AssignRolePermissionRequest {
+  roleId: string;
+  permissionId: string;
 }

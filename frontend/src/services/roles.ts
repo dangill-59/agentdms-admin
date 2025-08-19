@@ -2,20 +2,23 @@ import type {
   Role,
   UserRole,
   ProjectRole,
+  Permission,
+  RolePermission,
   PaginatedResponse,
   CreateRoleRequest,
   UpdateRoleRequest,
   AssignUserRoleRequest,
   AssignProjectRoleRequest,
-  UpdateProjectRoleRequest
+  UpdateProjectRoleRequest,
+  AssignRolePermissionRequest
 } from '../types/api';
 import { apiService } from './api';
 
 export class RoleService {
   // Role CRUD operations
-  public async getRoles(page = 1, pageSize = 10): Promise<PaginatedResponse<Role>> {
+  public async getRoles(page = 1, pageSize = 10, includePermissions = false): Promise<PaginatedResponse<Role>> {
     try {
-      const response = await apiService.get<PaginatedResponse<Role>>(`/roles?page=${page}&pageSize=${pageSize}`);
+      const response = await apiService.get<PaginatedResponse<Role>>(`/roles?page=${page}&pageSize=${pageSize}&includePermissions=${includePermissions}`);
       return response.data || response;
     } catch (error) {
       console.warn('Failed to fetch roles from backend, using demo data:', error);
@@ -59,9 +62,9 @@ export class RoleService {
     }
   }
 
-  public async getRole(id: string): Promise<Role> {
+  public async getRole(id: string, includePermissions = false): Promise<Role> {
     try {
-      const response = await apiService.get<Role>(`/roles/${id}`);
+      const response = await apiService.get<Role>(`/roles/${id}?includePermissions=${includePermissions}`);
       return response.data || response;
     } catch (error) {
       console.warn('Failed to fetch role from backend, using demo data:', error);
@@ -184,6 +187,57 @@ export class RoleService {
       await apiService.delete(`/roles/project-roles/${projectRoleId}`);
     } catch (error) {
       console.warn('Failed to remove project role, simulating success:', error);
+    }
+  }
+
+  // Permission assignment methods
+  public async assignRolePermission(request: AssignRolePermissionRequest): Promise<RolePermission> {
+    try {
+      const response = await apiService.post<RolePermission>('/roles/assign-permission', request);
+      return response.data || response;
+    } catch (error) {
+      console.warn('Failed to assign permission to role, simulating success:', error);
+      return {
+        id: Math.random().toString(),
+        roleId: request.roleId,
+        permissionId: request.permissionId,
+        permissionName: 'Demo Permission',
+        permissionDescription: 'Demo permission description',
+        createdAt: new Date().toISOString()
+      };
+    }
+  }
+
+  public async removeRolePermission(rolePermissionId: string): Promise<void> {
+    try {
+      await apiService.delete(`/roles/role-permissions/${rolePermissionId}`);
+    } catch (error) {
+      console.warn('Failed to remove role permission, simulating success:', error);
+    }
+  }
+
+  public async getRolePermissions(roleId: string): Promise<Permission[]> {
+    try {
+      const response = await apiService.get<Permission[]>(`/roles/${roleId}/permissions`);
+      return response.data || response;
+    } catch (error) {
+      console.warn('Failed to fetch role permissions, returning mock data:', error);
+      return [
+        {
+          id: '1',
+          name: 'user.create',
+          description: 'Create new users',
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z'
+        },
+        {
+          id: '2',
+          name: 'user.edit',
+          description: 'Edit existing users',
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z'
+        }
+      ];
     }
   }
 }
