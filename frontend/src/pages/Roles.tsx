@@ -10,6 +10,19 @@ interface NewRole {
   description: string;
 }
 
+// Type for flexible API response handling
+interface FlexibleApiResponse {
+  data?: Role[] | { data?: Role[] };
+  roles?: Role[];
+  items?: Role[];
+  results?: Role[];
+}
+
+// Type for role response with possible nested data
+interface FlexibleRoleResponse extends Role {
+  data?: Role;
+}
+
 const Roles: React.FC = () => {
   const { user: currentUser } = useAuth();
   
@@ -35,20 +48,47 @@ const Roles: React.FC = () => {
       setIsLoading(true);
       setError('');
       const response = await roleService.getRoles();
-      setRoles(response.data ?? []);
+      
+      // Robust handling for both array and object API responses
+      let roleData: Role[] = [];
+      if (Array.isArray(response)) {
+        // Direct array response
+        roleData = response;
+      } else if (response && typeof response === 'object') {
+        // Object response with data property
+        if (Array.isArray(response.data)) {
+          roleData = response.data;
+        } else if (response.data && typeof response.data === 'object' && 'data' in response.data && Array.isArray((response.data as { data: Role[] }).data)) {
+          // Nested data structure
+          roleData = (response.data as { data: Role[] }).data;
+        } else {
+          // Fallback: check for common array properties
+          const fallbackResponse = response as FlexibleApiResponse;
+          roleData = fallbackResponse.roles || fallbackResponse.items || fallbackResponse.results || [];
+        }
+      }
+      
+      // Ensure we have a valid array
+      setRoles(Array.isArray(roleData) ? roleData : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load roles');
+      setRoles([]); // Set empty array on error
     } finally {
       setIsLoading(false);
     }
   };
 
-  const filteredRoles = roles.filter(role =>
-    role && (
-      role.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      role.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+  const filteredRoles = roles.filter(role => {
+    if (!role) return false;
+    const name = (role.name || '').toLowerCase();
+    const description = (role.description || '').toLowerCase();
+    const search = searchTerm.toLowerCase();
+    if (search === '') return true;
+    return (
+      name.includes(search) ||
+      description.includes(search)
+    );
+  });
 
   const handleCreateRole = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,8 +104,16 @@ const Roles: React.FC = () => {
       };
       
       const createdRole = await roleService.createRole(request);
-      setRoles(prev => [...prev, createdRole]);
-      closeModals();
+      
+      // Robust handling of created role response
+      const roleResponse = createdRole as unknown as FlexibleRoleResponse;
+      const roleToAdd = roleResponse?.data || createdRole;
+      if (roleToAdd && roleToAdd.id) {
+        setRoles(prev => [...prev, roleToAdd]);
+        closeModals();
+      } else {
+        throw new Error('Invalid role data received from server');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create role');
     } finally {
@@ -96,8 +144,16 @@ const Roles: React.FC = () => {
       };
       
       const updatedRole = await roleService.updateRole(editingRole.id, request);
-      setRoles(prev => prev.map(r => r.id === editingRole.id ? updatedRole : r));
-      closeModals();
+      
+      // Robust handling of updated role response
+      const roleResponse = updatedRole as unknown as FlexibleRoleResponse;
+      const roleToUpdate = roleResponse?.data || updatedRole;
+      if (roleToUpdate && roleToUpdate.id) {
+        setRoles(prev => prev.map(r => r.id === editingRole.id ? roleToUpdate : r));
+        closeModals();
+      } else {
+        throw new Error('Invalid role data received from server');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update role');
     } finally {
