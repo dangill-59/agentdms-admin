@@ -42,7 +42,9 @@ if (app.Environment.IsDevelopment())
         
         var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
         await seeder.SeedSampleDataAsync();
-        await seeder.SeedAdminUserAsync();
+        await seeder.SeedPermissionsAsync(); // Seed permissions first
+        await seeder.SeedSuperAdminUserAsync(); // Seed Super Admin with all permissions
+        await seeder.SeedAdminUserAsync(); // Seed regular admin user
     }
 }
 

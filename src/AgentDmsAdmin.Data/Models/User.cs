@@ -16,6 +16,11 @@ public class User : BaseEntity
     [MaxLength(500)]
     public string PasswordHash { get; set; } = string.Empty;
     
+    /// <summary>
+    /// Indicates if this user is immutable (cannot be edited or deleted)
+    /// </summary>
+    public bool IsImmutable { get; set; } = false;
+    
     // Navigation properties
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 }
