@@ -208,6 +208,7 @@ const Roles: React.FC = () => {
       setRolePermissions(rolePerms);
     } catch (err) {
       setError('Failed to load permissions');
+      console.error('Permission loading error:', err);
     } finally {
       setPermissionsLoading(false);
     }
@@ -227,6 +228,7 @@ const Roles: React.FC = () => {
       setRolePermissions(rolePerms);
     } catch (err) {
       setError('Failed to assign permission');
+      console.error('Permission assignment error:', err);
     }
   };
 
@@ -242,6 +244,7 @@ const Roles: React.FC = () => {
       setRolePermissions(prev => prev.filter(p => p.id !== permission.id));
     } catch (err) {
       setError('Failed to remove permission');
+      console.error('Permission removal error:', err);
     }
   };
 
@@ -616,11 +619,26 @@ const Roles: React.FC = () => {
                             </div>
                           </div>
                         ))}
-                      {(allPermissions || []).filter(permission => !(rolePermissions || []).some(rp => rp.id === permission.id)).length === 0 && (
-                        <div className="p-4 text-center text-gray-500">
-                          All permissions are already assigned to this role
-                        </div>
-                      )}
+                      {(() => {
+                        const availablePermissions = (allPermissions || []).filter(permission => !(rolePermissions || []).some(rp => rp.id === permission.id));
+                        const totalPermissions = (allPermissions || []).length;
+                        const assignedPermissions = (rolePermissions || []).length;
+                        
+                        if (totalPermissions === 0) {
+                          return (
+                            <div className="p-4 text-center text-gray-500">
+                              No permissions available to assign
+                            </div>
+                          );
+                        } else if (availablePermissions.length === 0 && assignedPermissions > 0) {
+                          return (
+                            <div className="p-4 text-center text-gray-500">
+                              All permissions are already assigned to this role
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
 
@@ -646,11 +664,19 @@ const Roles: React.FC = () => {
                           </div>
                         </div>
                       ))}
-                      {(rolePermissions || []).length === 0 && (
-                        <div className="p-4 text-center text-gray-500">
-                          No permissions assigned to this role
-                        </div>
-                      )}
+                      {(() => {
+                        const totalPermissions = (allPermissions || []).length;
+                        const assignedPermissions = (rolePermissions || []).length;
+                        
+                        if (assignedPermissions === 0 && totalPermissions > 0) {
+                          return (
+                            <div className="p-4 text-center text-gray-500">
+                              No permissions assigned to this role
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
                 </div>
