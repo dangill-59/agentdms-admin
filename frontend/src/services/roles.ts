@@ -15,7 +15,7 @@ export class RoleService {
   // Role CRUD operations
   public async getRoles(page = 1, pageSize = 10): Promise<PaginatedResponse<Role>> {
     try {
-      const response = await apiService.get<PaginatedResponse<Role>>(`/api/roles?page=${page}&pageSize=${pageSize}`);
+      const response = await apiService.get<PaginatedResponse<Role>>(`/roles?page=${page}&pageSize=${pageSize}`);
       return response.data || response;
     } catch (error) {
       console.warn('Failed to fetch roles from backend, using demo data:', error);
@@ -61,7 +61,7 @@ export class RoleService {
 
   public async getRole(id: string): Promise<Role> {
     try {
-      const response = await apiService.get<Role>(`/api/roles/${id}`);
+      const response = await apiService.get<Role>(`/roles/${id}`);
       return response.data || response;
     } catch (error) {
       console.warn('Failed to fetch role from backend, using demo data:', error);
@@ -77,7 +77,7 @@ export class RoleService {
 
   public async createRole(request: CreateRoleRequest): Promise<Role> {
     try {
-      const response = await apiService.post<Role>('/api/roles', request);
+      const response = await apiService.post<Role>('/roles', request);
       return response.data || response;
     } catch (error) {
       console.warn('Failed to create role, simulating success:', error);
@@ -93,7 +93,7 @@ export class RoleService {
 
   public async updateRole(id: string, request: UpdateRoleRequest): Promise<Role> {
     try {
-      const response = await apiService.put<Role>(`/api/roles/${id}`, request);
+      const response = await apiService.put<Role>(`/roles/${id}`, request);
       return response.data || response;
     } catch (error) {
       console.warn('Failed to update role, simulating success:', error);
@@ -109,7 +109,7 @@ export class RoleService {
 
   public async deleteRole(id: string): Promise<void> {
     try {
-      await apiService.delete(`/api/roles/${id}`);
+      await apiService.delete(`/roles/${id}`);
     } catch (error) {
       console.warn('Failed to delete role, simulating success:', error);
     }
@@ -118,7 +118,7 @@ export class RoleService {
   // User role assignments
   public async assignUserRole(request: AssignUserRoleRequest): Promise<UserRole> {
     try {
-      const response = await apiService.post<UserRole>('/api/roles/assign-user', request);
+      const response = await apiService.post<UserRole>('/roles/assign-user', request);
       return response.data || response;
     } catch (error) {
       console.warn('Failed to assign user role, simulating success:', error);
@@ -134,7 +134,7 @@ export class RoleService {
 
   public async removeUserRole(userRoleId: string): Promise<void> {
     try {
-      await apiService.delete(`/api/roles/user-roles/${userRoleId}`);
+      await apiService.delete(`/roles/user-roles/${userRoleId}`);
     } catch (error) {
       console.warn('Failed to remove user role, simulating success:', error);
     }
@@ -143,7 +143,7 @@ export class RoleService {
   // Project role assignments
   public async assignProjectRole(request: AssignProjectRoleRequest): Promise<ProjectRole> {
     try {
-      const response = await apiService.post<ProjectRole>('/api/roles/assign-project', request);
+      const response = await apiService.post<ProjectRole>('/roles/assign-project', request);
       return response.data || response;
     } catch (error) {
       console.warn('Failed to assign project role, simulating success:', error);
@@ -162,7 +162,7 @@ export class RoleService {
 
   public async updateProjectRole(projectRoleId: string, request: UpdateProjectRoleRequest): Promise<ProjectRole> {
     try {
-      const response = await apiService.put<ProjectRole>(`/api/roles/project-roles/${projectRoleId}`, request);
+      const response = await apiService.put<ProjectRole>(`/roles/project-roles/${projectRoleId}`, request);
       return response.data || response;
     } catch (error) {
       console.warn('Failed to update project role, simulating success:', error);
@@ -181,7 +181,7 @@ export class RoleService {
 
   public async removeProjectRole(projectRoleId: string): Promise<void> {
     try {
-      await apiService.delete(`/api/roles/project-roles/${projectRoleId}`);
+      await apiService.delete(`/roles/project-roles/${projectRoleId}`);
     } catch (error) {
       console.warn('Failed to remove project role, simulating success:', error);
     }

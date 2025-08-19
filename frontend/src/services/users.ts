@@ -5,7 +5,7 @@ import { apiService } from './api';
 export class UserService {
   public async getUsers(page = 1, pageSize = 10): Promise<PaginatedResponse<User>> {
     try {
-      const response = await apiService.get<PaginatedResponse<User>>(`/api/users?page=${page}&pageSize=${pageSize}`);
+      const response = await apiService.get<PaginatedResponse<User>>(`/users?page=${page}&pageSize=${pageSize}`);
       return response.data || response;
     } catch (error) {
       console.warn('Failed to fetch users from backend, using demo data:', error);
@@ -72,7 +72,7 @@ export class UserService {
 
   public async getUser(id: string): Promise<User> {
     try {
-      const response = await apiService.get<User>(`/api/users/${id}`);
+      const response = await apiService.get<User>(`/users/${id}`);
       return response.data || response;
     } catch (error) {
       console.warn('Failed to fetch user from backend, using demo data:', error);
@@ -87,7 +87,7 @@ export class UserService {
 
   public async createUser(userData: { username: string; email: string; passwordHash: string }): Promise<User> {
     try {
-      const response = await apiService.post<User>('/api/users', userData);
+      const response = await apiService.post<User>('/users', userData);
       return response.data || response;
     } catch (error) {
       console.warn('Failed to create user, simulating success:', error);
@@ -102,7 +102,7 @@ export class UserService {
 
   public async updateUser(id: string, userData: Partial<User>): Promise<User> {
     try {
-      const response = await apiService.put<User>(`/api/users/${id}`, userData);
+      const response = await apiService.put<User>(`/users/${id}`, userData);
       return response.data || response;
     } catch (error) {
       console.warn('Failed to update user, simulating success:', error);
@@ -117,7 +117,7 @@ export class UserService {
 
   public async deleteUser(id: string): Promise<void> {
     try {
-      await apiService.delete(`/api/users/${id}`);
+      await apiService.delete(`/users/${id}`);
     } catch (error) {
       console.warn('Failed to delete user, simulating success:', error);
     }
