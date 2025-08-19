@@ -7,6 +7,7 @@ public class RoleDto
     public string? Description { get; set; }
     public string CreatedAt { get; set; } = string.Empty;
     public string ModifiedAt { get; set; } = string.Empty;
+    public List<PermissionDto>? Permissions { get; set; }
 }
 
 public class UserRoleDto

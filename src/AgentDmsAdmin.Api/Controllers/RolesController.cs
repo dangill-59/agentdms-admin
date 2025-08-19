@@ -20,25 +20,56 @@ public class RolesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<PaginatedResponse<RoleDto>>> GetRoles([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    public async Task<ActionResult<PaginatedResponse<RoleDto>>> GetRoles([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] bool includePermissions = false)
     {
         try
         {
             var totalCount = await _context.Roles.CountAsync();
             
-            var roles = await _context.Roles
+            var rolesQuery = _context.Roles
                 .OrderByDescending(r => r.CreatedAt)
                 .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(r => new RoleDto
+                .Take(pageSize);
+
+            List<RoleDto> roles;
+
+            if (includePermissions)
+            {
+                var rolesWithPermissions = await rolesQuery
+                    .Include(r => r.RolePermissions)
+                    .ThenInclude(rp => rp.Permission)
+                    .ToListAsync();
+
+                roles = rolesWithPermissions.Select(r => new RoleDto
                 {
                     Id = r.Id.ToString(),
                     Name = r.Name,
                     Description = r.Description,
                     CreatedAt = r.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                    ModifiedAt = r.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
-                })
-                .ToListAsync();
+                    ModifiedAt = r.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    Permissions = r.RolePermissions.Select(rp => new PermissionDto
+                    {
+                        Id = rp.Permission.Id.ToString(),
+                        Name = rp.Permission.Name,
+                        Description = rp.Permission.Description,
+                        CreatedAt = rp.Permission.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                        ModifiedAt = rp.Permission.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                    }).ToList()
+                }).ToList();
+            }
+            else
+            {
+                roles = await rolesQuery
+                    .Select(r => new RoleDto
+                    {
+                        Id = r.Id.ToString(),
+                        Name = r.Name,
+                        Description = r.Description,
+                        CreatedAt = r.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                        ModifiedAt = r.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                    })
+                    .ToListAsync();
+            }
 
             var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
 
@@ -61,7 +92,7 @@ public class RolesController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<RoleDto>> GetRole(int id)
+    public async Task<ActionResult<RoleDto>> GetRole(int id, [FromQuery] bool includePermissions = false)
     {
         try
         {
@@ -80,6 +111,24 @@ public class RolesController : ControllerBase
                 CreatedAt = role.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                 ModifiedAt = role.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
             };
+
+            if (includePermissions)
+            {
+                var permissions = await _context.RolePermissions
+                    .Where(rp => rp.RoleId == id)
+                    .Include(rp => rp.Permission)
+                    .Select(rp => new PermissionDto
+                    {
+                        Id = rp.Permission.Id.ToString(),
+                        Name = rp.Permission.Name,
+                        Description = rp.Permission.Description,
+                        CreatedAt = rp.Permission.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                        ModifiedAt = rp.Permission.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                    })
+                    .ToListAsync();
+
+                roleDto.Permissions = permissions;
+            }
 
             return Ok(roleDto);
         }
@@ -413,6 +462,120 @@ public class RolesController : ControllerBase
         {
             _logger.LogError(ex, "Error removing project role {ProjectRoleId}", projectRoleId);
             return StatusCode(500, "An error occurred while removing the project role");
+        }
+    }
+
+    // Permission management endpoints
+
+    [HttpPost("assign-permission")]
+    public async Task<ActionResult<RolePermissionDto>> AssignRolePermission([FromBody] AssignRolePermissionRequest request)
+    {
+        try
+        {
+            if (!int.TryParse(request.RoleId, out var roleId) || !int.TryParse(request.PermissionId, out var permissionId))
+            {
+                return BadRequest("Invalid role or permission ID.");
+            }
+
+            // Check if role and permission exist
+            var role = await _context.Roles.FindAsync(roleId);
+            var permission = await _context.Permissions.FindAsync(permissionId);
+
+            if (role == null || permission == null)
+            {
+                return NotFound("Role or permission not found.");
+            }
+
+            // Check if assignment already exists
+            var existingAssignment = await _context.RolePermissions
+                .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.PermissionId == permissionId);
+
+            if (existingAssignment != null)
+            {
+                return BadRequest("Permission is already assigned to this role.");
+            }
+
+            var rolePermission = new RolePermission
+            {
+                RoleId = roleId,
+                PermissionId = permissionId
+            };
+
+            _context.RolePermissions.Add(rolePermission);
+            await _context.SaveChangesAsync();
+
+            var rolePermissionDto = new RolePermissionDto
+            {
+                Id = rolePermission.Id.ToString(),
+                RoleId = rolePermission.RoleId.ToString(),
+                PermissionId = rolePermission.PermissionId.ToString(),
+                PermissionName = permission.Name,
+                PermissionDescription = permission.Description,
+                CreatedAt = rolePermission.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            };
+
+            return Ok(rolePermissionDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error assigning permission to role");
+            return StatusCode(500, "An error occurred while assigning the permission to the role");
+        }
+    }
+
+    [HttpDelete("role-permissions/{rolePermissionId}")]
+    public async Task<ActionResult> RemoveRolePermission(int rolePermissionId)
+    {
+        try
+        {
+            var rolePermission = await _context.RolePermissions.FindAsync(rolePermissionId);
+            if (rolePermission == null)
+            {
+                return NotFound($"Role permission assignment with ID {rolePermissionId} not found.");
+            }
+
+            _context.RolePermissions.Remove(rolePermission);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing role permission {RolePermissionId}", rolePermissionId);
+            return StatusCode(500, "An error occurred while removing the role permission");
+        }
+    }
+
+    [HttpGet("{roleId}/permissions")]
+    public async Task<ActionResult<List<PermissionDto>>> GetRolePermissions(int roleId)
+    {
+        try
+        {
+            var role = await _context.Roles.FindAsync(roleId);
+            if (role == null)
+            {
+                return NotFound($"Role with ID {roleId} not found.");
+            }
+
+            var permissions = await _context.RolePermissions
+                .Where(rp => rp.RoleId == roleId)
+                .Include(rp => rp.Permission)
+                .Select(rp => new PermissionDto
+                {
+                    Id = rp.Permission.Id.ToString(),
+                    Name = rp.Permission.Name,
+                    Description = rp.Permission.Description,
+                    CreatedAt = rp.Permission.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    ModifiedAt = rp.Permission.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                })
+                .ToListAsync();
+
+            return Ok(permissions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting permissions for role {RoleId}", roleId);
+            return StatusCode(500, "An error occurred while fetching role permissions");
         }
     }
 }
