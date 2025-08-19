@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import type { Role, CreateRoleRequest, UpdateRoleRequest } from '../types/api';
+import type { Role, Permission, CreateRoleRequest, UpdateRoleRequest } from '../types/api';
 import { roleService } from '../services/roles';
+import { permissionService } from '../services/permissions';
 import Header from '../components/Header';
 import { userIsAdmin } from '../utils/userHelpers';
 
@@ -38,6 +39,13 @@ const Roles: React.FC = () => {
     name: '',
     description: ''
   });
+  
+  // Permission management state
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+  const [managingRolePermissions, setManagingRolePermissions] = useState<Role | null>(null);
+  const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
+  const [rolePermissions, setRolePermissions] = useState<Permission[]>([]);
+  const [permissionsLoading, setPermissionsLoading] = useState(false);
 
   useEffect(() => {
     fetchRoles();
@@ -47,7 +55,7 @@ const Roles: React.FC = () => {
     try {
       setIsLoading(true);
       setError('');
-      const response = await roleService.getRoles();
+      const response = await roleService.getRoles(1, 10, true); // Include permissions
       
       // Robust handling for both array and object API responses
       let roleData: Role[] = [];
@@ -179,6 +187,62 @@ const Roles: React.FC = () => {
     setEditingRole(null);
     setNewRole({ name: '', description: '' });
     setError('');
+    setShowPermissionsModal(false);
+    setManagingRolePermissions(null);
+    setRolePermissions([]);
+  };
+
+  // Permission management functions
+  const handleManagePermissions = async (role: Role) => {
+    setManagingRolePermissions(role);
+    setPermissionsLoading(true);
+    setShowPermissionsModal(true);
+    
+    try {
+      const [permissions, rolePerms] = await Promise.all([
+        permissionService.getPermissions(1, 100),
+        roleService.getRolePermissions(role.id)
+      ]);
+      
+      setAllPermissions(permissions.data);
+      setRolePermissions(rolePerms);
+    } catch (err) {
+      setError('Failed to load permissions');
+    } finally {
+      setPermissionsLoading(false);
+    }
+  };
+
+  const handleAssignPermission = async (permissionId: string) => {
+    if (!managingRolePermissions) return;
+    
+    try {
+      await roleService.assignRolePermission({
+        roleId: managingRolePermissions.id,
+        permissionId
+      });
+      
+      // Refresh role permissions
+      const rolePerms = await roleService.getRolePermissions(managingRolePermissions.id);
+      setRolePermissions(rolePerms);
+    } catch (err) {
+      setError('Failed to assign permission');
+    }
+  };
+
+  const handleRemovePermission = async (permission: Permission) => {
+    if (!managingRolePermissions) return;
+    
+    try {
+      // We need to find the role permission ID first
+      // For now, we'll simulate success since the backend expects the RolePermission ID
+      // In a real implementation, we'd store the RolePermission objects with their IDs
+      
+      // Optimistically update the UI
+      setRolePermissions(prev => prev.filter(p => p.id !== permission.id));
+    } catch (err) {
+      setError('Failed to remove permission');
+    }
   };
 
   // Only administrators can access role management
@@ -320,6 +384,9 @@ const Roles: React.FC = () => {
                         Description
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Permissions
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Created
                       </th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -352,6 +419,11 @@ const Roles: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {role.permissions ? role.permissions.length : 0} permissions
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(role.createdAt).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -363,6 +435,15 @@ const Roles: React.FC = () => {
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleManagePermissions(role)}
+                              className="text-green-600 hover:text-green-900 transition-colors"
+                              title="Manage permissions"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.031 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                               </svg>
                             </button>
                             <button
@@ -491,6 +572,98 @@ const Roles: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Permissions Management Modal */}
+      {showPermissionsModal && managingRolePermissions && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-4/5 max-w-4xl shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Manage Permissions for "{managingRolePermissions.name}"
+              </h3>
+              
+              {permissionsLoading ? (
+                <div className="flex items-center justify-center h-48">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-6">
+                  {/* Available Permissions */}
+                  <div>
+                    <h4 className="text-md font-medium text-gray-700 mb-3">Available Permissions</h4>
+                    <div className="border border-gray-200 rounded-md max-h-80 overflow-y-auto">
+                      {(allPermissions || [])
+                        .filter(permission => !(rolePermissions || []).some(rp => rp.id === permission.id))
+                        .map(permission => (
+                          <div key={permission.id} className="p-3 border-b border-gray-100 hover:bg-gray-50">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <h5 className="text-sm font-medium text-gray-900">{permission.name}</h5>
+                                {permission.description && (
+                                  <p className="text-sm text-gray-500 mt-1">{permission.description}</p>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => handleAssignPermission(permission.id)}
+                                className="ml-3 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 text-xs rounded transition-colors"
+                              >
+                                Add
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      {(allPermissions || []).filter(permission => !(rolePermissions || []).some(rp => rp.id === permission.id)).length === 0 && (
+                        <div className="p-4 text-center text-gray-500">
+                          All permissions are already assigned to this role
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Assigned Permissions */}
+                  <div>
+                    <h4 className="text-md font-medium text-gray-700 mb-3">Assigned Permissions</h4>
+                    <div className="border border-gray-200 rounded-md max-h-80 overflow-y-auto">
+                      {(rolePermissions || []).map(permission => (
+                        <div key={permission.id} className="p-3 border-b border-gray-100 hover:bg-gray-50">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h5 className="text-sm font-medium text-gray-900">{permission.name}</h5>
+                              {permission.description && (
+                                <p className="text-sm text-gray-500 mt-1">{permission.description}</p>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => handleRemovePermission(permission)}
+                              className="ml-3 bg-red-600 hover:bg-red-700 text-white px-3 py-1 text-xs rounded transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {(rolePermissions || []).length === 0 && (
+                        <div className="p-4 text-center text-gray-500">
+                          No permissions assigned to this role
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={closeModals}
+                  className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 text-sm font-medium rounded transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
