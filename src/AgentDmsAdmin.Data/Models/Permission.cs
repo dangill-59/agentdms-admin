@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace AgentDmsAdmin.Data.Models;
 
-public class Role : BaseEntity
+public class Permission : BaseEntity
 {
     [Required]
     [MaxLength(255)]
@@ -12,7 +12,5 @@ public class Role : BaseEntity
     public string? Description { get; set; }
     
     // Navigation properties
-    public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-    public ICollection<ProjectRole> ProjectRoles { get; set; } = new List<ProjectRole>();
     public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
 }

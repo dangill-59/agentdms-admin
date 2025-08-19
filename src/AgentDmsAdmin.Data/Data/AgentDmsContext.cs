@@ -18,6 +18,8 @@ public class AgentDmsContext : DbContext
     public DbSet<Role> Roles { get; set; }
     public DbSet<UserRole> UserRoles { get; set; }
     public DbSet<ProjectRole> ProjectRoles { get; set; }
+    public DbSet<Permission> Permissions { get; set; }
+    public DbSet<RolePermission> RolePermissions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -114,6 +116,28 @@ public class AgentDmsContext : DbContext
 
         modelBuilder.Entity<ProjectRole>()
             .HasIndex(pr => new { pr.ProjectId, pr.RoleId })
+            .IsUnique();
+
+        // Configure Permission entity constraints
+        modelBuilder.Entity<Permission>()
+            .HasIndex(p => p.Name)
+            .IsUnique();
+
+        // Configure RolePermission relationships
+        modelBuilder.Entity<RolePermission>()
+            .HasOne(rp => rp.Role)
+            .WithMany(r => r.RolePermissions)
+            .HasForeignKey(rp => rp.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<RolePermission>()
+            .HasOne(rp => rp.Permission)
+            .WithMany(p => p.RolePermissions)
+            .HasForeignKey(rp => rp.PermissionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<RolePermission>()
+            .HasIndex(rp => new { rp.RoleId, rp.PermissionId })
             .IsUnique();
 
         // Configure BaseEntity properties
