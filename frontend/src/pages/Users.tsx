@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import type { User } from '../types/auth';
+import type { Role } from '../types/api';
 import { userService } from '../services/users';
+import { roleService } from '../services/roles';
 import Header from '../components/Header';
 import { getUserDisplayName, getUserPrimaryRole, userIsAdmin, getRoleColor, getRoleIcon } from '../utils/userHelpers';
 
@@ -35,6 +37,7 @@ const Users: React.FC = () => {
   };
 
   const [users, setUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,10 +50,9 @@ const Users: React.FC = () => {
     password: ''
   });
 
-  const roles = ['Administrator', 'Manager', 'User'];
-
   useEffect(() => {
     fetchUsers();
+    fetchRoles();
   }, []);
 
   const fetchUsers = async () => {
@@ -88,6 +90,38 @@ const Users: React.FC = () => {
     }
   };
 
+  const fetchRoles = async () => {
+    try {
+      const response = await roleService.getRoles(1, 100); // Get up to 100 roles
+      
+      // Robust handling for both array and object API responses
+      let roleData: Role[] = [];
+      if (Array.isArray(response)) {
+        // Direct array response
+        roleData = response;
+      } else if (response && typeof response === 'object') {
+        // Object response with data property
+        if (Array.isArray(response.data)) {
+          roleData = response.data;
+        } else {
+          // Fallback for other response structures
+          roleData = [];
+        }
+      }
+      
+      // Ensure we have a valid array and set roles
+      setRoles(Array.isArray(roleData) ? roleData : []);
+    } catch (err) {
+      console.warn('Failed to fetch roles, using fallback roles:', err);
+      // Fallback to basic roles if the API fails
+      setRoles([
+        { id: '1', name: 'Administrator', description: 'Full system access', createdAt: '', modifiedAt: '' },
+        { id: '2', name: 'Manager', description: 'Management access', createdAt: '', modifiedAt: '' },
+        { id: '3', name: 'User', description: 'Basic user access', createdAt: '', modifiedAt: '' }
+      ]);
+    }
+  };
+
   const filteredUsers = users.filter(user => {
     if (!user) return false;
     const displayName = getUserDisplayName(user).toLowerCase();
@@ -116,7 +150,7 @@ const Users: React.FC = () => {
       if (userToAdd && userToAdd.id) {
         setUsers(prev => [...prev, userToAdd]);
         setShowCreateModal(false);
-        setNewUser({ username: '', email: '', role: 'User', password: '' });
+        setNewUser({ username: '', email: '', role: roles.length > 0 ? roles[0].name : 'User', password: '' });
       } else {
         throw new Error('Invalid user data received from server');
       }
@@ -130,9 +164,11 @@ const Users: React.FC = () => {
     setNewUser({
       username: getUserDisplayName(user),
       email: user.email || '',
-      role: getUserPrimaryRole(user) || 'User',
+      role: getUserPrimaryRole(user) || (roles.length > 0 ? roles[0].name : 'User'),
       password: ''
     });
+    // Refresh roles when editing to ensure latest roles are available
+    fetchRoles();
   };
 
   const handleUpdateUser = async () => {
@@ -151,7 +187,7 @@ const Users: React.FC = () => {
       if (userToUpdate && userToUpdate.id) {
         setUsers(prev => prev.map(u => u.id === editingUser.id ? userToUpdate : u));
         setEditingUser(null);
-        setNewUser({ username: '', email: '', role: 'User', password: '' });
+        setNewUser({ username: '', email: '', role: roles.length > 0 ? roles[0].name : 'User', password: '' });
       } else {
         throw new Error('Invalid user data received from server');
       }
@@ -169,6 +205,18 @@ const Users: React.FC = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete user');
     }
+  };
+
+  const handleOpenCreateModal = () => {
+    setShowCreateModal(true);
+    setNewUser({ 
+      username: '', 
+      email: '', 
+      role: roles.length > 0 ? roles[0].name : 'User', 
+      password: '' 
+    });
+    // Refresh roles when opening modal to ensure latest roles are available
+    fetchRoles();
   };
 
   // Only administrators can access user management
@@ -223,7 +271,7 @@ const Users: React.FC = () => {
               </div>
               <div className="mt-4 sm:mt-0">
                 <button
-                  onClick={() => setShowCreateModal(true)}
+                  onClick={handleOpenCreateModal}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -438,7 +486,7 @@ const Users: React.FC = () => {
                 onClick={() => {
                   setShowCreateModal(false);
                   setEditingUser(null);
-                  setNewUser({ username: '', email: '', role: 'User', password: '' });
+                  setNewUser({ username: '', email: '', role: roles.length > 0 ? roles[0].name : 'User', password: '' });
                 }}
                 className="text-gray-400 hover:text-gray-600"
               >
@@ -485,7 +533,7 @@ const Users: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 >
                   {roles.map(role => (
-                    <option key={role} value={role}>{role}</option>
+                    <option key={role.id} value={role.name}>{role.name}</option>
                   ))}
                 </select>
               </div>
@@ -511,7 +559,7 @@ const Users: React.FC = () => {
                 onClick={() => {
                   setShowCreateModal(false);
                   setEditingUser(null);
-                  setNewUser({ username: '', email: '', role: 'User', password: '' });
+                  setNewUser({ username: '', email: '', role: roles.length > 0 ? roles[0].name : 'User', password: '' });
                 }}
                 className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium"
               >
