@@ -53,13 +53,19 @@ const Users: React.FC = () => {
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    (user && (
-      getUserDisplayName(user).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (getUserPrimaryRole(user) && getUserPrimaryRole(user).toLowerCase().includes(searchTerm.toLowerCase()))
-    ))
-  );
+  const filteredUsers = users.filter(user => {
+    if (!user) return false;
+    const displayName = getUserDisplayName(user).toLowerCase();
+    const email = (user.email || '').toLowerCase();
+    const primaryRole = (getUserPrimaryRole(user) || '').toLowerCase();
+    const search = searchTerm.toLowerCase();
+    if (search === '') return true;
+    return (
+      displayName.includes(search) ||
+      email.includes(search) ||
+      primaryRole.includes(search)
+    );
+  });
 
   const handleCreateUser = async () => {
     try {
@@ -148,6 +154,10 @@ const Users: React.FC = () => {
       </div>
     );
   }
+
+  console.log('users:', users);
+  console.log('filteredUsers:', filteredUsers);
+  console.log('searchTerm:', searchTerm);
 
   return (
     <div className="min-h-screen bg-gray-50">
