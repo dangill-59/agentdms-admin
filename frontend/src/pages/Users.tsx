@@ -12,6 +12,19 @@ interface NewUser {
   password: string;
 }
 
+// Type for flexible API response handling
+interface FlexibleApiResponse {
+  data?: User[] | { data?: User[] };
+  users?: User[];
+  items?: User[];
+  results?: User[];
+}
+
+// Type for user response with possible nested data
+interface FlexibleUserResponse extends User {
+  data?: User;
+}
+
 const Users: React.FC = () => {
   const { user: currentUser } = useAuth();
   
@@ -45,9 +58,31 @@ const Users: React.FC = () => {
       setIsLoading(true);
       setError('');
       const response = await userService.getUsers();
-      setUsers(response.data ?? []);
+      
+      // Robust handling for both array and object API responses
+      let userData: User[] = [];
+      if (Array.isArray(response)) {
+        // Direct array response
+        userData = response;
+      } else if (response && typeof response === 'object') {
+        // Object response with data property
+        if (Array.isArray(response.data)) {
+          userData = response.data;
+        } else if (response.data && typeof response.data === 'object' && 'data' in response.data && Array.isArray((response.data as { data: User[] }).data)) {
+          // Nested data structure
+          userData = (response.data as { data: User[] }).data;
+        } else {
+          // Fallback: check for common array properties
+          const fallbackResponse = response as FlexibleApiResponse;
+          userData = fallbackResponse.users || fallbackResponse.items || fallbackResponse.results || [];
+        }
+      }
+      
+      // Ensure we have a valid array
+      setUsers(Array.isArray(userData) ? userData : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load users');
+      setUsers([]); // Set empty array on error
     } finally {
       setIsLoading(false);
     }
@@ -75,9 +110,16 @@ const Users: React.FC = () => {
         passwordHash: newUser.password
       });
       
-      setUsers(prev => [...prev, createdUser]);
-      setShowCreateModal(false);
-      setNewUser({ username: '', email: '', role: 'User', password: '' });
+      // Robust handling of created user response
+      const userResponse = createdUser as unknown as FlexibleUserResponse;
+      const userToAdd = userResponse?.data || createdUser;
+      if (userToAdd && userToAdd.id) {
+        setUsers(prev => [...prev, userToAdd]);
+        setShowCreateModal(false);
+        setNewUser({ username: '', email: '', role: 'User', password: '' });
+      } else {
+        throw new Error('Invalid user data received from server');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create user');
     }
@@ -103,9 +145,16 @@ const Users: React.FC = () => {
         ...(newUser.password && { passwordHash: newUser.password })
       });
       
-      setUsers(prev => prev.map(u => u.id === editingUser.id ? updatedUser : u));
-      setEditingUser(null);
-      setNewUser({ username: '', email: '', role: 'User', password: '' });
+      // Robust handling of updated user response
+      const userResponse = updatedUser as unknown as FlexibleUserResponse;
+      const userToUpdate = userResponse?.data || updatedUser;
+      if (userToUpdate && userToUpdate.id) {
+        setUsers(prev => prev.map(u => u.id === editingUser.id ? userToUpdate : u));
+        setEditingUser(null);
+        setNewUser({ username: '', email: '', role: 'User', password: '' });
+      } else {
+        throw new Error('Invalid user data received from server');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update user');
     }
@@ -155,9 +204,7 @@ const Users: React.FC = () => {
     );
   }
 
-  console.log('users:', users);
-  console.log('filteredUsers:', filteredUsers);
-  console.log('searchTerm:', searchTerm);
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -278,7 +325,7 @@ const Users: React.FC = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(getUserPrimaryRole(user))}`}>
-                              {getRoleIcon(getUserPrimaryRole(user))}
+                              <span>{getRoleIcon(getUserPrimaryRole(user))}</span>
                               <span>{getUserPrimaryRole(user)}</span>
                             </span>
                           </td>
