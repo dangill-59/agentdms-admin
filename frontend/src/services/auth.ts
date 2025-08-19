@@ -20,25 +20,29 @@ export class AuthService {
       apiService.setToken(authResponse.token);
       
       return authResponse;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Check if this is a backend authentication error with a specific message
-      if (error.response?.status === 401 && error.response?.data?.message) {
-        // Use the specific error message from the backend
-        const backendErrorMessage = error.response.data.message;
-        console.warn('Backend authentication failed with message:', backendErrorMessage);
-        throw new Error(backendErrorMessage);
-      }
-      
-      // Check if this is any other HTTP error from the backend
-      if (error.response?.status) {
-        console.warn('Backend authentication failed with HTTP error:', error.response.status, error.response?.data);
-        // Use backend error message if available, otherwise use a generic message
-        const errorMessage = error.response?.data?.message || `Authentication failed (HTTP ${error.response.status})`;
-        throw new Error(errorMessage);
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { status?: number; data?: { message?: string } } };
+        if (axiosError.response?.status === 401 && axiosError.response?.data?.message) {
+          // Use the specific error message from the backend
+          const backendErrorMessage = axiosError.response.data.message;
+          console.warn('Backend authentication failed with message:', backendErrorMessage);
+          throw new Error(backendErrorMessage);
+        }
+        
+        // Check if this is any other HTTP error from the backend
+        if (axiosError.response?.status) {
+          console.warn('Backend authentication failed with HTTP error:', axiosError.response.status, axiosError.response?.data);
+          // Use backend error message if available, otherwise use a generic message
+          const errorMessage = axiosError.response?.data?.message || `Authentication failed (HTTP ${axiosError.response.status})`;
+          throw new Error(errorMessage);
+        }
       }
       
       // For network errors or other non-HTTP errors, fallback to demo authentication for development
-      console.warn('Backend authentication failed, using demo authentication:', error.message || error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn('Backend authentication failed, using demo authentication:', errorMessage);
       
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
