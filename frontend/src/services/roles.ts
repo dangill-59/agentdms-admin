@@ -17,8 +17,10 @@ export class RoleService {
   // Role CRUD operations
   public async getRoles(page = 1, pageSize = 10, includePermissions = false): Promise<PaginatedResponse<Role>> {
     try {
-      const response = await apiService.get<PaginatedResponse<Role>>(`/roles?page=${page}&pageSize=${pageSize}&includePermissions=${includePermissions}`);
-      return response.data || response;
+      // Make direct API call since backend returns data directly
+      const response = await fetch(`http://localhost:5267/api/roles?page=${page}&pageSize=${pageSize}&includePermissions=${includePermissions}`);
+      const data = await response.json();
+      return data;
     } catch (error) {
       console.warn('Failed to fetch roles from backend, using demo data:', error);
       
