@@ -218,7 +218,15 @@ export class RoleService {
   public async getRolePermissions(roleId: string): Promise<RolePermission[]> {
     try {
       const response = await apiService.get<RolePermission[]>(`/roles/${roleId}/permissions`);
-      return response.data || response;
+      // Handle different response structures - data might be nested in an ApiResponse wrapper
+      if (response?.data && Array.isArray(response.data)) {
+        return response.data;
+      } else if (Array.isArray(response)) {
+        return response;
+      } else {
+        // Fallback to empty array
+        return [];
+      }
     } catch (error) {
       console.warn('Failed to fetch role permissions, returning mock data:', error);
       return [

@@ -11,7 +11,32 @@ export class PermissionService {
   public async getPermissions(page = 1, pageSize = 10): Promise<PaginatedResponse<Permission>> {
     try {
       const response = await apiService.get<PaginatedResponse<Permission>>(`/permissions?page=${page}&pageSize=${pageSize}`);
-      return response.data || response;
+      // Handle different response structures - data might be nested in an ApiResponse wrapper
+      if (response?.data && typeof response.data === 'object' && 'data' in response.data) {
+        // Response is wrapped in ApiResponse structure
+        return response.data as PaginatedResponse<Permission>;
+      } else if (response?.data && Array.isArray(response.data)) {
+        // Response data is directly an array
+        return {
+          data: response.data,
+          totalCount: response.data.length,
+          page: page,
+          pageSize: pageSize,
+          totalPages: Math.ceil(response.data.length / pageSize)
+        };
+      } else if (Array.isArray(response)) {
+        // Response is directly an array
+        return {
+          data: response,
+          totalCount: response.length,
+          page: page,
+          pageSize: pageSize,
+          totalPages: Math.ceil(response.length / pageSize)
+        };
+      } else {
+        // Fallback to empty result
+        return { data: [], totalCount: 0, page, pageSize, totalPages: 0 };
+      }
     } catch (error) {
       console.warn('Failed to fetch permissions, returning mock data:', error);
       // Return mock data for development
