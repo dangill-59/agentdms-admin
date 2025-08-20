@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { ProjectRole, Role, AssignProjectRoleRequest, UpdateProjectRoleRequest } from '../types/api';
+import type { ProjectRole, Role, AssignProjectRoleRequest } from '../types/api';
 import { roleService } from '../services/roles';
 
 interface ProjectRoleManagementProps {
@@ -23,8 +23,8 @@ const ProjectRoleManagement: React.FC<ProjectRoleManagementProps> = ({
     projectId,
     roleId: '',
     canView: true,
-    canEdit: false,
-    canDelete: false
+    canEdit: true,
+    canDelete: true
   });
 
   const fetchProjectRoles = async () => {
@@ -74,25 +74,14 @@ const ProjectRoleManagement: React.FC<ProjectRoleManagementProps> = ({
         projectId,
         roleId: '',
         canView: true,
-        canEdit: false,
-        canDelete: false
+        canEdit: true,
+        canDelete: true
       });
     } catch (err) {
       setError('Failed to assign role to project');
       console.error('Error assigning role:', err);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleUpdatePermissions = async (projectRoleId: string, permissions: UpdateProjectRoleRequest) => {
-    try {
-      await roleService.updateProjectRole(projectRoleId, permissions);
-      await fetchProjectRoles();
-      onRoleChange?.();
-    } catch (err) {
-      setError('Failed to update role permissions');
-      console.error('Error updating permissions:', err);
     }
   };
 
@@ -169,36 +158,10 @@ const ProjectRoleManagement: React.FC<ProjectRoleManagementProps> = ({
                 </button>
               </div>
               
-              <div className="space-y-2">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={projectRole.canView}
-                    onChange={(e) => handleUpdatePermissions(projectRole.id, { canView: e.target.checked })}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <span className="ml-2 text-sm text-gray-600">Can View</span>
-                </label>
-                
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={projectRole.canEdit}
-                    onChange={(e) => handleUpdatePermissions(projectRole.id, { canEdit: e.target.checked })}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <span className="ml-2 text-sm text-gray-600">Can Edit</span>
-                </label>
-                
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={projectRole.canDelete}
-                    onChange={(e) => handleUpdatePermissions(projectRole.id, { canDelete: e.target.checked })}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <span className="ml-2 text-sm text-gray-600">Can Delete</span>
-                </label>
+              <div className="mt-2">
+                <p className="text-sm text-gray-600">
+                  Permissions are defined by the role configuration
+                </p>
               </div>
               
               <div className="mt-2 text-xs text-gray-500">
@@ -240,40 +203,9 @@ const ProjectRoleManagement: React.FC<ProjectRoleManagementProps> = ({
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Permissions
-                  </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={newAssignment.canView}
-                        onChange={(e) => setNewAssignment({ ...newAssignment, canView: e.target.checked })}
-                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-600">Can View</span>
-                    </label>
-                    
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={newAssignment.canEdit}
-                        onChange={(e) => setNewAssignment({ ...newAssignment, canEdit: e.target.checked })}
-                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-600">Can Edit</span>
-                    </label>
-                    
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={newAssignment.canDelete}
-                        onChange={(e) => setNewAssignment({ ...newAssignment, canDelete: e.target.checked })}
-                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-600">Can Delete</span>
-                    </label>
-                  </div>
+                  <p className="text-sm text-gray-600">
+                    Permissions will be defined by the role configuration.
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-end space-x-3">
