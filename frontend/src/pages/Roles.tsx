@@ -204,8 +204,10 @@ const Roles: React.FC = () => {
         roleService.getRolePermissions(role.id)
       ]);
       
-      setAllPermissions(permissions.data);
-      setRolePermissions(rolePerms);
+      // Handle different response structures - permissions could be in .data or directly in the response
+      const permissionsData = permissions?.data || permissions || [];
+      setAllPermissions(Array.isArray(permissionsData) ? permissionsData : []);
+      setRolePermissions(Array.isArray(rolePerms) ? rolePerms : []);
     } catch (err) {
       setError('Failed to load permissions');
       console.error('Permission loading error:', err);
