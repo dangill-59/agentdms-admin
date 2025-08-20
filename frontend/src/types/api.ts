@@ -107,12 +107,21 @@ export interface CreateProjectRequest {
   name: string;
   description?: string;
   fileName?: string;
+  roleAssignments?: CreateProjectRoleAssignment[];
+}
+
+export interface CreateProjectRoleAssignment {
+  roleId: string;
+  canView: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
 }
 
 export interface UpdateProjectRequest {
   name?: string;
   description?: string;
   fileName?: string;
+  roleAssignments?: CreateProjectRoleAssignment[];
 }
 
 export interface ArchiveProjectRequest {

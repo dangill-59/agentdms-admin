@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import type { Project, CreateProjectRequest, UpdateProjectRequest } from '../types/api';
+import type { Project, CreateProjectRequest, UpdateProjectRequest, Role, CreateProjectRoleAssignment } from '../types/api';
 import { projectService } from '../services/projects';
+import { roleService } from '../services/roles';
 import ProjectCard from '../components/ProjectCard';
 import Header from '../components/Header';
 
 const Projects: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -16,8 +18,10 @@ const Projects: React.FC = () => {
   const [formData, setFormData] = useState<CreateProjectRequest>({
     name: '',
     description: '',
-    fileName: ''
+    fileName: '',
+    roleAssignments: []
   });
+  const [selectedRoles, setSelectedRoles] = useState<{[roleId: string]: CreateProjectRoleAssignment}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchProjects = useCallback(async () => {
@@ -33,6 +37,16 @@ const Projects: React.FC = () => {
     }
   }, [includeArchived]);
 
+  const fetchRoles = useCallback(async () => {
+    try {
+      const response = await roleService.getRoles(1, 100, false);
+      setRoles(response.data ?? []);
+    } catch (err) {
+      console.warn('Failed to load roles:', err);
+      // Continue without roles - user can still create projects without role assignments
+    }
+  }, []);
+
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
@@ -40,6 +54,10 @@ const Projects: React.FC = () => {
   useEffect(() => {
     fetchProjects();
   }, [includeArchived, fetchProjects]);
+
+  useEffect(() => {
+    fetchRoles();
+  }, [fetchRoles]);
 
   const filteredProjects = (projects ?? []).filter(project =>
     project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -50,8 +68,10 @@ const Projects: React.FC = () => {
     setFormData({
       name: '',
       description: '',
-      fileName: ''
+      fileName: '',
+      roleAssignments: []
     });
+    setSelectedRoles({});
     setShowCreateModal(true);
   };
 
@@ -60,8 +80,21 @@ const Projects: React.FC = () => {
     setFormData({
       name: project.name,
       description: project.description || '',
-      fileName: project.fileName
+      fileName: project.fileName,
+      roleAssignments: []
     });
+    
+    // Initialize selected roles from existing project roles
+    const initialSelectedRoles: {[roleId: string]: CreateProjectRoleAssignment} = {};
+    project.projectRoles.forEach(pr => {
+      initialSelectedRoles[pr.roleId] = {
+        roleId: pr.roleId,
+        canView: pr.canView,
+        canEdit: pr.canEdit,
+        canDelete: pr.canDelete
+      };
+    });
+    setSelectedRoles(initialSelectedRoles);
     setShowEditModal(true);
   };
 
@@ -123,10 +156,15 @@ const Projects: React.FC = () => {
     try {
       setIsSubmitting(true);
       setError('');
+      
+      // Convert selected roles to roleAssignments array
+      const roleAssignments = Object.values(selectedRoles);
+      
       await projectService.createProject({
         name: formData.name.trim(),
         description: formData.description?.trim() || undefined,
-        fileName: formData.fileName?.trim() || undefined
+        fileName: formData.fileName?.trim() || undefined,
+        roleAssignments: roleAssignments.length > 0 ? roleAssignments : undefined
       });
       await fetchProjects();
       setShowCreateModal(false);
@@ -159,6 +197,10 @@ const Projects: React.FC = () => {
         updateRequest.fileName = formData.fileName?.trim() || undefined;
       }
 
+      // Always include role assignments to allow updating them
+      const roleAssignments = Object.values(selectedRoles);
+      updateRequest.roleAssignments = roleAssignments;
+
       await projectService.updateProject(editingProject.id, updateRequest);
       await fetchProjects();
       setShowEditModal(false);
@@ -170,10 +212,42 @@ const Projects: React.FC = () => {
     }
   };
 
+  // Role management helper functions
+  const handleRoleToggle = (roleId: string, isSelected: boolean) => {
+    if (isSelected) {
+      setSelectedRoles(prev => ({
+        ...prev,
+        [roleId]: {
+          roleId,
+          canView: true,
+          canEdit: false,
+          canDelete: false
+        }
+      }));
+    } else {
+      setSelectedRoles(prev => {
+        const newRoles = { ...prev };
+        delete newRoles[roleId];
+        return newRoles;
+      });
+    }
+  };
+
+  const handleRolePermissionChange = (roleId: string, permission: 'canView' | 'canEdit' | 'canDelete', value: boolean) => {
+    setSelectedRoles(prev => ({
+      ...prev,
+      [roleId]: {
+        ...prev[roleId],
+        [permission]: value
+      }
+    }));
+  };
+
   const closeModals = () => {
     setShowCreateModal(false);
     setShowEditModal(false);
     setEditingProject(null);
+    setSelectedRoles({});
     setError('');
   };
 
@@ -364,6 +438,76 @@ const Projects: React.FC = () => {
                   placeholder="DefaultFilename"
                 />
               </div>
+              
+              {/* Role Assignment Section */}
+              {roles.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Assign Roles
+                  </label>
+                  <div className="space-y-3 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-3">
+                    {roles.map((role) => {
+                      const isSelected = selectedRoles[role.id] !== undefined;
+                      const rolePermissions = selectedRoles[role.id];
+                      
+                      return (
+                        <div key={role.id} className="border-b border-gray-100 last:border-b-0 pb-2 last:pb-0">
+                          <label className="flex items-center mb-2">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => handleRoleToggle(role.id, e.target.checked)}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm font-medium text-gray-900">{role.name}</span>
+                            {role.description && (
+                              <span className="ml-1 text-xs text-gray-500">({role.description})</span>
+                            )}
+                          </label>
+                          
+                          {isSelected && rolePermissions && (
+                            <div className="ml-6 space-y-1">
+                              <label className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={rolePermissions.canView}
+                                  onChange={(e) => handleRolePermissionChange(role.id, 'canView', e.target.checked)}
+                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="ml-2 text-xs text-gray-600">Can View</span>
+                              </label>
+                              
+                              <label className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={rolePermissions.canEdit}
+                                  onChange={(e) => handleRolePermissionChange(role.id, 'canEdit', e.target.checked)}
+                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="ml-2 text-xs text-gray-600">Can Edit</span>
+                              </label>
+                              
+                              <label className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={rolePermissions.canDelete}
+                                  onChange={(e) => handleRolePermissionChange(role.id, 'canDelete', e.target.checked)}
+                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="ml-2 text-xs text-gray-600">Can Delete</span>
+                              </label>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {Object.keys(selectedRoles).length === 0 && (
+                    <p className="text-xs text-gray-500 mt-1">No roles selected. You can assign roles later.</p>
+                  )}
+                </div>
+              )}
+              
               <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"
@@ -432,6 +576,76 @@ const Projects: React.FC = () => {
                   placeholder="DefaultFilename"
                 />
               </div>
+              
+              {/* Role Assignment Section */}
+              {roles.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Assign Roles
+                  </label>
+                  <div className="space-y-3 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-3">
+                    {roles.map((role) => {
+                      const isSelected = selectedRoles[role.id] !== undefined;
+                      const rolePermissions = selectedRoles[role.id];
+                      
+                      return (
+                        <div key={role.id} className="border-b border-gray-100 last:border-b-0 pb-2 last:pb-0">
+                          <label className="flex items-center mb-2">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => handleRoleToggle(role.id, e.target.checked)}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm font-medium text-gray-900">{role.name}</span>
+                            {role.description && (
+                              <span className="ml-1 text-xs text-gray-500">({role.description})</span>
+                            )}
+                          </label>
+                          
+                          {isSelected && rolePermissions && (
+                            <div className="ml-6 space-y-1">
+                              <label className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={rolePermissions.canView}
+                                  onChange={(e) => handleRolePermissionChange(role.id, 'canView', e.target.checked)}
+                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="ml-2 text-xs text-gray-600">Can View</span>
+                              </label>
+                              
+                              <label className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={rolePermissions.canEdit}
+                                  onChange={(e) => handleRolePermissionChange(role.id, 'canEdit', e.target.checked)}
+                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="ml-2 text-xs text-gray-600">Can Edit</span>
+                              </label>
+                              
+                              <label className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={rolePermissions.canDelete}
+                                  onChange={(e) => handleRolePermissionChange(role.id, 'canDelete', e.target.checked)}
+                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="ml-2 text-xs text-gray-600">Can Delete</span>
+                              </label>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {Object.keys(selectedRoles).length === 0 && (
+                    <p className="text-xs text-gray-500 mt-1">No roles selected.</p>
+                  )}
+                </div>
+              )}
+              
               <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"

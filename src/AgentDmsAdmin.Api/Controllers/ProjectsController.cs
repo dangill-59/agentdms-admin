@@ -214,17 +214,75 @@ public class ProjectsController : ControllerBase
             // Create default fields for the new project
             await _dataSeeder.CreateDefaultFieldsForProjectAsync(project.Id);
 
+            // Handle role assignments if provided
+            if (request.RoleAssignments != null && request.RoleAssignments.Any())
+            {
+                foreach (var roleAssignment in request.RoleAssignments)
+                {
+                    if (!int.TryParse(roleAssignment.RoleId, out var roleId))
+                    {
+                        _logger.LogWarning("Invalid role ID: {RoleId}", roleAssignment.RoleId);
+                        continue;
+                    }
+
+                    // Check if role exists
+                    var role = await _context.Roles.FindAsync(roleId);
+                    if (role == null)
+                    {
+                        _logger.LogWarning("Role not found: {RoleId}", roleId);
+                        continue;
+                    }
+
+                    // Check if assignment already exists
+                    var existingAssignment = await _context.ProjectRoles
+                        .FirstOrDefaultAsync(pr => pr.ProjectId == project.Id && pr.RoleId == roleId);
+
+                    if (existingAssignment == null)
+                    {
+                        var projectRole = new ProjectRole
+                        {
+                            ProjectId = project.Id,
+                            RoleId = roleId,
+                            CanView = roleAssignment.CanView,
+                            CanEdit = roleAssignment.CanEdit,
+                            CanDelete = roleAssignment.CanDelete
+                        };
+
+                        _context.ProjectRoles.Add(projectRole);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+            }
+
+            // Fetch project with roles for response
+            var createdProject = await _context.Projects
+                .Include(p => p.ProjectRoles)
+                .ThenInclude(pr => pr.Role)
+                .FirstOrDefaultAsync(p => p.Id == project.Id);
+
             var projectDto = new ProjectDto
             {
-                Id = project.Id.ToString(),
-                Name = project.Name,
-                Description = project.Description,
-                FileName = project.FileName,
-                CreatedAt = project.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                ModifiedAt = project.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                ModifiedBy = project.ModifiedBy,
-                IsActive = project.IsActive,
-                IsArchived = project.IsArchived
+                Id = createdProject.Id.ToString(),
+                Name = createdProject.Name,
+                Description = createdProject.Description,
+                FileName = createdProject.FileName,
+                CreatedAt = createdProject.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ModifiedAt = createdProject.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ModifiedBy = createdProject.ModifiedBy,
+                IsActive = createdProject.IsActive,
+                IsArchived = createdProject.IsArchived,
+                ProjectRoles = createdProject.ProjectRoles.Select(pr => new ProjectRoleDto
+                {
+                    Id = pr.Id.ToString(),
+                    ProjectId = pr.ProjectId.ToString(),
+                    RoleId = pr.RoleId.ToString(),
+                    RoleName = pr.Role.Name,
+                    CanView = pr.CanView,
+                    CanEdit = pr.CanEdit,
+                    CanDelete = pr.CanDelete,
+                    CreatedAt = pr.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                }).ToList()
             };
 
             return CreatedAtAction(nameof(GetProject), new { id = project.Id }, projectDto);
@@ -260,17 +318,76 @@ public class ProjectsController : ControllerBase
 
             await _context.SaveChangesAsync();
 
+            // Handle role assignments if provided
+            if (request.RoleAssignments != null)
+            {
+                // Remove existing role assignments for this project
+                var existingRoles = await _context.ProjectRoles
+                    .Where(pr => pr.ProjectId == id)
+                    .ToListAsync();
+                
+                _context.ProjectRoles.RemoveRange(existingRoles);
+
+                // Add new role assignments
+                foreach (var roleAssignment in request.RoleAssignments)
+                {
+                    if (!int.TryParse(roleAssignment.RoleId, out var roleId))
+                    {
+                        _logger.LogWarning("Invalid role ID: {RoleId}", roleAssignment.RoleId);
+                        continue;
+                    }
+
+                    // Check if role exists
+                    var role = await _context.Roles.FindAsync(roleId);
+                    if (role == null)
+                    {
+                        _logger.LogWarning("Role not found: {RoleId}", roleId);
+                        continue;
+                    }
+
+                    var projectRole = new ProjectRole
+                    {
+                        ProjectId = id,
+                        RoleId = roleId,
+                        CanView = roleAssignment.CanView,
+                        CanEdit = roleAssignment.CanEdit,
+                        CanDelete = roleAssignment.CanDelete
+                    };
+
+                    _context.ProjectRoles.Add(projectRole);
+                }
+
+                await _context.SaveChangesAsync();
+            }
+
+            // Fetch updated project with roles for response
+            var updatedProject = await _context.Projects
+                .Include(p => p.ProjectRoles)
+                .ThenInclude(pr => pr.Role)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
             var projectDto = new ProjectDto
             {
-                Id = project.Id.ToString(),
-                Name = project.Name,
-                Description = project.Description,
-                FileName = project.FileName,
-                CreatedAt = project.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                ModifiedAt = project.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                ModifiedBy = project.ModifiedBy,
-                IsActive = project.IsActive,
-                IsArchived = project.IsArchived
+                Id = updatedProject.Id.ToString(),
+                Name = updatedProject.Name,
+                Description = updatedProject.Description,
+                FileName = updatedProject.FileName,
+                CreatedAt = updatedProject.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ModifiedAt = updatedProject.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ModifiedBy = updatedProject.ModifiedBy,
+                IsActive = updatedProject.IsActive,
+                IsArchived = updatedProject.IsArchived,
+                ProjectRoles = updatedProject.ProjectRoles.Select(pr => new ProjectRoleDto
+                {
+                    Id = pr.Id.ToString(),
+                    ProjectId = pr.ProjectId.ToString(),
+                    RoleId = pr.RoleId.ToString(),
+                    RoleName = pr.Role.Name,
+                    CanView = pr.CanView,
+                    CanEdit = pr.CanEdit,
+                    CanDelete = pr.CanDelete,
+                    CreatedAt = pr.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                }).ToList()
             };
 
             return Ok(projectDto);
