@@ -85,7 +85,7 @@ export class UserService {
     }
   }
 
-  public async createUser(userData: { username: string; email: string; passwordHash: string }): Promise<User> {
+  public async createUser(userData: { username: string; email: string; passwordHash: string; roleIds?: string[] }): Promise<User> {
     try {
       const response = await apiService.post<User>('/users', userData);
       return response.data || response;
@@ -100,7 +100,7 @@ export class UserService {
     }
   }
 
-  public async updateUser(id: string, userData: Partial<User>): Promise<User> {
+  public async updateUser(id: string, userData: Partial<User> & { roleIds?: string[] }): Promise<User> {
     try {
       const response = await apiService.put<User>(`/users/${id}`, userData);
       return response.data || response;
