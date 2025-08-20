@@ -5,12 +5,12 @@ import type { Role } from '../types/api';
 import { userService } from '../services/users';
 import { roleService } from '../services/roles';
 import Header from '../components/Header';
-import { getUserDisplayName, getUserPrimaryRole, userIsAdmin, getRoleColor, getRoleIcon } from '../utils/userHelpers';
+import { getUserDisplayName, userIsAdmin, getRoleColor, getRoleIcon } from '../utils/userHelpers';
 
 interface NewUser {
   username: string;
   email: string;
-  role: string;
+  selectedRoles: string[];
   password: string;
 }
 
@@ -46,7 +46,7 @@ const Users: React.FC = () => {
   const [newUser, setNewUser] = useState<NewUser>({
     username: '',
     email: '',
-    role: 'User',
+    selectedRoles: [],
     password: ''
   });
 
@@ -126,13 +126,13 @@ const Users: React.FC = () => {
     if (!user) return false;
     const displayName = getUserDisplayName(user).toLowerCase();
     const email = (user.email || '').toLowerCase();
-    const primaryRole = (getUserPrimaryRole(user) || '').toLowerCase();
+    const allRoles = user.roles ? user.roles.map(role => role.roleName.toLowerCase()).join(' ') : '';
     const search = searchTerm.toLowerCase();
     if (search === '') return true;
     return (
       displayName.includes(search) ||
       email.includes(search) ||
-      primaryRole.includes(search)
+      allRoles.includes(search)
     );
   });
 
@@ -141,7 +141,8 @@ const Users: React.FC = () => {
       const createdUser = await userService.createUser({
         username: newUser.username,
         email: newUser.email,
-        passwordHash: newUser.password
+        passwordHash: newUser.password,
+        roleIds: newUser.selectedRoles.length > 0 ? newUser.selectedRoles : undefined
       });
       
       // Robust handling of created user response
@@ -150,7 +151,7 @@ const Users: React.FC = () => {
       if (userToAdd && userToAdd.id) {
         setUsers(prev => [...prev, userToAdd]);
         setShowCreateModal(false);
-        setNewUser({ username: '', email: '', role: roles.length > 0 ? roles[0].name : 'User', password: '' });
+        setNewUser({ username: '', email: '', selectedRoles: [], password: '' });
       } else {
         throw new Error('Invalid user data received from server');
       }
@@ -164,7 +165,7 @@ const Users: React.FC = () => {
     setNewUser({
       username: getUserDisplayName(user),
       email: user.email || '',
-      role: getUserPrimaryRole(user) || (roles.length > 0 ? roles[0].name : 'User'),
+      selectedRoles: user.roles ? user.roles.map(role => role.roleId) : [],
       password: ''
     });
     // Refresh roles when editing to ensure latest roles are available
@@ -178,7 +179,8 @@ const Users: React.FC = () => {
       const updatedUser = await userService.updateUser(editingUser.id, {
         username: newUser.username,
         email: newUser.email,
-        ...(newUser.password && { passwordHash: newUser.password })
+        ...(newUser.password && { passwordHash: newUser.password }),
+        roleIds: newUser.selectedRoles
       });
       
       // Robust handling of updated user response
@@ -187,7 +189,7 @@ const Users: React.FC = () => {
       if (userToUpdate && userToUpdate.id) {
         setUsers(prev => prev.map(u => u.id === editingUser.id ? userToUpdate : u));
         setEditingUser(null);
-        setNewUser({ username: '', email: '', role: roles.length > 0 ? roles[0].name : 'User', password: '' });
+        setNewUser({ username: '', email: '', selectedRoles: [], password: '' });
       } else {
         throw new Error('Invalid user data received from server');
       }
@@ -212,7 +214,7 @@ const Users: React.FC = () => {
     setNewUser({ 
       username: '', 
       email: '', 
-      role: roles.length > 0 ? roles[0].name : 'User', 
+      selectedRoles: [], 
       password: '' 
     });
     // Refresh roles when opening modal to ensure latest roles are available
@@ -372,10 +374,21 @@ const Users: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(getUserPrimaryRole(user))}`}>
-                              <span>{getRoleIcon(getUserPrimaryRole(user))}</span>
-                              <span>{getUserPrimaryRole(user)}</span>
-                            </span>
+                            <div className="flex flex-wrap gap-1">
+                              {user.roles && user.roles.length > 0 ? (
+                                user.roles.map((userRole) => (
+                                  <span key={userRole.id} className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(userRole.roleName)}`}>
+                                    <span>{getRoleIcon(userRole.roleName)}</span>
+                                    <span>{userRole.roleName}</span>
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                  <span>👤</span>
+                                  <span>No Role</span>
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -486,7 +499,7 @@ const Users: React.FC = () => {
                 onClick={() => {
                   setShowCreateModal(false);
                   setEditingUser(null);
-                  setNewUser({ username: '', email: '', role: roles.length > 0 ? roles[0].name : 'User', password: '' });
+                  setNewUser({ username: '', email: '', selectedRoles: [], password: '' });
                 }}
                 className="text-gray-400 hover:text-gray-600"
               >
@@ -524,18 +537,43 @@ const Users: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Role
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Roles
                 </label>
-                <select
-                  value={newUser.role}
-                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {roles.map(role => (
-                    <option key={role.id} value={role.name}>{role.name}</option>
-                  ))}
-                </select>
+                <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-300 rounded-md p-3">
+                  {roles.length > 0 ? (
+                    roles.map(role => (
+                      <label key={role.id} className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={newUser.selectedRoles.includes(role.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setNewUser({ 
+                                ...newUser, 
+                                selectedRoles: [...newUser.selectedRoles, role.id] 
+                              });
+                            } else {
+                              setNewUser({ 
+                                ...newUser, 
+                                selectedRoles: newUser.selectedRoles.filter(id => id !== role.id) 
+                              });
+                            }
+                          }}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-900">{role.name}</div>
+                          {role.description && (
+                            <div className="text-xs text-gray-500">{role.description}</div>
+                          )}
+                        </div>
+                      </label>
+                    ))
+                  ) : (
+                    <div className="text-sm text-gray-500 italic">No roles available</div>
+                  )}
+                </div>
               </div>
 
               {!editingUser && (
@@ -559,7 +597,7 @@ const Users: React.FC = () => {
                 onClick={() => {
                   setShowCreateModal(false);
                   setEditingUser(null);
-                  setNewUser({ username: '', email: '', role: roles.length > 0 ? roles[0].name : 'User', password: '' });
+                  setNewUser({ username: '', email: '', selectedRoles: [], password: '' });
                 }}
                 className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium"
               >

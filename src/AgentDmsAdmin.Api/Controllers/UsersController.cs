@@ -93,13 +93,54 @@ public class UsersController : ControllerBase
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
+            // Assign roles if provided
+            var userRoles = new List<UserRoleDto>();
+            if (request.RoleIds != null && request.RoleIds.Any())
+            {
+                foreach (var roleIdStr in request.RoleIds)
+                {
+                    if (int.TryParse(roleIdStr, out var roleId))
+                    {
+                        // Check if role exists
+                        var role = await _context.Roles.FindAsync(roleId);
+                        if (role != null)
+                        {
+                            // Check if assignment already exists
+                            var existingAssignment = await _context.UserRoles
+                                .FirstOrDefaultAsync(ur => ur.UserId == user.Id && ur.RoleId == roleId);
+
+                            if (existingAssignment == null)
+                            {
+                                var userRole = new UserRole
+                                {
+                                    UserId = user.Id,
+                                    RoleId = roleId
+                                };
+
+                                _context.UserRoles.Add(userRole);
+                                await _context.SaveChangesAsync();
+
+                                userRoles.Add(new UserRoleDto
+                                {
+                                    Id = userRole.Id.ToString(),
+                                    UserId = userRole.UserId.ToString(),
+                                    RoleId = userRole.RoleId.ToString(),
+                                    RoleName = role.Name,
+                                    CreatedAt = userRole.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
             var userDto = new UserDto
             {
                 Id = user.Id.ToString(),
                 Username = user.Username,
                 Email = user.Email,
                 IsImmutable = user.IsImmutable,
-                Roles = new List<UserRoleDto>()
+                Roles = userRoles
             };
 
             return CreatedAtAction(nameof(GetUser), new { id = user.Id }, userDto);
@@ -204,11 +245,65 @@ public class UsersController : ControllerBase
                 user.PasswordHash = request.PasswordHash; // In production, this should be hashed
             }
 
+            // Handle role changes if provided
+            if (request.RoleIds != null)
+            {
+                // Convert string role IDs to integers
+                var newRoleIds = new List<int>();
+                foreach (var roleIdStr in request.RoleIds)
+                {
+                    if (int.TryParse(roleIdStr, out var roleId))
+                    {
+                        // Verify role exists
+                        if (await _context.Roles.AnyAsync(r => r.Id == roleId))
+                        {
+                            newRoleIds.Add(roleId);
+                        }
+                    }
+                }
+
+                // Get current role IDs
+                var currentRoleIds = user.UserRoles.Select(ur => ur.RoleId).ToList();
+
+                // Find roles to remove (current roles not in new list)
+                var rolesToRemove = currentRoleIds.Except(newRoleIds).ToList();
+
+                // Find roles to add (new roles not in current list)
+                var rolesToAdd = newRoleIds.Except(currentRoleIds).ToList();
+
+                // Remove roles
+                foreach (var roleId in rolesToRemove)
+                {
+                    var userRole = user.UserRoles.FirstOrDefault(ur => ur.RoleId == roleId);
+                    if (userRole != null)
+                    {
+                        _context.UserRoles.Remove(userRole);
+                    }
+                }
+
+                // Add new roles
+                foreach (var roleId in rolesToAdd)
+                {
+                    var userRole = new UserRole
+                    {
+                        UserId = user.Id,
+                        RoleId = roleId
+                    };
+                    _context.UserRoles.Add(userRole);
+                }
+            }
+
             await _context.SaveChangesAsync();
+
+            // Reload user with updated roles
+            user = await _context.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Id == id);
 
             var userDto = new UserDto
             {
-                Id = user.Id.ToString(),
+                Id = user!.Id.ToString(),
                 Username = user.Username,
                 Email = user.Email,
                 IsImmutable = user.IsImmutable,
