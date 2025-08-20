@@ -547,7 +547,7 @@ public class RolesController : ControllerBase
     }
 
     [HttpGet("{roleId}/permissions")]
-    public async Task<ActionResult<List<PermissionDto>>> GetRolePermissions(int roleId)
+    public async Task<ActionResult<List<RolePermissionDto>>> GetRolePermissions(int roleId)
     {
         try
         {
@@ -557,20 +557,21 @@ public class RolesController : ControllerBase
                 return NotFound($"Role with ID {roleId} not found.");
             }
 
-            var permissions = await _context.RolePermissions
+            var rolePermissions = await _context.RolePermissions
                 .Where(rp => rp.RoleId == roleId)
                 .Include(rp => rp.Permission)
-                .Select(rp => new PermissionDto
+                .Select(rp => new RolePermissionDto
                 {
-                    Id = rp.Permission.Id.ToString(),
-                    Name = rp.Permission.Name,
-                    Description = rp.Permission.Description,
-                    CreatedAt = rp.Permission.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                    ModifiedAt = rp.Permission.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                    Id = rp.Id.ToString(),
+                    RoleId = rp.RoleId.ToString(),
+                    PermissionId = rp.PermissionId.ToString(),
+                    PermissionName = rp.Permission.Name,
+                    PermissionDescription = rp.Permission.Description,
+                    CreatedAt = rp.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
                 })
                 .ToListAsync();
 
-            return Ok(permissions);
+            return Ok(rolePermissions);
         }
         catch (Exception ex)
         {
