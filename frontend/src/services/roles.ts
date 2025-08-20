@@ -143,6 +143,42 @@ export class RoleService {
   }
 
   // Project role assignments
+  public async getProjectRoles(projectId?: string, roleId?: string): Promise<ProjectRole[]> {
+    try {
+      let url = '/roles/project-roles';
+      const params = new URLSearchParams();
+      
+      if (projectId) {
+        params.append('projectId', projectId);
+      }
+      
+      if (roleId) {
+        params.append('roleId', roleId);
+      }
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await apiService.get<ProjectRole[]>(url);
+      return Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [];
+    } catch (error) {
+      console.warn('Failed to fetch project roles, using demo data:', error);
+      return [
+        {
+          id: '1',
+          projectId: projectId || '1',
+          roleId: roleId || '1',
+          roleName: 'Demo Role',
+          canView: true,
+          canEdit: false,
+          canDelete: false,
+          createdAt: '2024-01-01T00:00:00Z'
+        }
+      ];
+    }
+  }
+
   public async assignProjectRole(request: AssignProjectRoleRequest): Promise<ProjectRole> {
     try {
       const response = await apiService.post<ProjectRole>('/roles/assign-project', request);

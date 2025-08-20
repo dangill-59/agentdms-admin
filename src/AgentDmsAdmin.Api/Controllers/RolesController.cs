@@ -546,6 +546,50 @@ public class RolesController : ControllerBase
         }
     }
 
+    [HttpGet("project-roles")]
+    public async Task<ActionResult<List<ProjectRoleDto>>> GetProjectRoles([FromQuery] int? projectId = null, [FromQuery] int? roleId = null)
+    {
+        try
+        {
+            var query = _context.ProjectRoles
+                .Include(pr => pr.Role)
+                .Include(pr => pr.Project)
+                .AsQueryable();
+
+            if (projectId.HasValue)
+            {
+                query = query.Where(pr => pr.ProjectId == projectId.Value);
+            }
+
+            if (roleId.HasValue)
+            {
+                query = query.Where(pr => pr.RoleId == roleId.Value);
+            }
+
+            var projectRoles = await query
+                .OrderByDescending(pr => pr.CreatedAt)
+                .Select(pr => new ProjectRoleDto
+                {
+                    Id = pr.Id.ToString(),
+                    ProjectId = pr.ProjectId.ToString(),
+                    RoleId = pr.RoleId.ToString(),
+                    RoleName = pr.Role.Name,
+                    CanView = pr.CanView,
+                    CanEdit = pr.CanEdit,
+                    CanDelete = pr.CanDelete,
+                    CreatedAt = pr.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                })
+                .ToListAsync();
+
+            return Ok(projectRoles);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting project roles. ProjectId: {ProjectId}, RoleId: {RoleId}", projectId, roleId);
+            return StatusCode(500, "An error occurred while fetching project roles");
+        }
+    }
+
     [HttpGet("{roleId}/permissions")]
     public async Task<ActionResult<List<RolePermissionDto>>> GetRolePermissions(int roleId)
     {
