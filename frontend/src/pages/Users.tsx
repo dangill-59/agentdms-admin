@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import type { User } from '../types/auth';
+import type { Role } from '../types/api';
 import { userService } from '../services/users';
+import { roleService } from '../services/roles';
 import Header from '../components/Header';
 import { getUserDisplayName, getUserPrimaryRole, userIsAdmin, getRoleColor, getRoleIcon } from '../utils/userHelpers';
 
@@ -20,6 +22,14 @@ interface FlexibleApiResponse {
   results?: User[];
 }
 
+// Type for role API response handling
+interface FlexibleRoleApiResponse {
+  data?: Role[] | { data?: Role[] };
+  roles?: Role[];
+  items?: Role[];
+  results?: Role[];
+}
+
 // Type for user response with possible nested data
 interface FlexibleUserResponse extends User {
   data?: User;
@@ -32,6 +42,18 @@ const Users: React.FC = () => {
   const getUserInitial = (user: User): string => {
     const displayName = getUserDisplayName(user);
     return displayName.charAt(0).toUpperCase();
+  };
+
+  // Helper function to get default role name
+  const getDefaultRoleName = (): string => {
+    // Try to find 'User' role first, then fall back to the first role, or 'User' as final fallback
+    const userRole = roles.find(role => role.name === 'User');
+    if (userRole) return userRole.name;
+    
+    const firstRole = roles[0];
+    if (firstRole) return firstRole.name;
+    
+    return 'User'; // Fallback
   };
 
   const [users, setUsers] = useState<User[]>([]);
@@ -47,10 +69,17 @@ const Users: React.FC = () => {
     password: ''
   });
 
-  const roles = ['Administrator', 'Manager', 'User'];
+  // Dynamic roles state
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
 
   useEffect(() => {
     fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    fetchRoles();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchUsers = async () => {
@@ -88,6 +117,52 @@ const Users: React.FC = () => {
     }
   };
 
+  const fetchRoles = async () => {
+    try {
+      setRolesLoading(true);
+      const response = await roleService.getRoles(1, 100, false); // Get up to 100 roles without permissions
+      
+      // Robust handling for both array and object API responses (similar to Roles.tsx)
+      let roleData: Role[] = [];
+      if (Array.isArray(response)) {
+        // Direct array response
+        roleData = response;
+      } else if (response && typeof response === 'object') {
+        // Object response with data property
+        if (Array.isArray(response.data)) {
+          roleData = response.data;
+        } else if (response.data && typeof response.data === 'object' && 'data' in response.data && Array.isArray((response.data as { data: Role[] }).data)) {
+          // Nested data structure
+          roleData = (response.data as { data: Role[] }).data;
+        } else {
+          // Fallback: check for common array properties
+          const fallbackResponse = response as FlexibleRoleApiResponse;
+          roleData = fallbackResponse.roles || fallbackResponse.items || fallbackResponse.results || [];
+        }
+      }
+      
+      // Ensure we have a valid array
+      const validRoles = Array.isArray(roleData) ? roleData : [];
+      setRoles(validRoles);
+      
+      // Update the initial role in newUser if it's still set to the default
+      if (newUser.role === 'User' && validRoles.length > 0) {
+        const defaultRole = validRoles.find(role => role.name === 'User') || validRoles[0];
+        setNewUser(prev => ({ ...prev, role: defaultRole.name }));
+      }
+    } catch (err) {
+      console.warn('Failed to load roles, using fallback:', err);
+      // If roles fail to load, provide a fallback to ensure the UI still works
+      const fallbackRoles = [
+        { id: '1', name: 'User', description: 'Basic user access', createdAt: '', modifiedAt: '' }
+      ];
+      setRoles(fallbackRoles);
+      setNewUser(prev => ({ ...prev, role: 'User' }));
+    } finally {
+      setRolesLoading(false);
+    }
+  };
+
   const filteredUsers = users.filter(user => {
     if (!user) return false;
     const displayName = getUserDisplayName(user).toLowerCase();
@@ -116,7 +191,7 @@ const Users: React.FC = () => {
       if (userToAdd && userToAdd.id) {
         setUsers(prev => [...prev, userToAdd]);
         setShowCreateModal(false);
-        setNewUser({ username: '', email: '', role: 'User', password: '' });
+        setNewUser({ username: '', email: '', role: getDefaultRoleName(), password: '' });
       } else {
         throw new Error('Invalid user data received from server');
       }
@@ -130,7 +205,7 @@ const Users: React.FC = () => {
     setNewUser({
       username: getUserDisplayName(user),
       email: user.email || '',
-      role: getUserPrimaryRole(user) || 'User',
+      role: getUserPrimaryRole(user) || getDefaultRoleName(),
       password: ''
     });
   };
@@ -151,7 +226,7 @@ const Users: React.FC = () => {
       if (userToUpdate && userToUpdate.id) {
         setUsers(prev => prev.map(u => u.id === editingUser.id ? userToUpdate : u));
         setEditingUser(null);
-        setNewUser({ username: '', email: '', role: 'User', password: '' });
+        setNewUser({ username: '', email: '', role: getDefaultRoleName(), password: '' });
       } else {
         throw new Error('Invalid user data received from server');
       }
@@ -438,7 +513,7 @@ const Users: React.FC = () => {
                 onClick={() => {
                   setShowCreateModal(false);
                   setEditingUser(null);
-                  setNewUser({ username: '', email: '', role: 'User', password: '' });
+                  setNewUser({ username: '', email: '', role: getDefaultRoleName(), password: '' });
                 }}
                 className="text-gray-400 hover:text-gray-600"
               >
@@ -483,10 +558,15 @@ const Users: React.FC = () => {
                   value={newUser.role}
                   onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  disabled={rolesLoading}
                 >
-                  {roles.map(role => (
-                    <option key={role} value={role}>{role}</option>
-                  ))}
+                  {rolesLoading ? (
+                    <option value="">Loading roles...</option>
+                  ) : (
+                    roles.map(role => (
+                      <option key={role.id} value={role.name}>{role.name}</option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -511,7 +591,7 @@ const Users: React.FC = () => {
                 onClick={() => {
                   setShowCreateModal(false);
                   setEditingUser(null);
-                  setNewUser({ username: '', email: '', role: 'User', password: '' });
+                  setNewUser({ username: '', email: '', role: getDefaultRoleName(), password: '' });
                 }}
                 className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium"
               >
