@@ -2,7 +2,6 @@ import type {
   Role,
   UserRole,
   ProjectRole,
-  Permission,
   RolePermission,
   PaginatedResponse,
   CreateRoleRequest,
@@ -216,26 +215,28 @@ export class RoleService {
     }
   }
 
-  public async getRolePermissions(roleId: string): Promise<Permission[]> {
+  public async getRolePermissions(roleId: string): Promise<RolePermission[]> {
     try {
-      const response = await apiService.get<Permission[]>(`/roles/${roleId}/permissions`);
+      const response = await apiService.get<RolePermission[]>(`/roles/${roleId}/permissions`);
       return response.data || response;
     } catch (error) {
       console.warn('Failed to fetch role permissions, returning mock data:', error);
       return [
         {
           id: '1',
-          name: 'user.create',
-          description: 'Create new users',
-          createdAt: '2024-01-01T00:00:00Z',
-          modifiedAt: '2024-01-01T00:00:00Z'
+          roleId: roleId,
+          permissionId: '1',
+          permissionName: 'user.create',
+          permissionDescription: 'Create new users',
+          createdAt: '2024-01-01T00:00:00Z'
         },
         {
           id: '2',
-          name: 'user.edit',
-          description: 'Edit existing users',
-          createdAt: '2024-01-01T00:00:00Z',
-          modifiedAt: '2024-01-01T00:00:00Z'
+          roleId: roleId,
+          permissionId: '2',
+          permissionName: 'user.edit',
+          permissionDescription: 'Edit existing users',
+          createdAt: '2024-01-01T00:00:00Z'
         }
       ];
     }

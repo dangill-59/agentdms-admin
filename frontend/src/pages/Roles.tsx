@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import type { Role, Permission, CreateRoleRequest, UpdateRoleRequest } from '../types/api';
+import type { Role, Permission, RolePermission, CreateRoleRequest, UpdateRoleRequest } from '../types/api';
 import { roleService } from '../services/roles';
 import { permissionService } from '../services/permissions';
 import Header from '../components/Header';
@@ -44,7 +44,7 @@ const Roles: React.FC = () => {
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
   const [managingRolePermissions, setManagingRolePermissions] = useState<Role | null>(null);
   const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
-  const [rolePermissions, setRolePermissions] = useState<Permission[]>([]);
+  const [rolePermissions, setRolePermissions] = useState<RolePermission[]>([]);
   const [permissionsLoading, setPermissionsLoading] = useState(false);
 
   useEffect(() => {
@@ -232,16 +232,15 @@ const Roles: React.FC = () => {
     }
   };
 
-  const handleRemovePermission = async (permission: Permission) => {
+  const handleRemovePermission = async (rolePermission: RolePermission) => {
     if (!managingRolePermissions) return;
     
     try {
-      // We need to find the role permission ID first
-      // For now, we'll simulate success since the backend expects the RolePermission ID
-      // In a real implementation, we'd store the RolePermission objects with their IDs
+      // Call the backend API to remove the role permission
+      await roleService.removeRolePermission(rolePermission.id);
       
-      // Optimistically update the UI
-      setRolePermissions(prev => prev.filter(p => p.id !== permission.id));
+      // Update the UI by removing the permission from the list
+      setRolePermissions(prev => prev.filter(rp => rp.id !== rolePermission.id));
     } catch (err) {
       setError('Failed to remove permission');
       console.error('Permission removal error:', err);
@@ -600,7 +599,7 @@ const Roles: React.FC = () => {
                     <h4 className="text-md font-medium text-gray-700 mb-3">Available Permissions</h4>
                     <div className="border border-gray-200 rounded-md max-h-80 overflow-y-auto">
                       {(allPermissions || [])
-                        .filter(permission => !(rolePermissions || []).some(rp => rp.id === permission.id))
+                        .filter(permission => !(rolePermissions || []).some(rp => rp.permissionId === permission.id))
                         .map(permission => (
                           <div key={permission.id} className="p-3 border-b border-gray-100 hover:bg-gray-50">
                             <div className="flex justify-between items-start">
@@ -620,7 +619,7 @@ const Roles: React.FC = () => {
                           </div>
                         ))}
                       {(() => {
-                        const availablePermissions = (allPermissions || []).filter(permission => !(rolePermissions || []).some(rp => rp.id === permission.id));
+                        const availablePermissions = (allPermissions || []).filter(permission => !(rolePermissions || []).some(rp => rp.permissionId === permission.id));
                         const totalPermissions = (allPermissions || []).length;
                         const assignedPermissions = (rolePermissions || []).length;
                         
@@ -646,17 +645,17 @@ const Roles: React.FC = () => {
                   <div>
                     <h4 className="text-md font-medium text-gray-700 mb-3">Assigned Permissions</h4>
                     <div className="border border-gray-200 rounded-md max-h-80 overflow-y-auto">
-                      {(rolePermissions || []).map(permission => (
-                        <div key={permission.id} className="p-3 border-b border-gray-100 hover:bg-gray-50">
+                      {(rolePermissions || []).map(rolePermission => (
+                        <div key={rolePermission.id} className="p-3 border-b border-gray-100 hover:bg-gray-50">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
-                              <h5 className="text-sm font-medium text-gray-900">{permission.name}</h5>
-                              {permission.description && (
-                                <p className="text-sm text-gray-500 mt-1">{permission.description}</p>
+                              <h5 className="text-sm font-medium text-gray-900">{rolePermission.permissionName}</h5>
+                              {rolePermission.permissionDescription && (
+                                <p className="text-sm text-gray-500 mt-1">{rolePermission.permissionDescription}</p>
                               )}
                             </div>
                             <button
-                              onClick={() => handleRemovePermission(permission)}
+                              onClick={() => handleRemovePermission(rolePermission)}
                               className="ml-3 bg-red-600 hover:bg-red-700 text-white px-3 py-1 text-xs rounded transition-colors"
                             >
                               Remove
