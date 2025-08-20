@@ -220,8 +220,8 @@ const Projects: React.FC = () => {
         [roleId]: {
           roleId,
           canView: true,
-          canEdit: false,
-          canDelete: false
+          canEdit: true,
+          canDelete: true
         }
       }));
     } else {
@@ -231,16 +231,6 @@ const Projects: React.FC = () => {
         return newRoles;
       });
     }
-  };
-
-  const handleRolePermissionChange = (roleId: string, permission: 'canView' | 'canEdit' | 'canDelete', value: boolean) => {
-    setSelectedRoles(prev => ({
-      ...prev,
-      [roleId]: {
-        ...prev[roleId],
-        [permission]: value
-      }
-    }));
   };
 
   const closeModals = () => {
@@ -448,7 +438,6 @@ const Projects: React.FC = () => {
                   <div className="space-y-3 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-3">
                     {roles.map((role) => {
                       const isSelected = selectedRoles[role.id] !== undefined;
-                      const rolePermissions = selectedRoles[role.id];
                       
                       return (
                         <div key={role.id} className="border-b border-gray-100 last:border-b-0 pb-2 last:pb-0">
@@ -465,37 +454,11 @@ const Projects: React.FC = () => {
                             )}
                           </label>
                           
-                          {isSelected && rolePermissions && (
-                            <div className="ml-6 space-y-1">
-                              <label className="flex items-center">
-                                <input
-                                  type="checkbox"
-                                  checked={rolePermissions.canView}
-                                  onChange={(e) => handleRolePermissionChange(role.id, 'canView', e.target.checked)}
-                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                <span className="ml-2 text-xs text-gray-600">Can View</span>
-                              </label>
-                              
-                              <label className="flex items-center">
-                                <input
-                                  type="checkbox"
-                                  checked={rolePermissions.canEdit}
-                                  onChange={(e) => handleRolePermissionChange(role.id, 'canEdit', e.target.checked)}
-                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                <span className="ml-2 text-xs text-gray-600">Can Edit</span>
-                              </label>
-                              
-                              <label className="flex items-center">
-                                <input
-                                  type="checkbox"
-                                  checked={rolePermissions.canDelete}
-                                  onChange={(e) => handleRolePermissionChange(role.id, 'canDelete', e.target.checked)}
-                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                <span className="ml-2 text-xs text-gray-600">Can Delete</span>
-                              </label>
+                          {isSelected && (
+                            <div className="ml-6">
+                              <p className="text-xs text-gray-500">
+                                Permissions are defined by the role configuration
+                              </p>
                             </div>
                           )}
                         </div>
@@ -586,7 +549,6 @@ const Projects: React.FC = () => {
                   <div className="space-y-3 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-3">
                     {roles.map((role) => {
                       const isSelected = selectedRoles[role.id] !== undefined;
-                      const rolePermissions = selectedRoles[role.id];
                       
                       return (
                         <div key={role.id} className="border-b border-gray-100 last:border-b-0 pb-2 last:pb-0">
@@ -603,37 +565,11 @@ const Projects: React.FC = () => {
                             )}
                           </label>
                           
-                          {isSelected && rolePermissions && (
-                            <div className="ml-6 space-y-1">
-                              <label className="flex items-center">
-                                <input
-                                  type="checkbox"
-                                  checked={rolePermissions.canView}
-                                  onChange={(e) => handleRolePermissionChange(role.id, 'canView', e.target.checked)}
-                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                <span className="ml-2 text-xs text-gray-600">Can View</span>
-                              </label>
-                              
-                              <label className="flex items-center">
-                                <input
-                                  type="checkbox"
-                                  checked={rolePermissions.canEdit}
-                                  onChange={(e) => handleRolePermissionChange(role.id, 'canEdit', e.target.checked)}
-                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                <span className="ml-2 text-xs text-gray-600">Can Edit</span>
-                              </label>
-                              
-                              <label className="flex items-center">
-                                <input
-                                  type="checkbox"
-                                  checked={rolePermissions.canDelete}
-                                  onChange={(e) => handleRolePermissionChange(role.id, 'canDelete', e.target.checked)}
-                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                <span className="ml-2 text-xs text-gray-600">Can Delete</span>
-                              </label>
+                          {isSelected && (
+                            <div className="ml-6">
+                              <p className="text-xs text-gray-500">
+                                Permissions are defined by the role configuration
+                              </p>
                             </div>
                           )}
                         </div>
