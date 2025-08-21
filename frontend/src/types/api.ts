@@ -100,6 +100,48 @@ export interface Document {
   fileSize: number;
   createdAt: string;
   modifiedAt: string;
+  // Extended metadata for search results
+  customerName?: string;
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  docType?: string;
+  status?: string;
+}
+
+// Document search types
+export interface DocumentSearchFilters {
+  projectId?: string;
+  invoiceNumber?: string;
+  customerName?: string;
+  docType?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  status?: string;
+}
+
+export interface DocumentSearchResult {
+  id: string;
+  projectId: string;
+  fileName: string;
+  customerName: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  docType: string;
+  status: string;
+  createdAt: string;
+  modifiedAt: string;
+  fileSize: number;
+  mimeType: string;
+}
+
+export interface DocumentMetadata {
+  id: string;
+  customerName: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  docType: string;
+  status: string;
+  notes?: string;
 }
 
 // Request types
