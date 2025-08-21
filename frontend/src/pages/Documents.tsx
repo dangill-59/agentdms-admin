@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import type { Document, DocumentSearchFilters, DocumentSearchResult, PaginatedResponse } from '../types/api';
+import type { Document, DocumentSearchFilters, DocumentSearchResult, PaginatedResponse, Project } from '../types/api';
 import { documentService } from '../services/documents';
+import { projectService } from '../services/projects';
 import config from '../utils/config';
 import Header from '../components/Header';
 import DocumentSearchForm from '../components/DocumentSearchForm';
@@ -45,6 +46,11 @@ const Documents: React.FC = () => {
     config.get('supportedFileTypes') || []
   );
 
+  // Project selection state
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+
   // File configuration from config service
   const maxFileSize = config.get('maxFileSize');
 
@@ -55,6 +61,24 @@ const Documents: React.FC = () => {
     } catch (error) {
       console.error('Failed to load supported formats:', error);
       // Keep default formats
+    }
+  };
+
+  const loadProjects = async () => {
+    try {
+      setIsLoadingProjects(true);
+      const response = await projectService.getProjects(1, 50); // Get first 50 projects
+      setProjects(response.data);
+      
+      // Auto-select first project if none selected
+      if (response.data.length > 0 && !selectedProjectId) {
+        setSelectedProjectId(parseInt(response.data[0].id));
+      }
+    } catch (error) {
+      console.error('Failed to load projects:', error);
+      setError('Failed to load projects. Please refresh the page.');
+    } finally {
+      setIsLoadingProjects(false);
     }
   };
 
@@ -172,6 +196,12 @@ const Documents: React.FC = () => {
   }, [fetchDocuments]);
 
   const uploadFile = useCallback(async (file: File) => {
+    // Validate project selection
+    if (!selectedProjectId) {
+      setError('Please select a project before uploading files.');
+      return;
+    }
+
     // Add to upload progress
     setUploadProgress(prev => [...prev, {
       fileName: file.name,
@@ -180,8 +210,8 @@ const Documents: React.FC = () => {
     }]);
 
     try {
-      // Use the document service for upload
-      const response = await documentService.uploadFile(file, (progress) => {
+      // Use the document service for upload with project ID
+      const response = await documentService.uploadFile(file, selectedProjectId, (progress) => {
         setUploadProgress(prev => 
           prev.map(item => 
             item.fileName === file.name 
@@ -249,9 +279,10 @@ const Documents: React.FC = () => {
   }, [validateFile, uploadFile]);
 
   useEffect(() => {
-    // Only fetch documents for upload view
+    // Load projects for upload view
     if (viewMode === 'upload') {
       fetchDocuments();
+      loadProjects();
     }
     loadSupportedFormats();
   }, [viewMode, fetchDocuments]);
@@ -413,25 +444,93 @@ const Documents: React.FC = () => {
               </p>
             </div>
 
+            {/* Project Selection Section */}
+            <div className="mb-8">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h3 className="text-lg font-medium text-blue-900 mb-4">Select Target Project</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="project-select" className="block text-sm font-medium text-gray-700 mb-2">
+                      Project <span className="text-red-500">*</span>
+                    </label>
+                    {isLoadingProjects ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        <span className="text-sm text-gray-600">Loading projects...</span>
+                      </div>
+                    ) : (
+                      <select
+                        id="project-select"
+                        value={selectedProjectId || ''}
+                        onChange={(e) => setSelectedProjectId(e.target.value ? parseInt(e.target.value) : null)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Select a project...</option>
+                        {projects.map((project) => (
+                          <option key={project.id} value={project.id}>
+                            {project.name} {project.description ? `- ${project.description}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  
+                  {selectedProjectId && (
+                    <div className="bg-white border border-blue-200 rounded-md p-4">
+                      <h4 className="text-sm font-medium text-gray-900 mb-2">Auto-populated Fields</h4>
+                      <p className="text-sm text-gray-600 mb-3">
+                        The following fields will be automatically populated when you upload documents:
+                      </p>
+                      <ul className="text-sm text-gray-700 space-y-1">
+                        <li className="flex items-center">
+                          <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <strong>Filename:</strong> Original file name
+                        </li>
+                        <li className="flex items-center">
+                          <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <strong>Date Created:</strong> Current date
+                        </li>
+                        <li className="flex items-center">
+                          <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <strong>Date Modified:</strong> Current date
+                        </li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* File Upload Section */}
             <div className="mb-8">
               <div
                 className={`relative border-2 border-dashed p-8 text-center transition-colors ${
                   dragActive
                     ? 'border-blue-500 bg-blue-50'
-                    : 'border-blue-300 hover:border-blue-500 bg-blue-25'
+                    : selectedProjectId 
+                      ? 'border-blue-300 hover:border-blue-500 bg-blue-25'
+                      : 'border-gray-300 bg-gray-50 cursor-not-allowed'
                 }`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
+                onDragEnter={selectedProjectId ? handleDrag : undefined}
+                onDragLeave={selectedProjectId ? handleDrag : undefined}
+                onDragOver={selectedProjectId ? handleDrag : undefined}
+                onDrop={selectedProjectId ? handleDrop : undefined}
               >
                 <input
                   type="file"
                   multiple
                   accept={(supportedFormats || []).join(',')}
                   onChange={handleFileInput}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  disabled={!selectedProjectId}
+                  className={`absolute inset-0 w-full h-full opacity-0 ${
+                    selectedProjectId ? 'cursor-pointer' : 'cursor-not-allowed'
+                  }`}
                 />
                 
                 <div className="space-y-4">
@@ -440,8 +539,8 @@ const Documents: React.FC = () => {
                   </svg>
                   
                   <div>
-                    <p className="text-lg font-medium text-blue-900">
-                      Drop files here or click to browse
+                    <p className={`text-lg font-medium ${selectedProjectId ? 'text-blue-900' : 'text-gray-500'}`}>
+                      {selectedProjectId ? 'Drop files here or click to browse' : 'Select a project first'}
                     </p>
                     <p className="text-sm text-gray-600 mt-1">
                       Supported formats: {(supportedFormats || []).join(', ')}
@@ -451,8 +550,15 @@ const Documents: React.FC = () => {
                     </p>
                   </div>
                   
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-sm font-medium transition-colors shadow-md">
-                    Select Files
+                  <button 
+                    disabled={!selectedProjectId}
+                    className={`px-6 py-3 text-sm font-medium transition-colors shadow-md ${
+                      selectedProjectId 
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                        : 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                    }`}
+                  >
+                    {selectedProjectId ? 'Select Files' : 'Select Project First'}
                   </button>
                 </div>
               </div>

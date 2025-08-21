@@ -73,10 +73,15 @@ export class DocumentService {
   }
 
   // File upload operations (integrating with AgentDMS backend)
-  public async uploadFile(file: File, onProgress?: (progress: number) => void): Promise<UploadResponse> {
+  public async uploadFile(file: File, projectId?: number, onProgress?: (progress: number) => void): Promise<UploadResponse> {
     return new Promise((resolve, reject) => {
       const formData = new FormData();
       formData.append('file', file);
+      
+      // Add project ID if provided
+      if (projectId) {
+        formData.append('projectId', projectId.toString());
+      }
 
       const xhr = new XMLHttpRequest();
 
