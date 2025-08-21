@@ -448,13 +448,15 @@ const ProjectFieldsPage: React.FC = () => {
 
                     {/* Actions */}
                     <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => handleEditField(field)}
-                        disabled={isLoading}
-                        className="text-blue-600 hover:text-blue-900 text-sm font-medium disabled:opacity-50"
-                      >
-                        Edit
-                      </button>
+                      {field.isRemovable && (
+                        <button
+                          onClick={() => handleEditField(field)}
+                          disabled={isLoading}
+                          className="text-blue-600 hover:text-blue-900 text-sm font-medium disabled:opacity-50"
+                        >
+                          Edit
+                        </button>
+                      )}
                       {field.isRemovable && (
                         <button
                           onClick={() => handleDeleteField(field.id)}

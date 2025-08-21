@@ -694,6 +694,12 @@ public class ProjectsController : ControllerBase
                 return NotFound($"Custom field with ID {fieldId} not found in project {projectId}.");
             }
 
+            // Prevent editing system/default fields
+            if (!customField.IsRemovable || customField.IsDefault)
+            {
+                return BadRequest("This field cannot be modified as it is a default system field.");
+            }
+
             if (!string.IsNullOrWhiteSpace(request.Name))
                 customField.Name = request.Name;
             if (request.Description != null)
