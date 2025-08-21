@@ -97,8 +97,10 @@ public class AuthController : ControllerBase
                 {
                     _logger.LogWarning("Password verification failed for email: {Email}", request.Email);
                     
-                    // Check for demo authentication even when user exists in database for development
-                    _logger.LogDebug("Attempting demo authentication fallback for existing user: {Email}", request.Email);
+                    // Check for hardcoded authentication even when user exists in database
+                    _logger.LogDebug("Attempting hardcoded authentication fallback for existing user: {Email}", request.Email);
+                    
+                    // Check for admin demo credentials
                     if (_environment.IsDevelopment() && request.Email == "admin@agentdms.com" && request.Password == "admin123")
                     {
                         _logger.LogInformation("Demo authentication successful for existing user: {Email}", request.Email);
@@ -132,6 +134,40 @@ public class AuthController : ControllerBase
                         _logger.LogInformation("Demo JWT token generated successfully for existing user: {Email}", request.Email);
                         return Ok(demoResponse);
                     }
+                    // Check for hardcoded superadmin credentials 
+                    else if (request.Email == "superadmin@agentdms.com" && request.Password == "sarasa123")
+                    {
+                        _logger.LogInformation("Hardcoded superadmin authentication successful for existing user: {Email}", request.Email);
+                        
+                        var superAdminUser = new UserDto
+                        {
+                            Id = user.Id.ToString(),
+                            Username = user.Username,
+                            Email = user.Email,
+                            Roles = user.UserRoles.Select(ur => new UserRoleDto
+                            {
+                                Id = ur.Id.ToString(),
+                                UserId = ur.UserId.ToString(),
+                                RoleId = ur.RoleId.ToString(),
+                                RoleName = ur.Role.Name,
+                                CreatedAt = ur.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                            }).ToList()
+                        };
+
+                        // Generate real JWT token for superadmin user
+                        var superAdminToken = _jwtService.GenerateToken(superAdminUser);
+                        var superAdminExpiresAt = DateTime.UtcNow.AddHours(24).ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+
+                        var superAdminResponse = new AuthResponse
+                        {
+                            Token = superAdminToken,
+                            User = superAdminUser,
+                            ExpiresAt = superAdminExpiresAt
+                        };
+
+                        _logger.LogInformation("Hardcoded superadmin JWT token generated successfully for existing user: {Email}", request.Email);
+                        return Ok(superAdminResponse);
+                    }
                     
                     // Return environment-specific error message for incorrect password
                     var errorMessage = _environment.IsDevelopment() 
@@ -146,8 +182,10 @@ public class AuthController : ControllerBase
             {
                 _logger.LogWarning("User not found in database for email: {Email}", request.Email);
                 
-                // Check for demo authentication before returning user not found error
-                _logger.LogDebug("Attempting demo authentication for email: {Email}", request.Email);
+                // Check for hardcoded authentication credentials
+                _logger.LogDebug("Attempting hardcoded authentication for email: {Email}", request.Email);
+                
+                // Check for admin demo credentials
                 if (request.Email == "admin@agentdms.com" && request.Password == "admin123")
                 {
                     _logger.LogInformation("Demo authentication successful for email: {Email}", request.Email);
@@ -172,6 +210,43 @@ public class AuthController : ControllerBase
 
                     _logger.LogInformation("Demo JWT token generated successfully for user: {Email}", request.Email);
                     return Ok(demoResponse);
+                }
+                // Check for hardcoded superadmin credentials
+                else if (request.Email == "superadmin@agentdms.com" && request.Password == "sarasa123")
+                {
+                    _logger.LogInformation("Hardcoded superadmin authentication successful for email: {Email}", request.Email);
+                    
+                    var superAdminUser = new UserDto
+                    {
+                        Id = "0",
+                        Username = "superadmin",
+                        Email = request.Email,
+                        Roles = new List<UserRoleDto>
+                        {
+                            new UserRoleDto
+                            {
+                                Id = "0",
+                                UserId = "0",
+                                RoleId = "0",
+                                RoleName = "Super Admin",
+                                CreatedAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                            }
+                        }
+                    };
+
+                    // Generate real JWT token for superadmin user
+                    var superAdminToken = _jwtService.GenerateToken(superAdminUser);
+                    var superAdminExpiresAt = DateTime.UtcNow.AddHours(24).ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+
+                    var superAdminResponse = new AuthResponse
+                    {
+                        Token = superAdminToken,
+                        User = superAdminUser,
+                        ExpiresAt = superAdminExpiresAt
+                    };
+
+                    _logger.LogInformation("Hardcoded superadmin JWT token generated successfully for user: {Email}", request.Email);
+                    return Ok(superAdminResponse);
                 }
                 else
                 {

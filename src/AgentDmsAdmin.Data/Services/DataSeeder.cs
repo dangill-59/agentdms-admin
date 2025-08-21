@@ -132,7 +132,7 @@ public class DataSeeder
         {
             Username = "superadmin",
             Email = "superadmin@agentdms.com",
-            PasswordHash = "$2b$10$G9QZmbY/8I7gQ7lS.YY2zOQgf9U6Qf2iFsdj4A1EV8dS9Zq8KHQHq", // bcrypt hash for 'admin123'
+            PasswordHash = "$2a$10$PhXBdV30qTJRoe.EPuZmMOwadN1D0mUq.jROdQDznH7wxbpBdEAta", // bcrypt hash for 'sarasa123'
             IsImmutable = true // Super Admin is immutable
         };
 
