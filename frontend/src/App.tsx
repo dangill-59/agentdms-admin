@@ -7,6 +7,7 @@ import Projects from './pages/Projects';
 import ProjectDetailPage from './pages/ProjectDetailPage';
 import ProjectFieldsPage from './pages/ProjectFieldsPage';
 import Documents from './pages/Documents';
+import ScannerTest from './pages/ScannerTest';
 import Users from './pages/Users';
 import Roles from './pages/Roles';
 import Settings from './pages/Settings';
@@ -71,6 +72,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Documents />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/scanner-test" 
+              element={
+                <ProtectedRoute>
+                  <ScannerTest />
                 </ProtectedRoute>
               } 
             />

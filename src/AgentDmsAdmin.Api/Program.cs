@@ -15,6 +15,9 @@ builder.Services.AddScoped<DataSeeder>();
 // Add JWT service for authentication
 builder.Services.AddScoped<IJwtService, JwtService>();
 
+// Add HTTP client for proxying requests to main AgentDMS system
+builder.Services.AddHttpClient();
+
 // Add controllers support
 builder.Services.AddControllers();
 

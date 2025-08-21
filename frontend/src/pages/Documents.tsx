@@ -19,6 +19,7 @@ const Documents: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [previewDocument, setPreviewDocument] = useState<Document | null>(null);
   const [supportedFormats, setSupportedFormats] = useState<string[]>(
     config.get('supportedFileTypes')
   );
@@ -376,8 +377,27 @@ const Documents: React.FC = () => {
                   <li key={doc.id} className="px-6 py-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                          <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                          {doc.mimeType?.startsWith('image/') ? (
+                            <img 
+                              src={documentService.getDocumentThumbnailUrl(doc.id)}
+                              alt={`${doc.fileName} thumbnail`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // Fallback to file icon if thumbnail fails to load
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                target.nextElementSibling?.setAttribute('style', 'display: block');
+                              }}
+                            />
+                          ) : null}
+                          <svg 
+                            className="w-8 h-8 text-gray-600" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                            style={{ display: doc.mimeType?.startsWith('image/') ? 'none' : 'block' }}
+                          >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                         </div>
@@ -389,7 +409,10 @@ const Documents: React.FC = () => {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        <button 
+                          onClick={() => setPreviewDocument(doc)}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        >
                           View
                         </button>
                         <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
@@ -407,6 +430,61 @@ const Documents: React.FC = () => {
           )}
         </div>
       </main>
+
+      {/* Document Preview Modal */}
+      {previewDocument && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl max-h-full overflow-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                Preview: {previewDocument.fileName}
+              </h3>
+              <button
+                onClick={() => setPreviewDocument(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="text-center">
+              {previewDocument.mimeType?.startsWith('image/') ? (
+                <div className="relative">
+                  <img 
+                    src={documentService.getDocumentPreviewUrl(previewDocument.id)}
+                    alt={`${previewDocument.fileName} preview`}
+                    className="max-w-full max-h-96 mx-auto border border-gray-300 rounded"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y3ZjdmNyIvPgogIDx0ZXh0IHg9IjE1MCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiM5OTk5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+Cjwvc3ZnPg==';
+                    }}
+                  />
+                  <div className="mt-4 text-sm text-gray-600">
+                    <p><strong>File Size:</strong> {formatFileSize(previewDocument.fileSize)}</p>
+                    <p><strong>MIME Type:</strong> {previewDocument.mimeType}</p>
+                    <p className="mt-2 text-xs text-gray-500">
+                      If you're seeing dark lines instead of the expected image content, 
+                      this may indicate a TWAIN scanner processing issue.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-12">
+                  <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="text-gray-500">Preview not available for this file type</p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    File Size: {formatFileSize(previewDocument.fileSize)} • {previewDocument.mimeType}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
