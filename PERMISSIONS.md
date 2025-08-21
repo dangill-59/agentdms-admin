@@ -33,7 +33,7 @@ The following permissions are automatically created:
 
 #### superadmin
 - **Email**: `superadmin@agentdms.com`
-- **Password**: `admin123` (bcrypt hashed)
+- **Password**: `sarasa123` (bcrypt hashed)
 - **Role**: Super Admin
 - **Immutable**: Yes - cannot be edited or deleted
 - **Purpose**: System super administrator that cannot be accidentally modified

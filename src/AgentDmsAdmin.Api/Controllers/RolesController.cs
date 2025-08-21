@@ -24,9 +24,11 @@ public class RolesController : ControllerBase
     {
         try
         {
-            var totalCount = await _context.Roles.CountAsync();
+            // Filter out Super Admin role from the list
+            var totalCount = await _context.Roles.Where(r => r.Name != "Super Admin").CountAsync();
             
             var rolesQuery = _context.Roles
+                .Where(r => r.Name != "Super Admin")
                 .OrderByDescending(r => r.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize);
@@ -554,6 +556,7 @@ public class RolesController : ControllerBase
             var query = _context.ProjectRoles
                 .Include(pr => pr.Role)
                 .Include(pr => pr.Project)
+                .Where(pr => pr.Role.Name != "Super Admin" && pr.Role.Name != "Administrator") // Filter out Super Admin and Administrator roles
                 .AsQueryable();
 
             if (projectId.HasValue)
