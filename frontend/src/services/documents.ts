@@ -130,12 +130,14 @@ export class DocumentService {
   // Job status polling (matching AgentDMS patterns)
   public async getJobStatus(jobId: string): Promise<JobStatus> {
     const response = await apiService.get<JobStatus>(`/imageprocessing/job/${jobId}/status`);
-    return response.data;
+    // Handle both wrapped (response.data) and unwrapped (response) responses
+    return response.data || response;
   }
 
   public async getJobResult(jobId: string): Promise<ProcessingResult> {
     const response = await apiService.get<ProcessingResult>(`/imageprocessing/job/${jobId}/result`);
-    return response.data;
+    // Handle both wrapped (response.data) and unwrapped (response) responses
+    return response.data || response;
   }
 
   // Poll for job completion with proper error handling
