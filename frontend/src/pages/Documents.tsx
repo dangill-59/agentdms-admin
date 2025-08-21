@@ -42,7 +42,7 @@ const Documents: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [supportedFormats, setSupportedFormats] = useState<string[]>(
-    config.get('supportedFileTypes')
+    config.get('supportedFileTypes') || []
   );
 
   // File configuration from config service
@@ -218,7 +218,7 @@ const Documents: React.FC = () => {
   const validateFile = useCallback((file: File): string | null => {
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
     if (!config.isSupportedFileType(fileExtension)) {
-      return `File type ${fileExtension} is not supported. Supported formats: ${supportedFormats.join(', ')}`;
+      return `File type ${fileExtension} is not supported. Supported formats: ${(supportedFormats || []).join(', ')}`;
     }
     if (file.size > maxFileSize) {
       return `File size exceeds the maximum limit of ${config.getFormattedMaxFileSize()}`;
@@ -283,7 +283,7 @@ const Documents: React.FC = () => {
     }
   };
 
-  const filteredDocuments = documents.filter(doc =>
+  const filteredDocuments = (documents || []).filter(doc =>
     doc.fileName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -429,7 +429,7 @@ const Documents: React.FC = () => {
                 <input
                   type="file"
                   multiple
-                  accept={supportedFormats.join(',')}
+                  accept={(supportedFormats || []).join(',')}
                   onChange={handleFileInput}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
@@ -444,7 +444,7 @@ const Documents: React.FC = () => {
                       Drop files here or click to browse
                     </p>
                     <p className="text-sm text-gray-600 mt-1">
-                      Supported formats: {supportedFormats.join(', ')}
+                      Supported formats: {(supportedFormats || []).join(', ')}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
                       Maximum file size: {config.getFormattedMaxFileSize()}

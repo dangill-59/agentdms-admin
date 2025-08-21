@@ -37,6 +37,9 @@ packages/
 *.db-shm
 *.db-wal
 
+# Uploaded files
+uploads/
+
 # User-specific files
 appsettings.Local.json
 
