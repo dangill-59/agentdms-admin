@@ -261,6 +261,12 @@ public class ProjectsController : ControllerBase
                 .ThenInclude(pr => pr.Role)
                 .FirstOrDefaultAsync(p => p.Id == project.Id);
 
+            if (createdProject == null)
+            {
+                _logger.LogError("Failed to retrieve created project with ID {ProjectId}", project.Id);
+                return StatusCode(500, "Error retrieving created project");
+            }
+
             var projectDto = new ProjectDto
             {
                 Id = createdProject.Id.ToString(),
@@ -365,6 +371,12 @@ public class ProjectsController : ControllerBase
                 .Include(p => p.ProjectRoles)
                 .ThenInclude(pr => pr.Role)
                 .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (updatedProject == null)
+            {
+                _logger.LogError("Failed to retrieve updated project with ID {ProjectId}", id);
+                return StatusCode(500, "Error retrieving updated project");
+            }
 
             var projectDto = new ProjectDto
             {
