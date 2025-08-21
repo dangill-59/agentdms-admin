@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using AgentDmsAdmin.Api.Models;
 using AgentDmsAdmin.Data.Data;
 using AgentDmsAdmin.Data.Models;
+using AgentDmsAdmin.Data.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace AgentDmsAdmin.Api.Controllers;
 
@@ -12,6 +14,7 @@ public class ImageProcessingController : ControllerBase
     private readonly AgentDmsContext _context;
     private readonly ILogger<ImageProcessingController> _logger;
     private readonly IWebHostEnvironment _environment;
+    private readonly DataSeeder _dataSeeder;
     
     // Simple in-memory job tracking for development
     private static readonly Dictionary<string, ProcessingJob> _jobs = new();
@@ -19,15 +22,17 @@ public class ImageProcessingController : ControllerBase
     public ImageProcessingController(
         AgentDmsContext context, 
         ILogger<ImageProcessingController> logger,
-        IWebHostEnvironment environment)
+        IWebHostEnvironment environment,
+        DataSeeder dataSeeder)
     {
         _context = context;
         _logger = logger;
         _environment = environment;
+        _dataSeeder = dataSeeder;
     }
 
     [HttpPost("upload")]
-    public async Task<ActionResult<UploadResponse>> UploadFile(IFormFile file)
+    public async Task<ActionResult<UploadResponse>> UploadFile(IFormFile file, [FromForm] int? projectId = null)
     {
         try
         {
@@ -95,6 +100,19 @@ public class ImageProcessingController : ControllerBase
                 }
             };
 
+            // Determine which project to assign the document to
+            int targetProjectId = projectId ?? 1; // Default to first project if not specified
+            
+            // Verify the project exists and ensure it has default fields
+            var project = await _context.Projects.FindAsync(targetProjectId);
+            if (project == null)
+            {
+                return BadRequest($"Project with ID {targetProjectId} not found");
+            }
+
+            // Ensure default fields exist for the project
+            await _dataSeeder.CreateDefaultFieldsForProjectAsync(targetProjectId);
+
             _jobs[jobId] = job;
 
             // Create Document record in database
@@ -104,11 +122,47 @@ public class ImageProcessingController : ControllerBase
                 StoragePath = filePath,
                 MimeType = file.ContentType,
                 FileSize = file.Length,
-                ProjectId = 1 // Default to first project for now - in real implementation would be provided
+                ProjectId = targetProjectId
             };
 
             _context.Documents.Add(document);
             await _context.SaveChangesAsync();
+
+            // Get the default custom fields for this project and populate them
+            var defaultFields = await _context.CustomFields
+                .Where(cf => cf.ProjectId == targetProjectId && cf.IsDefault)
+                .ToListAsync();
+
+            var documentFieldValues = new List<DocumentFieldValue>();
+            var currentDate = DateTime.UtcNow.ToString("yyyy-MM-dd");
+
+            foreach (var field in defaultFields)
+            {
+                string? value = field.Name switch
+                {
+                    "Filename" => file.FileName,
+                    "Date Created" => currentDate,
+                    "Date Modified" => currentDate,
+                    _ => null
+                };
+
+                if (value != null)
+                {
+                    var fieldValue = new DocumentFieldValue
+                    {
+                        DocumentId = document.Id,
+                        CustomFieldId = field.Id,
+                        Value = value
+                    };
+                    documentFieldValues.Add(fieldValue);
+                }
+            }
+
+            if (documentFieldValues.Any())
+            {
+                _context.DocumentFieldValues.AddRange(documentFieldValues);
+                await _context.SaveChangesAsync();
+            }
 
             _logger.LogInformation("File {FileName} uploaded successfully with job ID {JobId}", file.FileName, jobId);
 
