@@ -1,8 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import type { Document } from '../types/api';
+import type { Document, DocumentSearchFilters, DocumentSearchResult, PaginatedResponse } from '../types/api';
 import { documentService } from '../services/documents';
 import config from '../utils/config';
 import Header from '../components/Header';
+import DocumentSearchForm from '../components/DocumentSearchForm';
+import DocumentSearchResults from '../components/DocumentSearchResults';
+import DocumentViewer from '../components/DocumentViewer';
 
 interface UploadProgress {
   fileName: string;
@@ -12,9 +15,28 @@ interface UploadProgress {
   error?: string;
 }
 
+type ViewMode = 'search' | 'results' | 'viewer' | 'upload';
+
 const Documents: React.FC = () => {
+  // State for different views
+  const [viewMode, setViewMode] = useState<ViewMode>('search');
+  
+  // Search functionality state
+  const [searchFilters, setSearchFilters] = useState<DocumentSearchFilters>({});
+  const [searchResults, setSearchResults] = useState<PaginatedResponse<DocumentSearchResult>>({
+    data: [],
+    totalCount: 0,
+    page: 1,
+    pageSize: 10,
+    totalPages: 0
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<DocumentSearchResult | null>(null);
+
+  // Original upload functionality state
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
@@ -34,6 +56,71 @@ const Documents: React.FC = () => {
       console.error('Failed to load supported formats:', error);
       // Keep default formats
     }
+  };
+
+  // Search functionality
+  const handleSearch = async () => {
+    if (!searchFilters.projectId) {
+      setError('Please select a project to search in.');
+      return;
+    }
+
+    try {
+      setIsSearching(true);
+      setError('');
+      const results = await documentService.searchDocuments(searchFilters, 1, 10);
+      setSearchResults(results);
+      setCurrentPage(1);
+      setViewMode('results');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to search documents');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchFilters({});
+    setSearchResults({
+      data: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 10,
+      totalPages: 0
+    });
+    setError('');
+  };
+
+  const handlePageChange = async (page: number) => {
+    try {
+      setIsSearching(true);
+      const results = await documentService.searchDocuments(searchFilters, page, 10);
+      setSearchResults(results);
+      setCurrentPage(page);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load page');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleDocumentSelect = (document: DocumentSearchResult) => {
+    setSelectedDocument(document);
+    setViewMode('viewer');
+  };
+
+  const handleBackToResults = () => {
+    setViewMode('results');
+    setSelectedDocument(null);
+  };
+
+  const handleUpdateSearch = () => {
+    setViewMode('search');
+  };
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    setError(''); // Clear any errors when switching modes
   };
 
   const fetchDocuments = useCallback(async () => {
@@ -162,9 +249,12 @@ const Documents: React.FC = () => {
   }, [validateFile, uploadFile]);
 
   useEffect(() => {
-    fetchDocuments();
+    // Only fetch documents for upload view
+    if (viewMode === 'upload') {
+      fetchDocuments();
+    }
     loadSupportedFormats();
-  }, [fetchDocuments]);
+  }, [viewMode, fetchDocuments]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -215,7 +305,37 @@ const Documents: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  // Render navigation tabs
+  const renderNavigation = () => (
+    <div className="mb-8">
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => handleViewModeChange('search')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              viewMode === 'search' || viewMode === 'results' || viewMode === 'viewer'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Document Search
+          </button>
+          <button
+            onClick={() => handleViewModeChange('upload')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              viewMode === 'upload'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Upload Documents
+          </button>
+        </nav>
+      </div>
+    </div>
+  );
+
+  if (isLoading && viewMode === 'upload') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
         <Header />
@@ -233,179 +353,212 @@ const Documents: React.FC = () => {
       <Header />
       
       <main className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          {/* Page Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-blue-900">Documents</h1>
-            <p className="mt-2 text-gray-600">
-              Upload, process, and manage your document files.
-            </p>
-          </div>
+        {renderNavigation()}
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-              <div className="flex">
-                <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div className="ml-3">
-                  <div className="text-red-800 whitespace-pre-line">{error}</div>
-                  <button
-                    onClick={() => setError('')}
-                    className="text-red-600 hover:text-red-800 text-sm font-medium mt-2"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* File Upload Section */}
-          <div className="mb-8">
-            <div
-              className={`relative border-2 border-dashed p-8 text-center transition-colors ${
-                dragActive
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-blue-300 hover:border-blue-500 bg-blue-25'
-              }`}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-            >
-              <input
-                type="file"
-                multiple
-                accept={supportedFormats.join(',')}
-                onChange={handleFileInput}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
-              
-              <div className="space-y-4">
-                <svg className="mx-auto h-12 w-12 text-blue-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                  <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                
-                <div>
-                  <p className="text-lg font-medium text-blue-900">
-                    Drop files here or click to browse
-                  </p>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Supported formats: {supportedFormats.join(', ')}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Maximum file size: {config.getFormattedMaxFileSize()}
-                  </p>
-                </div>
-                
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-sm font-medium transition-colors shadow-md">
-                  Select Files
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+            <div className="flex">
+              <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="ml-3">
+                <div className="text-red-800 whitespace-pre-line">{error}</div>
+                <button
+                  onClick={() => setError('')}
+                  className="text-red-600 hover:text-red-800 text-sm font-medium mt-2"
+                >
+                  Dismiss
                 </button>
               </div>
             </div>
           </div>
+        )}
 
-          {/* Upload Progress */}
-          {uploadProgress.length > 0 && (
-            <div className="mb-8 space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">Upload Progress</h3>
-              {uploadProgress.map((upload, index) => (
-                <div key={index} className="bg-white p-4 rounded-lg shadow border">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="text-sm font-medium text-gray-900">{upload.fileName}</div>
-                    <div className="flex items-center space-x-2">
-                      <span className={`inline-block w-2 h-2 rounded-full ${getStatusColor(upload.status)}`}></span>
-                      <span className="text-xs text-gray-500 capitalize">{upload.status}</span>
-                    </div>
-                  </div>
-                  
-                  {upload.status === 'uploading' || upload.status === 'processing' ? (
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all duration-300 ${getStatusColor(upload.status)}`}
-                        style={{ width: `${upload.progress}%` }}
-                      ></div>
-                    </div>
-                  ) : upload.status === 'error' ? (
-                    <div className="text-red-600 text-sm">{upload.error}</div>
-                  ) : (
-                    <div className="text-green-600 text-sm flex items-center">
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Processing completed
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+        {/* Render different views based on viewMode */}
+        {viewMode === 'search' && (
+          <DocumentSearchForm
+            filters={searchFilters}
+            onFiltersChange={setSearchFilters}
+            onSearch={handleSearch}
+            onClear={handleClearSearch}
+            isLoading={isSearching}
+          />
+        )}
 
-          {/* Search */}
-          <div className="mb-6">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search documents..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border-2 border-blue-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50"
-              />
-              <svg className="w-5 h-5 text-blue-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-          </div>
+        {viewMode === 'results' && (
+          <DocumentSearchResults
+            results={searchResults}
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
+            onDocumentSelect={handleDocumentSelect}
+            onUpdateSearch={handleUpdateSearch}
+            isLoading={isSearching}
+          />
+        )}
 
-          {/* Documents List */}
-          {filteredDocuments.length === 0 ? (
-            <div className="text-center py-12">
-              <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <div className="text-gray-500 text-lg">No documents found</div>
-              <p className="text-gray-400 mt-2">
-                Upload your first document to get started.
+        {viewMode === 'viewer' && selectedDocument && (
+          <DocumentViewer
+            document={selectedDocument}
+            onBack={handleBackToResults}
+          />
+        )}
+
+        {viewMode === 'upload' && (
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            {/* Page Header */}
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-blue-900">Upload Documents</h1>
+              <p className="mt-2 text-gray-600">
+                Upload, process, and manage your document files.
               </p>
             </div>
-          ) : (
-            <div className="bg-white shadow overflow-hidden rounded-md">
-              <ul className="divide-y divide-gray-200">
-                {filteredDocuments.map((doc) => (
-                  <li key={doc.id} className="px-6 py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                          <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{doc.fileName}</div>
-                          <div className="text-sm text-gray-500">
-                            {formatFileSize(doc.fileSize)} • {doc.mimeType}
-                          </div>
-                        </div>
-                      </div>
+
+            {/* File Upload Section */}
+            <div className="mb-8">
+              <div
+                className={`relative border-2 border-dashed p-8 text-center transition-colors ${
+                  dragActive
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-blue-300 hover:border-blue-500 bg-blue-25'
+                }`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+              >
+                <input
+                  type="file"
+                  multiple
+                  accept={supportedFormats.join(',')}
+                  onChange={handleFileInput}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                
+                <div className="space-y-4">
+                  <svg className="mx-auto h-12 w-12 text-blue-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  
+                  <div>
+                    <p className="text-lg font-medium text-blue-900">
+                      Drop files here or click to browse
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Supported formats: {supportedFormats.join(', ')}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Maximum file size: {config.getFormattedMaxFileSize()}
+                    </p>
+                  </div>
+                  
+                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-sm font-medium transition-colors shadow-md">
+                    Select Files
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Upload Progress */}
+            {uploadProgress.length > 0 && (
+              <div className="mb-8 space-y-4">
+                <h3 className="text-lg font-medium text-gray-900">Upload Progress</h3>
+                {uploadProgress.map((upload, index) => (
+                  <div key={index} className="bg-white p-4 rounded-lg shadow border">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-sm font-medium text-gray-900">{upload.fileName}</div>
                       <div className="flex items-center space-x-2">
-                        <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                          View
-                        </button>
-                        <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                          Download
-                        </button>
-                        <button className="text-red-600 hover:text-red-800 text-sm font-medium">
-                          Delete
-                        </button>
+                        <span className={`inline-block w-2 h-2 rounded-full ${getStatusColor(upload.status)}`}></span>
+                        <span className="text-xs text-gray-500 capitalize">{upload.status}</span>
                       </div>
                     </div>
-                  </li>
+                    
+                    {upload.status === 'uploading' || upload.status === 'processing' ? (
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-300 ${getStatusColor(upload.status)}`}
+                          style={{ width: `${upload.progress}%` }}
+                        ></div>
+                      </div>
+                    ) : upload.status === 'error' ? (
+                      <div className="text-red-600 text-sm">{upload.error}</div>
+                    ) : (
+                      <div className="text-green-600 text-sm flex items-center">
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Processing completed
+                      </div>
+                    )}
+                  </div>
                 ))}
-              </ul>
+              </div>
+            )}
+
+            {/* Search */}
+            <div className="mb-6">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search documents..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border-2 border-blue-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50"
+                />
+                <svg className="w-5 h-5 text-blue-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* Documents List */}
+            {filteredDocuments.length === 0 ? (
+              <div className="text-center py-12">
+                <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <div className="text-gray-500 text-lg">No documents found</div>
+                <p className="text-gray-400 mt-2">
+                  Upload your first document to get started.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-white shadow overflow-hidden rounded-md">
+                <ul className="divide-y divide-gray-200">
+                  {filteredDocuments.map((doc) => (
+                    <li key={doc.id} className="px-6 py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{doc.fileName}</div>
+                            <div className="text-sm text-gray-500">
+                              {formatFileSize(doc.fileSize)} • {doc.mimeType}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            View
+                          </button>
+                          <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            Download
+                          </button>
+                          <button className="text-red-600 hover:text-red-800 text-sm font-medium">
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );
