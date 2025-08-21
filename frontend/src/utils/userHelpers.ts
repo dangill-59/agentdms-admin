@@ -28,7 +28,7 @@ export function userHasRole(user: User | null, roleName: string): boolean {
  * Check if user has admin role
  */
 export function userIsAdmin(user: User | null): boolean {
-  return userHasRole(user, 'Admin') || userHasRole(user, 'Administrator');
+  return userHasRole(user, 'Admin') || userHasRole(user, 'Administrator') || userHasRole(user, 'Super Admin');
 }
 
 /**
@@ -45,6 +45,7 @@ export function getRoleColor(roleName: string): string {
   switch (roleName.toLowerCase()) {
     case 'admin':
     case 'administrator':
+    case 'super admin':
       return 'bg-red-100 text-red-800';
     case 'manager':
       return 'bg-yellow-100 text-yellow-800';
@@ -61,6 +62,7 @@ export function getRoleIcon(roleName: string): string {
   switch (roleName.toLowerCase()) {
     case 'admin':
     case 'administrator':
+    case 'super admin':
       return '👑';
     case 'manager':
       return '🏢';
