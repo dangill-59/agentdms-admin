@@ -48,7 +48,7 @@ const Documents: React.FC = () => {
 
   // Project selection state
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
 
   // File configuration from config service
@@ -72,7 +72,7 @@ const Documents: React.FC = () => {
       
       // Auto-select first project if none selected
       if (response.data.length > 0 && !selectedProjectId) {
-        setSelectedProjectId(parseInt(response.data[0].id));
+        setSelectedProjectId(response.data[0].id);
       }
     } catch (error) {
       console.error('Failed to load projects:', error);
@@ -196,7 +196,18 @@ const Documents: React.FC = () => {
   }, [fetchDocuments]);
 
   const uploadFile = useCallback(async (file: File) => {
-    // Validate project selection
+    // Check if projects are still loading
+    if (isLoadingProjects) {
+      setError('Please wait for projects to load before uploading files.');
+      return;
+    }
+    
+    // Check if no projects are available
+    if (projects.length === 0) {
+      setError('No projects available. Please create a project first.');
+      return;
+    }
+    
     if (!selectedProjectId) {
       setError('Please select a project before uploading files.');
       return;
@@ -210,8 +221,14 @@ const Documents: React.FC = () => {
     }]);
 
     try {
+      // Convert string ID to number for the API
+      const projectIdNumber = parseInt(selectedProjectId);
+      if (isNaN(projectIdNumber)) {
+        throw new Error('Invalid project ID selected');
+      }
+
       // Use the document service for upload with project ID
-      const response = await documentService.uploadFile(file, selectedProjectId, (progress) => {
+      const response = await documentService.uploadFile(file, projectIdNumber, (progress) => {
         setUploadProgress(prev => 
           prev.map(item => 
             item.fileName === file.name 
@@ -243,7 +260,7 @@ const Documents: React.FC = () => {
         )
       );
     }
-  }, [pollJobStatus]);
+  }, [pollJobStatus, selectedProjectId, projects.length, isLoadingProjects]);
 
   const validateFile = useCallback((file: File): string | null => {
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -462,7 +479,7 @@ const Documents: React.FC = () => {
                       <select
                         id="project-select"
                         value={selectedProjectId || ''}
-                        onChange={(e) => setSelectedProjectId(e.target.value ? parseInt(e.target.value) : null)}
+                        onChange={(e) => setSelectedProjectId(e.target.value || null)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value="">Select a project...</option>
