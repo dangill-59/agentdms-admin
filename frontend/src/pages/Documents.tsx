@@ -194,7 +194,7 @@ const Documents: React.FC = () => {
     }
   };
 
-  const filteredDocuments = documents.filter(doc =>
+  const filteredDocuments = (documents || []).filter(doc =>
     doc.fileName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
