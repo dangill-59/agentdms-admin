@@ -1,5 +1,6 @@
 import type { Document, DocumentSearchFilters, DocumentSearchResult, DocumentMetadata, PaginatedResponse } from '../types/api';
 import { apiService } from './api';
+import config from '../utils/config';
 
 // Job status types (matching AgentDMS backend)
 export interface JobStatus {
@@ -179,14 +180,9 @@ export class DocumentService {
 
   // Get supported file formats
   public async getSupportedFormats(): Promise<string[]> {
-    try {
-      const response = await apiService.get<string[]>('/imageprocessing/formats');
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch supported formats:', error);
-      // Return default formats matching AgentDMS backend
-      return ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tif', '.tiff', '.pdf', '.webp'];
-    }
+    // Use configuration service instead of API call to avoid 404 error
+    // The supported file types are already configured in the config service
+    return config.get('supportedFileTypes');
   }
 
   // Download document file
