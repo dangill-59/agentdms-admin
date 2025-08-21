@@ -146,6 +146,11 @@ export class DocumentService {
       try {
         const status = await this.getJobStatus(jobId);
         
+        // Validate job status response
+        if (!status || typeof status.status !== 'string') {
+          throw new Error('Job status unavailable or invalid response from server');
+        }
+        
         if (status.status === 'Completed') {
           // Job completed successfully, get the result
           const result = await this.getJobResult(jobId);
