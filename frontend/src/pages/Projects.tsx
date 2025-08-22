@@ -4,8 +4,11 @@ import { projectService } from '../services/projects';
 import { roleService } from '../services/roles';
 import ProjectCard from '../components/ProjectCard';
 import Header from '../components/Header';
+import { useAuth } from '../hooks/useAuth';
+import { userIsAdmin } from '../utils/userHelpers';
 
 const Projects: React.FC = () => {
+  const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -267,18 +270,20 @@ const Projects: React.FC = () => {
                 Manage and organize your document processing projects.
               </p>
             </div>
-            <div className="mt-4 sm:mt-0">
-              <button
-                onClick={handleCreateProject}
-                disabled={isLoading}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-3 text-sm font-medium transition-colors flex items-center space-x-2 shadow-md"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                <span>New Project</span>
-              </button>
-            </div>
+            {userIsAdmin(user) && (
+              <div className="mt-4 sm:mt-0">
+                <button
+                  onClick={handleCreateProject}
+                  disabled={isLoading}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-3 text-sm font-medium transition-colors flex items-center space-x-2 shadow-md"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span>New Project</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -342,10 +347,10 @@ const Projects: React.FC = () => {
               <ProjectCard 
                 key={project.id} 
                 project={project} 
-                onEdit={handleEditProject}
-                onClone={handleCloneProject}
-                onDelete={handleDeleteProject}
-                onRestore={handleRestoreProject}
+                onEdit={userIsAdmin(user) ? handleEditProject : undefined}
+                onClone={userIsAdmin(user) ? handleCloneProject : undefined}
+                onDelete={userIsAdmin(user) ? handleDeleteProject : undefined}
+                onRestore={userIsAdmin(user) ? handleRestoreProject : undefined}
               />
             ))
           ) : (
@@ -355,9 +360,14 @@ const Projects: React.FC = () => {
               </svg>
               <h3 className="mt-2 text-sm font-medium text-gray-900">No projects found</h3>
               <p className="mt-1 text-sm text-gray-500">
-                {searchTerm ? 'Try adjusting your search terms.' : 'Get started by creating a new project.'}
+                {searchTerm 
+                  ? 'Try adjusting your search terms.' 
+                  : userIsAdmin(user) 
+                    ? 'Get started by creating a new project.'
+                    : 'No projects have been assigned to you yet. Contact your administrator for access.'
+                }
               </p>
-              {!searchTerm && (
+              {!searchTerm && userIsAdmin(user) && (
                 <div className="mt-6">
                   <button
                     onClick={handleCreateProject}

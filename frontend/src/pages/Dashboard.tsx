@@ -4,7 +4,7 @@ import type { Project, CreateProjectRequest } from '../types/api';
 import { projectService } from '../services/projects';
 import ProjectCard from '../components/ProjectCard';
 import Header from '../components/Header';
-import { getUserDisplayName } from '../utils/userHelpers';
+import { getUserDisplayName, userIsAdmin } from '../utils/userHelpers';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -109,17 +109,19 @@ const Dashboard: React.FC = () => {
                   Manage your document projects and access your files.
                 </p>
               </div>
-              <div className="mt-4 sm:mt-0">
-                <button
-                  onClick={handleCreateProject}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-sm font-medium transition-colors flex items-center space-x-2 shadow-md"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  <span>New Project</span>
-                </button>
-              </div>
+              {userIsAdmin(user) && (
+                <div className="mt-4 sm:mt-0">
+                  <button
+                    onClick={handleCreateProject}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-sm font-medium transition-colors flex items-center space-x-2 shadow-md"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    <span>New Project</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -175,14 +177,19 @@ const Dashboard: React.FC = () => {
                   </svg>
                   <div className="text-gray-500 text-lg">No projects found</div>
                   <p className="text-gray-400 mt-2 mb-4">
-                    Create your first project to get started with document processing.
+                    {userIsAdmin(user) 
+                      ? "Create your first project to get started with document processing."
+                      : "No projects have been assigned to you yet. Contact your administrator for access."
+                    }
                   </p>
-                  <button
-                    onClick={handleCreateProject}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-sm font-medium transition-colors shadow-md"
-                  >
-                    Create Project
-                  </button>
+                  {userIsAdmin(user) && (
+                    <button
+                      onClick={handleCreateProject}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-sm font-medium transition-colors shadow-md"
+                    >
+                      Create Project
+                    </button>
+                  )}
                 </>
               ) : (
                 <>
