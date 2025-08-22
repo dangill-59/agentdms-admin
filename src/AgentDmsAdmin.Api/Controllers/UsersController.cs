@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using AgentDmsAdmin.Api.Models;
 using AgentDmsAdmin.Data.Data;
 using AgentDmsAdmin.Data.Models;
+using BCrypt.Net;
 
 namespace AgentDmsAdmin.Api.Controllers;
 
@@ -87,7 +88,7 @@ public class UsersController : ControllerBase
             {
                 Username = request.Username,
                 Email = request.Email,
-                PasswordHash = request.PasswordHash // In production, this should be hashed
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password)
             };
 
             _context.Users.Add(user);
@@ -240,9 +241,9 @@ public class UsersController : ControllerBase
             }
 
             // Update password if provided
-            if (!string.IsNullOrWhiteSpace(request.PasswordHash))
+            if (!string.IsNullOrWhiteSpace(request.Password))
             {
-                user.PasswordHash = request.PasswordHash; // In production, this should be hashed
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
             }
 
             // Handle role changes if provided
