@@ -234,6 +234,58 @@ public class DataSeeder
     }
 
     /// <summary>
+    /// Seeds the gill.dan2@gmail.com user if one does not exist
+    /// </summary>
+    public async Task SeedGillDanUserAsync()
+    {
+        // Check if gill.dan2 user already exists
+        var existingUser = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == "gill.dan2@gmail.com");
+
+        if (existingUser != null)
+        {
+            return; // User already exists
+        }
+
+        // Create the gill.dan2@gmail.com user
+        var gillDanUser = new User
+        {
+            Username = "gill.dan2",
+            Email = "gill.dan2@gmail.com",
+            PasswordHash = "$2a$11$rVpQmCCHHqEB.se5IpznFuzCkQSaLnuINZ2wKBLuCIm8d/ueDNp0e" // bcrypt hash for 'admin123'
+        };
+
+        _context.Users.Add(gillDanUser);
+        await _context.SaveChangesAsync();
+
+        // Get or create Administrator role
+        var adminRole = await _context.Roles
+            .FirstOrDefaultAsync(r => r.Name == "Administrator");
+
+        if (adminRole == null)
+        {
+            adminRole = new Role
+            {
+                Name = "Administrator",
+                Description = "Full system administrator with all permissions"
+            };
+
+            _context.Roles.Add(adminRole);
+            await _context.SaveChangesAsync();
+        }
+
+        // Assign Administrator role to gill.dan2 user
+        var userRole = new UserRole
+        {
+            UserId = gillDanUser.Id,
+            RoleId = adminRole.Id
+        };
+
+        _context.UserRoles.Add(userRole);
+        await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
     /// Seeds sample data for testing and development
     /// </summary>
     public async Task SeedSampleDataAsync()

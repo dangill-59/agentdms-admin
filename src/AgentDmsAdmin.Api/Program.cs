@@ -45,6 +45,7 @@ if (app.Environment.IsDevelopment())
         await seeder.SeedPermissionsAsync(); // Seed permissions first
         await seeder.SeedSuperAdminUserAsync(); // Seed Super Admin with all permissions
         await seeder.SeedAdminUserAsync(); // Seed regular admin user
+        await seeder.SeedGillDanUserAsync(); // Seed gill.dan2@gmail.com user
     }
 }
 
