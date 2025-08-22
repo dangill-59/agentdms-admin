@@ -8,6 +8,7 @@ import type {
   CreateCustomFieldRequest,
   UpdateCustomFieldRequest 
 } from '../types/api';
+import config from '../utils/config';
 
 export class ProjectService {
   // Projects CRUD operations
@@ -18,7 +19,12 @@ export class ProjectService {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.warn('Failed to fetch projects from backend, using demo data:', error);
+      console.warn('Failed to fetch projects from backend:', error);
+      
+      // Only fall back to demo data if demo mode is enabled
+      if (!config.get('enableDemoMode')) {
+        throw error;
+      }
       
       // Fallback to demo data for development
       const mockProjects: Project[] = [

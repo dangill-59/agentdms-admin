@@ -224,6 +224,73 @@ public class DocumentsController : ControllerBase
         return fieldValues.FirstOrDefault(fv => fv.CustomField.Name == fieldName)?.Value;
     }
 
+    [HttpPost("search")]
+    public async Task<ActionResult<PaginatedResponse<DocumentDto>>> SearchDocuments(
+        [FromBody] DocumentSearchFilters filters, 
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 10)
+    {
+        try
+        {
+            var query = _context.Documents.AsQueryable();
+            
+            // Filter by project if specified
+            if (!string.IsNullOrEmpty(filters.ProjectId) && int.TryParse(filters.ProjectId, out var projectIdInt))
+            {
+                query = query.Where(d => d.ProjectId == projectIdInt);
+            }
+            
+            // For now, we'll return basic document info as DocumentDto
+            // In a full implementation, you'd join with DocumentFieldValues to search custom fields
+            var totalCount = await query.CountAsync();
+            
+            var documents = await query
+                .Include(d => d.Project)
+                .Include(d => d.DocumentFieldValues)
+                .ThenInclude(dfv => dfv.CustomField)
+                .OrderByDescending(d => d.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var documentDtos = documents.Select(d => new DocumentDto
+            {
+                Id = d.Id.ToString(),
+                ProjectId = d.ProjectId.ToString(),
+                FileName = d.FileName,
+                StoragePath = d.StoragePath,
+                MimeType = d.MimeType,
+                FileSize = d.FileSize,
+                CreatedAt = d.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ModifiedAt = d.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                // Extract metadata from field values (safe null handling)
+                CustomerName = GetFieldValue(d.DocumentFieldValues, "CustomerName") ?? "Unknown Customer",
+                InvoiceNumber = GetFieldValue(d.DocumentFieldValues, "InvoiceNumber") ?? "N/A",
+                InvoiceDate = GetFieldValue(d.DocumentFieldValues, "InvoiceDate") ?? DateTime.Now.ToString("yyyy-MM-dd"),
+                DocType = GetFieldValue(d.DocumentFieldValues, "DocType") ?? "Document",
+                Status = GetFieldValue(d.DocumentFieldValues, "Status") ?? "Processed"
+            }).ToList();
+
+            var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+            var searchResponse = new PaginatedResponse<DocumentDto>
+            {
+                Data = documentDtos,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = totalPages
+            };
+
+            return Ok(searchResponse);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching documents");
+            return StatusCode(500, "An error occurred while searching documents");
+        }
+    }
+
     private void UpdateFieldValue(Document document, string fieldName, string? value)
     {
         if (value == null) return;
