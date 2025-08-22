@@ -77,6 +77,35 @@ export class AuthService {
         apiService.setToken(token);
         
         return response;
+      } else if (credentials.email === 'gill.dan2@gmail.com' && credentials.password === 'admin123') {
+        const user: User = {
+          id: '2',
+          username: 'gill.dan2',
+          email: credentials.email,
+          roles: [
+            {
+              id: '2',
+              userId: '2',
+              roleId: '2',
+              roleName: 'User',
+              createdAt: new Date().toISOString()
+            }
+          ]
+        };
+
+        const token = 'demo-jwt-token-dan-' + Date.now();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
+
+        const response: AuthResponse = {
+          token,
+          user,
+          expiresAt
+        };
+
+        // Store token
+        apiService.setToken(token);
+        
+        return response;
       } else {
         throw new Error('Invalid email or password');
       }
@@ -112,20 +141,37 @@ export class AuthService {
       
       // Fallback to demo user if token exists (for development)
       if (token.startsWith('demo-jwt-token-')) {
-        return {
-          id: '1',
-          username: 'admin',
-          email: 'admin@agentdms.com',
-          roles: [
-            {
-              id: '1',
-              userId: '1',
-              roleId: '1',
-              roleName: 'Administrator',
-              createdAt: new Date().toISOString()
-            }
-          ]
-        };
+        if (token.startsWith('demo-jwt-token-dan-')) {
+          return {
+            id: '2',
+            username: 'gill.dan2',
+            email: 'gill.dan2@gmail.com',
+            roles: [
+              {
+                id: '2',
+                userId: '2',
+                roleId: '2',
+                roleName: 'User',
+                createdAt: new Date().toISOString()
+              }
+            ]
+          };
+        } else {
+          return {
+            id: '1',
+            username: 'admin',
+            email: 'admin@agentdms.com',
+            roles: [
+              {
+                id: '1',
+                userId: '1',
+                roleId: '1',
+                roleName: 'Administrator',
+                createdAt: new Date().toISOString()
+              }
+            ]
+          };
+        }
       }
       
       return null;

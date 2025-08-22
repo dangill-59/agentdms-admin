@@ -134,6 +134,40 @@ public class AuthController : ControllerBase
                         _logger.LogInformation("Demo JWT token generated successfully for existing user: {Email}", request.Email);
                         return Ok(demoResponse);
                     }
+                    // Check for dan demo credentials
+                    else if (_environment.IsDevelopment() && request.Email == "gill.dan2@gmail.com" && request.Password == "admin123")
+                    {
+                        _logger.LogInformation("Demo authentication successful for existing dan user: {Email}", request.Email);
+                        
+                        var danUser = new UserDto
+                        {
+                            Id = user.Id.ToString(),
+                            Username = user.Username,
+                            Email = user.Email,
+                            Roles = user.UserRoles.Select(ur => new UserRoleDto
+                            {
+                                Id = ur.Id.ToString(),
+                                UserId = ur.UserId.ToString(),
+                                RoleId = ur.RoleId.ToString(),
+                                RoleName = ur.Role.Name,
+                                CreatedAt = ur.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                            }).ToList()
+                        };
+
+                        // Generate real JWT token for dan user
+                        var danToken = _jwtService.GenerateToken(danUser);
+                        var danExpiresAt = DateTime.UtcNow.AddHours(24).ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+
+                        var danResponse = new AuthResponse
+                        {
+                            Token = danToken,
+                            User = danUser,
+                            ExpiresAt = danExpiresAt
+                        };
+
+                        _logger.LogInformation("Demo JWT token generated successfully for existing dan user: {Email}", request.Email);
+                        return Ok(danResponse);
+                    }
                     // Check for hardcoded superadmin credentials 
                     else if (request.Email == "superadmin@agentdms.com" && request.Password == "sarasa123")
                     {
@@ -210,6 +244,43 @@ public class AuthController : ControllerBase
 
                     _logger.LogInformation("Demo JWT token generated successfully for user: {Email}", request.Email);
                     return Ok(demoResponse);
+                }
+                // Check for dan demo credentials
+                else if (request.Email == "gill.dan2@gmail.com" && request.Password == "admin123")
+                {
+                    _logger.LogInformation("Demo authentication successful for dan user: {Email}", request.Email);
+                    
+                    var danUser = new UserDto
+                    {
+                        Id = "2",
+                        Username = "gill.dan2",
+                        Email = request.Email,
+                        Roles = new List<UserRoleDto>
+                        {
+                            new UserRoleDto
+                            {
+                                Id = "2",
+                                UserId = "2",
+                                RoleId = "2",
+                                RoleName = "User",
+                                CreatedAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                            }
+                        }
+                    };
+
+                    // Generate real JWT token for dan user
+                    var danToken = _jwtService.GenerateToken(danUser);
+                    var danExpiresAt = DateTime.UtcNow.AddHours(24).ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+
+                    var danResponse = new AuthResponse
+                    {
+                        Token = danToken,
+                        User = danUser,
+                        ExpiresAt = danExpiresAt
+                    };
+
+                    _logger.LogInformation("Demo JWT token generated successfully for dan user: {Email}", request.Email);
+                    return Ok(danResponse);
                 }
                 // Check for hardcoded superadmin credentials
                 else if (request.Email == "superadmin@agentdms.com" && request.Password == "sarasa123")

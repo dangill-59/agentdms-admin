@@ -81,6 +81,38 @@ export class ProjectService {
               createdAt: '2024-01-01T00:00:00Z'
             }
           ]
+        },
+        {
+          id: '3',
+          name: 'AP Project',
+          description: 'Accounts Payable project with view-only access for dan user',
+          fileName: 'ap-project.dms',
+          createdAt: '2024-01-03T00:00:00Z',
+          modifiedAt: '2024-01-03T00:00:00Z',
+          isActive: true,
+          isArchived: false,
+          projectRoles: [
+            {
+              id: '4',
+              projectId: '3',
+              roleId: '1',
+              roleName: 'Admin',
+              canView: true,
+              canEdit: true,
+              canDelete: true,
+              createdAt: '2024-01-01T00:00:00Z'
+            },
+            {
+              id: '5',
+              projectId: '3',
+              roleId: '2',
+              roleName: 'User',
+              canView: true,
+              canEdit: false,
+              canDelete: false,
+              createdAt: '2024-01-01T00:00:00Z'
+            }
+          ]
         }
       ];
 
