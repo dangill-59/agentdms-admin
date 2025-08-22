@@ -48,28 +48,45 @@ export class DocumentService {
   // Document CRUD operations
   public async getDocuments(page = 1, pageSize = 10): Promise<PaginatedResponse<Document>> {
     try {
+      // Use real API for documents regardless of demo mode (it's a real endpoint)
       const response = await apiService.get<PaginatedResponse<Document>>(`${this.basePath}?page=${page}&pageSize=${pageSize}`);
-      return response.data;
+      return response.data || response;
     } catch (error) {
       console.error('Failed to fetch documents:', error);
-      // Return empty result for now - in real implementation this would throw
-      return {
-        data: [],
-        totalCount: 0,
-        page,
-        pageSize,
-        totalPages: 0
-      };
+      
+      // If API fails and we're in demo mode, return mock data
+      if (config.get('enableDemoMode')) {
+        return {
+          data: [],
+          totalCount: 0,
+          page,
+          pageSize,
+          totalPages: 0
+        };
+      }
+      
+      // In live mode, throw the error
+      throw error;
     }
   }
 
   public async getDocument(id: string): Promise<Document> {
-    const response = await apiService.get<Document>(`${this.basePath}/${id}`);
-    return response.data;
+    try {
+      const response = await apiService.get<Document>(`${this.basePath}/${id}`);
+      return response.data || response;
+    } catch (error) {
+      console.error('Failed to fetch document:', error);
+      throw error;
+    }
   }
 
   public async deleteDocument(id: string): Promise<void> {
-    await apiService.delete(`${this.basePath}/${id}`);
+    try {
+      await apiService.delete(`${this.basePath}/${id}`);
+    } catch (error) {
+      console.error('Failed to delete document:', error);
+      throw error;
+    }
   }
 
   // File upload operations (integrating with AgentDMS backend)
@@ -221,15 +238,36 @@ export class DocumentService {
     return `${apiService.getBaseURL()}${this.basePath}/${documentId}/thumbnail`;
   }
 
-  // Document search functionality (mocked for development)
+  // Document search functionality
   public async searchDocuments(filters: DocumentSearchFilters, page = 1, pageSize = 10): Promise<PaginatedResponse<DocumentSearchResult>> {
     try {
-      // TODO: Replace with actual backend API call
-      // const response = await apiService.post<PaginatedResponse<DocumentSearchResult>>('/documents/search', { filters, page, pageSize });
-      // return response.data;
+      // Check if demo mode is enabled
+      if (config.get('enableDemoMode')) {
+        // Use mock data in demo mode
+        return this.getMockSearchResults(filters, page, pageSize);
+      }
+
+      // Use real API when not in demo mode
+      const response = await apiService.post<PaginatedResponse<DocumentSearchResult>>('/documents/search', 
+        { ...filters, page, pageSize }
+      );
+      return response.data || response;
+    } catch (error) {
+      console.error('Failed to search documents:', error);
       
-      // Mock data for development - matches the expected search results format
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
+      // In demo mode or if API fails, return mock data
+      if (config.get('enableDemoMode')) {
+        return this.getMockSearchResults(filters, page, pageSize);
+      }
+      
+      // In live mode, throw the error
+      throw error;
+    }
+  }
+
+  private async getMockSearchResults(filters: DocumentSearchFilters, page = 1, pageSize = 10): Promise<PaginatedResponse<DocumentSearchResult>> {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
       
       const mockResults: DocumentSearchResult[] = [
         {
@@ -323,27 +361,35 @@ export class DocumentService {
         pageSize,
         totalPages: Math.ceil(filteredResults.length / pageSize)
       };
-    } catch (error) {
-      console.error('Failed to search documents:', error);
-      return {
-        data: [],
-        totalCount: 0,
-        page,
-        pageSize,
-        totalPages: 0
-      };
-    }
   }
 
   // Get document metadata for editing
   public async getDocumentMetadata(documentId: string): Promise<DocumentMetadata> {
     try {
-      // TODO: Replace with actual backend API call
-      // const response = await apiService.get<DocumentMetadata>(`${this.basePath}/${documentId}/metadata`);
-      // return response.data;
+      // Check if demo mode is enabled
+      if (config.get('enableDemoMode')) {
+        return this.getMockDocumentMetadata(documentId);
+      }
+
+      // Use real API when not in demo mode
+      const response = await apiService.get<DocumentMetadata>(`/documents/${documentId}/metadata`);
+      return response.data || response;
+    } catch (error) {
+      console.error('Failed to fetch document metadata:', error);
       
-      // Mock data for development
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // In demo mode or if API fails, return mock data
+      if (config.get('enableDemoMode')) {
+        return this.getMockDocumentMetadata(documentId);
+      }
+      
+      // In live mode, throw the error
+      throw error;
+    }
+  }
+
+  private async getMockDocumentMetadata(documentId: string): Promise<DocumentMetadata> {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 300));
       
       const mockMetadata: DocumentMetadata = {
         id: documentId,
@@ -356,30 +402,40 @@ export class DocumentService {
       };
       
       return mockMetadata;
-    } catch (error) {
-      console.error('Failed to fetch document metadata:', error);
-      throw error;
-    }
   }
 
   // Update document metadata
   public async updateDocumentMetadata(documentId: string, metadata: Partial<DocumentMetadata>): Promise<DocumentMetadata> {
     try {
-      // TODO: Replace with actual backend API call
-      // const response = await apiService.put<DocumentMetadata>(`${this.basePath}/${documentId}/metadata`, metadata);
-      // return response.data;
-      
-      // Mock implementation for development
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const currentMetadata = await this.getDocumentMetadata(documentId);
-      const updatedMetadata = { ...currentMetadata, ...metadata };
-      
-      return updatedMetadata;
+      // Check if demo mode is enabled
+      if (config.get('enableDemoMode')) {
+        return this.getMockUpdatedMetadata(documentId, metadata);
+      }
+
+      // Use real API when not in demo mode
+      const response = await apiService.put<DocumentMetadata>(`/documents/${documentId}/metadata`, metadata);
+      return response.data || response;
     } catch (error) {
       console.error('Failed to update document metadata:', error);
+      
+      // In demo mode or if API fails, return mock data
+      if (config.get('enableDemoMode')) {
+        return this.getMockUpdatedMetadata(documentId, metadata);
+      }
+      
+      // In live mode, throw the error
       throw error;
     }
+  }
+
+  private async getMockUpdatedMetadata(documentId: string, metadata: Partial<DocumentMetadata>): Promise<DocumentMetadata> {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+      
+    const currentMetadata = await this.getDocumentMetadata(documentId);
+    const updatedMetadata = { ...currentMetadata, ...metadata };
+    
+    return updatedMetadata;
   }
 
   // Get available document types for filtering

@@ -1,14 +1,21 @@
 import type { User } from '../types/auth';
 import type { PaginatedResponse } from '../types/api';
 import { apiService } from './api';
+import config from '../utils/config';
 
 export class UserService {
   public async getUsers(page = 1, pageSize = 10): Promise<PaginatedResponse<User>> {
     try {
+      // Use real API regardless of demo mode
       const response = await apiService.get<PaginatedResponse<User>>(`/users?page=${page}&pageSize=${pageSize}`);
       return response.data || response;
     } catch (error) {
-      console.warn('Failed to fetch users from backend, using demo data:', error);
+      console.warn('Failed to fetch users from backend:', error);
+      
+      // Only fall back to demo data if demo mode is enabled
+      if (!config.get('enableDemoMode')) {
+        throw error;
+      }
       
       // Fallback to demo data for development
       const mockUsers: User[] = [
@@ -75,7 +82,14 @@ export class UserService {
       const response = await apiService.get<User>(`/users/${id}`);
       return response.data || response;
     } catch (error) {
-      console.warn('Failed to fetch user from backend, using demo data:', error);
+      console.warn('Failed to fetch user from backend:', error);
+      
+      // Only fall back to demo data if demo mode is enabled
+      if (!config.get('enableDemoMode')) {
+        throw error;
+      }
+      
+      // Demo data fallback
       return {
         id,
         username: 'demouser',
@@ -90,7 +104,14 @@ export class UserService {
       const response = await apiService.post<User>('/users', userData);
       return response.data || response;
     } catch (error) {
-      console.warn('Failed to create user, simulating success:', error);
+      console.warn('Failed to create user:', error);
+      
+      // Only simulate success if demo mode is enabled
+      if (!config.get('enableDemoMode')) {
+        throw error;
+      }
+      
+      // Demo simulation
       return {
         id: Math.random().toString(),
         username: userData.username,
@@ -105,7 +126,14 @@ export class UserService {
       const response = await apiService.put<User>(`/users/${id}`, userData);
       return response.data || response;
     } catch (error) {
-      console.warn('Failed to update user, simulating success:', error);
+      console.warn('Failed to update user:', error);
+      
+      // Only simulate success if demo mode is enabled
+      if (!config.get('enableDemoMode')) {
+        throw error;
+      }
+      
+      // Demo simulation
       return {
         id,
         username: userData.username || 'updated',
@@ -119,7 +147,14 @@ export class UserService {
     try {
       await apiService.delete(`/users/${id}`);
     } catch (error) {
-      console.warn('Failed to delete user, simulating success:', error);
+      console.warn('Failed to delete user:', error);
+      
+      // Only simulate success if demo mode is enabled
+      if (!config.get('enableDemoMode')) {
+        throw error;
+      }
+      
+      // Demo mode - just log and continue
     }
   }
 }
