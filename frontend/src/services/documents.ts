@@ -2,6 +2,23 @@ import type { Document, DocumentSearchFilters, DocumentSearchResult, DocumentMet
 import { apiService } from './api';
 import config from '../utils/config';
 
+// Define DocumentDto to match backend response
+interface DocumentDto {
+  id: string;
+  projectId: string;
+  fileName: string;
+  storagePath: string;
+  mimeType?: string;
+  fileSize: number;
+  createdAt: string;
+  modifiedAt: string;
+  customerName?: string;
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  docType?: string;
+  status?: string;
+}
+
 // Job status types (matching AgentDMS backend)
 export interface JobStatus {
   jobId: string;
@@ -248,10 +265,36 @@ export class DocumentService {
       }
 
       // Use real API when not in demo mode
-      const response = await apiService.post<PaginatedResponse<DocumentSearchResult>>('/documents/search', 
+      const response = await apiService.post<PaginatedResponse<DocumentDto>>('/documents/search', 
         { ...filters, page, pageSize }
       );
-      return response.data || response;
+      
+      // Handle the API response format
+      const responseData = response.data || response;
+      
+      // Convert DocumentDto to DocumentSearchResult
+      const searchResults: DocumentSearchResult[] = (responseData.data || []).map(doc => ({
+        id: doc.id,
+        projectId: doc.projectId,
+        fileName: doc.fileName,
+        customerName: doc.customerName || 'Unknown Customer',
+        invoiceNumber: doc.invoiceNumber || 'N/A',
+        invoiceDate: doc.invoiceDate || '',
+        docType: doc.docType || 'Document',
+        status: doc.status || 'Processed',
+        createdAt: doc.createdAt,
+        modifiedAt: doc.modifiedAt,
+        fileSize: doc.fileSize,
+        mimeType: doc.mimeType || ''
+      }));
+      
+      return {
+        data: searchResults,
+        totalCount: responseData.totalCount || 0,
+        page: responseData.page || page,
+        pageSize: responseData.pageSize || pageSize,
+        totalPages: responseData.totalPages || 0
+      };
     } catch (error) {
       console.error('Failed to search documents:', error);
       
