@@ -17,8 +17,26 @@ export class RoleService {
   // Role CRUD operations
   public async getRoles(page = 1, pageSize = 10, includePermissions = false): Promise<PaginatedResponse<Role>> {
     try {
-      // Make direct API call since backend returns data directly
-      const response = await fetch(`http://localhost:5267/api/roles?page=${page}&pageSize=${pageSize}&includePermissions=${includePermissions}`);
+      // Use axios directly for this endpoint since backend returns PaginatedResponse directly, not wrapped in ApiResponse
+      const token = apiService.getToken();
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`${apiService.getBaseURL()}/roles?page=${page}&pageSize=${pageSize}&includePermissions=${includePermissions}`, {
+        method: 'GET',
+        headers
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       return data;
     } catch (error) {
