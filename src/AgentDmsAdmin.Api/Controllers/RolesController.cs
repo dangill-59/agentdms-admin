@@ -3,11 +3,13 @@ using Microsoft.EntityFrameworkCore;
 using AgentDmsAdmin.Api.Models;
 using AgentDmsAdmin.Data.Data;
 using AgentDmsAdmin.Data.Models;
+using AgentDmsAdmin.Api.Attributes;
 
 namespace AgentDmsAdmin.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[RequirePermission("workspace.admin")] // All role management requires admin permission
 public class RolesController : ControllerBase
 {
     private readonly AgentDmsContext _context;

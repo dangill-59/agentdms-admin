@@ -258,30 +258,82 @@ public class DataSeeder
         _context.Users.Add(gillDanUser);
         await _context.SaveChangesAsync();
 
-        // Get or create Administrator role
-        var adminRole = await _context.Roles
-            .FirstOrDefaultAsync(r => r.Name == "Administrator");
+        // Get or create regular User role (not Administrator)
+        var userRole = await _context.Roles
+            .FirstOrDefaultAsync(r => r.Name == "User");
 
-        if (adminRole == null)
+        if (userRole == null)
         {
-            adminRole = new Role
+            userRole = new Role
             {
-                Name = "Administrator",
-                Description = "Full system administrator with all permissions"
+                Name = "User",
+                Description = "Regular user with limited permissions"
             };
 
-            _context.Roles.Add(adminRole);
+            _context.Roles.Add(userRole);
             await _context.SaveChangesAsync();
         }
 
-        // Assign Administrator role to gill.dan2 user
-        var userRole = new UserRole
+        // Assign User role to gill.dan2 user (not Administrator)
+        var userRoleAssignment = new UserRole
         {
             UserId = gillDanUser.Id,
-            RoleId = adminRole.Id
+            RoleId = userRole.Id
         };
 
-        _context.UserRoles.Add(userRole);
+        _context.UserRoles.Add(userRoleAssignment);
+        await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Sets up project-specific permissions for the dan user
+    /// </summary>
+    public async Task SetupDanUserProjectPermissionsAsync()
+    {
+        // Find dan user
+        var danUser = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == "gill.dan2@gmail.com");
+            
+        if (danUser == null)
+        {
+            return; // Dan user doesn't exist
+        }
+
+        // Find User role
+        var userRole = await _context.Roles
+            .FirstOrDefaultAsync(r => r.Name == "User");
+            
+        if (userRole == null)
+        {
+            return; // User role doesn't exist
+        }
+
+        // Find projects to give permissions for
+        var projects = await _context.Projects
+            .Where(p => p.Name == "AP Project" || p.Name == "Sample Project")
+            .ToListAsync();
+
+        foreach (var project in projects)
+        {
+            // Check if project role already exists
+            var existingProjectRole = await _context.ProjectRoles
+                .FirstOrDefaultAsync(pr => pr.ProjectId == project.Id && pr.RoleId == userRole.Id);
+                
+            if (existingProjectRole == null)
+            {
+                var projectRole = new ProjectRole
+                {
+                    ProjectId = project.Id,
+                    RoleId = userRole.Id,
+                    CanView = true,
+                    CanEdit = project.Name == "AP Project", // Can edit AP Project but not Sample Project
+                    CanDelete = false // Dan cannot delete anything
+                };
+
+                _context.ProjectRoles.Add(projectRole);
+            }
+        }
+
         await _context.SaveChangesAsync();
     }
 
@@ -290,9 +342,10 @@ public class DataSeeder
     /// </summary>
     public async Task SeedSampleDataAsync()
     {
-        // Create sample project if none exist
+        // Create sample projects if none exist
         if (!await _context.Projects.AnyAsync())
         {
+            // Create Sample Project
             var sampleProject = new Project
             {
                 Name = "Sample Project",
@@ -301,12 +354,23 @@ public class DataSeeder
             };
 
             _context.Projects.Add(sampleProject);
+
+            // Create AP Project (for dan user permissions)
+            var apProject = new Project
+            {
+                Name = "AP Project", 
+                Description = "Accounts Payable project for document management",
+                FileName = "ap-project.dms"
+            };
+
+            _context.Projects.Add(apProject);
             await _context.SaveChangesAsync();
 
-            // Create default fields for the sample project
+            // Create default fields for both projects
             await CreateDefaultFieldsForProjectAsync(sampleProject.Id);
+            await CreateDefaultFieldsForProjectAsync(apProject.Id);
 
-            // Add a custom field
+            // Add a custom field to sample project
             var customField = new CustomField
             {
                 Name = "Category",

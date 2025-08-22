@@ -5,6 +5,7 @@ using AgentDmsAdmin.Api.Models;
 using AgentDmsAdmin.Data.Data;
 using AgentDmsAdmin.Data.Models;
 using AgentDmsAdmin.Data.Services;
+using AgentDmsAdmin.Api.Attributes;
 
 namespace AgentDmsAdmin.Api.Controllers;
 
@@ -192,6 +193,7 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission("workspace.admin")]
     public async Task<ActionResult<ProjectDto>> CreateProject([FromBody] CreateProjectRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
@@ -301,6 +303,7 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [RequirePermission("workspace.admin")]
     public async Task<ActionResult<ProjectDto>> UpdateProject(int id, [FromBody] UpdateProjectRequest request)
     {
         try
@@ -452,6 +455,7 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [RequirePermission("workspace.admin")]
     public async Task<ActionResult> DeleteProject(int id, [FromQuery] bool hardDelete = false)
     {
         try
@@ -490,6 +494,7 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpPost("{id}/clone")]
+    [RequirePermission("workspace.admin")]
     public async Task<ActionResult<ProjectDto>> CloneProject(int id)
     {
         try
@@ -616,6 +621,7 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpPost("{projectId}/custom-fields")]
+    [RequirePermission("workspace.admin")]
     public async Task<ActionResult<CustomFieldDto>> CreateCustomField(int projectId, [FromBody] CreateCustomFieldRequest request)
     {
         try
@@ -682,6 +688,7 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpPut("{projectId}/custom-fields/{fieldId}")]
+    [RequirePermission("workspace.admin")]
     public async Task<ActionResult<CustomFieldDto>> UpdateCustomField(int projectId, int fieldId, [FromBody] UpdateCustomFieldRequest request)
     {
         try
@@ -747,6 +754,7 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpDelete("{projectId}/custom-fields/{fieldId}")]
+    [RequirePermission("workspace.admin")]
     public async Task<ActionResult> DeleteCustomField(int projectId, int fieldId)
     {
         try
