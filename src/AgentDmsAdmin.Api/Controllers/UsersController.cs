@@ -3,12 +3,14 @@ using Microsoft.EntityFrameworkCore;
 using AgentDmsAdmin.Api.Models;
 using AgentDmsAdmin.Data.Data;
 using AgentDmsAdmin.Data.Models;
+using AgentDmsAdmin.Api.Attributes;
 using BCrypt.Net;
 
 namespace AgentDmsAdmin.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[RequirePermission("workspace.admin")] // All user management requires admin permission
 public class UsersController : ControllerBase
 {
     private readonly AgentDmsContext _context;
