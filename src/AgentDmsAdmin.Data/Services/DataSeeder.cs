@@ -439,6 +439,47 @@ public class DataSeeder
     }
 
     /// <summary>
+    /// Sets up Administrator role permissions for all projects
+    /// </summary>
+    public async Task SetupAdministratorProjectPermissionsAsync()
+    {
+        // Find Administrator role
+        var adminRole = await _context.Roles
+            .FirstOrDefaultAsync(r => r.Name == "Administrator");
+            
+        if (adminRole == null)
+        {
+            return; // Administrator role doesn't exist
+        }
+
+        // Find all projects
+        var projects = await _context.Projects.ToListAsync();
+
+        foreach (var project in projects)
+        {
+            // Check if project role already exists
+            var existingProjectRole = await _context.ProjectRoles
+                .FirstOrDefaultAsync(pr => pr.ProjectId == project.Id && pr.RoleId == adminRole.Id);
+                
+            if (existingProjectRole == null)
+            {
+                var projectRole = new ProjectRole
+                {
+                    ProjectId = project.Id,
+                    RoleId = adminRole.Id,
+                    CanView = true,
+                    CanEdit = true,
+                    CanDelete = true // Administrator has full permissions
+                };
+
+                _context.ProjectRoles.Add(projectRole);
+            }
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
     /// Seeds sample data for testing and development
     /// </summary>
     public async Task SeedSampleDataAsync()
