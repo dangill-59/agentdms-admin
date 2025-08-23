@@ -49,6 +49,12 @@ public class AuthorizationService : IAuthorizationService
     /// </summary>
     public async Task<bool> UserHasPermissionAsync(int userId, string permissionName)
     {
+        // Special case for hardcoded superadmin user (ID 0) - grant all permissions
+        if (userId == 0)
+        {
+            return true;
+        }
+
         var hasPermission = await _context.Users
             .Where(u => u.Id == userId)
             .SelectMany(u => u.UserRoles)
