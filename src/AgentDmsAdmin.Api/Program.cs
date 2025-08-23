@@ -1,4 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using AgentDmsAdmin.Data.Data;
 using AgentDmsAdmin.Data.Services;
 using AgentDmsAdmin.Api.Services;
@@ -18,6 +21,33 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 // Add authorization service
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
+
+// Configure JWT Authentication
+var jwtKey = builder.Configuration.GetValue<string>("Jwt:SecretKey") ?? "your-very-long-secret-key-that-is-at-least-32-characters-long";
+var jwtIssuer = builder.Configuration.GetValue<string>("Jwt:Issuer") ?? "AgentDmsAdmin";
+var jwtAudience = builder.Configuration.GetValue<string>("Jwt:Audience") ?? "AgentDmsAdmin";
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtKey)),
+        ValidateIssuer = true,
+        ValidIssuer = jwtIssuer,
+        ValidateAudience = true,
+        ValidAudience = jwtAudience,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+builder.Services.AddAuthorization();
 
 // Add controllers support
 builder.Services.AddControllers();
@@ -59,6 +89,10 @@ if (app.Environment.IsDevelopment())
 
 // Enable CORS for frontend requests
 app.UseCors("AllowFrontend");
+
+// Enable authentication and authorization middleware
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Map controllers to /api route
 app.MapControllers();
