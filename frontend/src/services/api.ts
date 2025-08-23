@@ -74,6 +74,27 @@ class ApiService {
     return this.baseURL;
   }
 
+  // Generic API methods that return data directly (not wrapped in ApiResponse)
+  public async getDirect<T>(url: string): Promise<T> {
+    const response = await this.api.get<T>(url);
+    return response.data;
+  }
+
+  public async postDirect<T>(url: string, data?: unknown): Promise<T> {
+    const response = await this.api.post<T>(url, data);
+    return response.data;
+  }
+
+  public async putDirect<T>(url: string, data?: unknown): Promise<T> {
+    const response = await this.api.put<T>(url, data);
+    return response.data;
+  }
+
+  public async deleteDirect<T>(url: string): Promise<T> {
+    const response = await this.api.delete<T>(url);
+    return response.data;
+  }
+
   // Generic API methods
   public async get<T>(url: string): Promise<ApiResponse<T>> {
     const response = await this.api.get<ApiResponse<T>>(url);

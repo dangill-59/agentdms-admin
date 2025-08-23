@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using AgentDmsAdmin.Api.Models;
@@ -6,6 +7,7 @@ using AgentDmsAdmin.Data.Data;
 using AgentDmsAdmin.Data.Models;
 using AgentDmsAdmin.Data.Services;
 using AgentDmsAdmin.Api.Attributes;
+using AgentDmsAdmin.Api.Services;
 
 namespace AgentDmsAdmin.Api.Controllers;
 
@@ -16,19 +18,53 @@ public class ProjectsController : ControllerBase
     private readonly AgentDmsContext _context;
     private readonly DataSeeder _dataSeeder;
     private readonly ILogger<ProjectsController> _logger;
+    private readonly AgentDmsAdmin.Api.Services.IAuthorizationService _authorizationService;
 
-    public ProjectsController(AgentDmsContext context, DataSeeder dataSeeder, ILogger<ProjectsController> logger)
+    public ProjectsController(AgentDmsContext context, DataSeeder dataSeeder, ILogger<ProjectsController> logger, AgentDmsAdmin.Api.Services.IAuthorizationService authorizationService)
     {
         _context = context;
         _dataSeeder = dataSeeder;
         _logger = logger;
+        _authorizationService = authorizationService;
     }
 
     [HttpGet]
+    [Authorize] // Require authentication for this endpoint
     public async Task<ActionResult<PaginatedResponse<ProjectDto>>> GetProjects([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] bool includeArchived = false)
     {
         try
         {
+            // Get current user from authorization service
+            var currentUser = _authorizationService.GetCurrentUser();
+            if (currentUser == null)
+            {
+                return Unauthorized("User not authenticated");
+            }
+
+            if (!int.TryParse(currentUser.Id, out var userId))
+            {
+                return BadRequest("Invalid user ID");
+            }
+
+            // Get user's roles to filter projects
+            var userRoles = await _context.UserRoles
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.RoleId)
+                .ToListAsync();
+
+            if (!userRoles.Any())
+            {
+                return Ok(new PaginatedResponse<ProjectDto>
+                {
+                    Data = new List<ProjectDto>(),
+                    TotalCount = 0,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = 0
+                });
+            }
+
+            // Build query that filters projects based on user's role permissions
             var query = _context.Projects.AsQueryable();
             
             // Filter active projects by default, unless includeArchived is true
@@ -36,6 +72,9 @@ public class ProjectsController : ControllerBase
             {
                 query = query.Where(p => p.IsActive && !p.IsArchived);
             }
+
+            // Filter projects where user's roles have access
+            query = query.Where(p => p.ProjectRoles.Any(pr => userRoles.Contains(pr.RoleId) && pr.CanView));
             
             var totalCount = await query.CountAsync();
             
