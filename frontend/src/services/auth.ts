@@ -1,5 +1,6 @@
 import type { LoginCredentials, AuthResponse, User } from '../types/auth';
 import { apiService } from './api';
+import config from '../utils/config';
 
 export class AuthService {
   public async login(credentials: LoginCredentials): Promise<AuthResponse> {
@@ -40,7 +41,12 @@ export class AuthService {
         }
       }
       
-      // For network errors or other non-HTTP errors, fallback to demo authentication for development
+      // For network errors or other non-HTTP errors, only fallback to demo if explicitly enabled
+      if (!config.get('enableDemoMode')) {
+        // In production mode, throw the error instead of falling back to demo
+        throw error;
+      }
+      
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.warn('Backend authentication failed, using demo authentication:', errorMessage);
       
@@ -139,8 +145,8 @@ export class AuthService {
     } catch (error) {
       console.warn('Failed to get current user from backend:', error);
       
-      // Fallback to demo user if token exists (for development)
-      if (token.startsWith('demo-jwt-token-')) {
+      // Only fallback to demo user if demo mode is enabled and token exists
+      if (config.get('enableDemoMode') && token.startsWith('demo-jwt-token-')) {
         if (token.startsWith('demo-jwt-token-dan-')) {
           return {
             id: '2',
@@ -197,9 +203,9 @@ export class AuthService {
     } catch (error) {
       console.warn('Token refresh failed:', error);
       
-      // For demo tokens, just return the existing token
+      // For demo tokens, only return existing token if demo mode is enabled
       const currentToken = apiService.getToken();
-      if (currentToken?.startsWith('demo-jwt-token-')) {
+      if (config.get('enableDemoMode') && currentToken?.startsWith('demo-jwt-token-')) {
         return currentToken;
       }
       
@@ -211,7 +217,10 @@ export class AuthService {
     const token = apiService.getToken();
     if (!token) return false;
 
-    // For demo tokens, always consider valid
+    // For demo tokens, only consider valid if demo mode is enabled
+    if (token.startsWith('demo-jwt-token-')) {
+      return config.get('enableDemoMode');
+    }
     if (token.startsWith('demo-jwt-token-')) {
       return true;
     }
