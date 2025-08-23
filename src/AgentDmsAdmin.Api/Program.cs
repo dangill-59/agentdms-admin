@@ -80,6 +80,7 @@ if (app.Environment.IsDevelopment())
         await seeder.SeedSuperAdminUserAsync(); // Seed Super Admin with all permissions
         await seeder.SeedAdminUserAsync(); // Seed regular admin user
         await seeder.SeedGillDanUserAsync(); // Seed gill.dan2@gmail.com user
+        await seeder.SeedUser1Async(); // Seed user1@agentdms.com user
         await seeder.SetupDanUserProjectPermissionsAsync(); // Setup project permissions for dan user
     }
 }

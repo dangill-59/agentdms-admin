@@ -332,6 +332,61 @@ public class DataSeeder
     }
 
     /// <summary>
+    /// Seeds the user1@agentdms.com user if one does not exist
+    /// </summary>
+    public async Task SeedUser1Async()
+    {
+        // Check if user1 user already exists
+        var existingUser = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == "user1@agentdms.com");
+
+        if (existingUser != null)
+        {
+            // Update the password hash if the user exists but has an invalid hash
+            existingUser.PasswordHash = "$2a$11$rVpQmCCHHqEB.se5IpznFuzCkQSaLnuINZ2wKBLuCIm8d/ueDNp0e"; // bcrypt hash for 'admin123'
+            await _context.SaveChangesAsync();
+            return;
+        }
+
+        // Create the user1@agentdms.com user
+        var user1 = new User
+        {
+            Username = "user1",
+            Email = "user1@agentdms.com",
+            PasswordHash = "$2a$11$rVpQmCCHHqEB.se5IpznFuzCkQSaLnuINZ2wKBLuCIm8d/ueDNp0e" // bcrypt hash for 'admin123'
+        };
+
+        _context.Users.Add(user1);
+        await _context.SaveChangesAsync();
+
+        // Get or create regular User role
+        var userRole = await _context.Roles
+            .FirstOrDefaultAsync(r => r.Name == "User");
+
+        if (userRole == null)
+        {
+            userRole = new Role
+            {
+                Name = "User",
+                Description = "Regular user with limited permissions"
+            };
+
+            _context.Roles.Add(userRole);
+            await _context.SaveChangesAsync();
+        }
+
+        // Assign User role to user1
+        var userRoleAssignment = new UserRole
+        {
+            UserId = user1.Id,
+            RoleId = userRole.Id
+        };
+
+        _context.UserRoles.Add(userRoleAssignment);
+        await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
     /// Sets up project-specific permissions for the dan user
     /// </summary>
     public async Task SetupDanUserProjectPermissionsAsync()
