@@ -1,5 +1,6 @@
 import type { LoginCredentials, AuthResponse, User } from '../types/auth';
 import { apiService } from './api';
+import config from '../utils/config';
 
 export class AuthService {
   public async login(credentials: LoginCredentials): Promise<AuthResponse> {
@@ -40,7 +41,15 @@ export class AuthService {
         }
       }
       
-      // For network errors or other non-HTTP errors, fallback to demo authentication for development
+      // For network errors or other non-HTTP errors, check if demo mode is enabled
+      if (!config.get('enableDemoMode')) {
+        // If demo mode is disabled, don't fall back to demo authentication
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Backend authentication failed and demo mode is disabled:', errorMessage);
+        throw new Error('Unable to connect to authentication server. Please check your connection and try again.');
+      }
+      
+      // Demo mode is enabled, fall back to demo authentication for development
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.warn('Backend authentication failed, using demo authentication:', errorMessage);
       
