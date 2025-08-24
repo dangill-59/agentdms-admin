@@ -49,13 +49,13 @@ class ConfigService {
       // Application Info
       appName: import.meta.env.VITE_APP_NAME || 'AgentDMS Admin',
       appVersion: import.meta.env.VITE_APP_VERSION || '1.0.0',
-      environment: 'production', // Always run in production mode for live testing
+      environment: import.meta.env.VITE_APP_ENV || 'development',
       
       // Feature Flags
-      enableDemoMode: false, // Always disabled for live testing
+      enableDemoMode: import.meta.env.VITE_ENABLE_DEMO_MODE === 'true',
       enableSignalR: import.meta.env.VITE_ENABLE_SIGNALR === 'true',
       enableRealTimeUpdates: import.meta.env.VITE_ENABLE_REAL_TIME_UPDATES === 'true',
-      enableDebug: false, // Always disabled in production mode
+      enableDebug: import.meta.env.VITE_ENABLE_DEBUG === 'true',
       enableDarkMode: import.meta.env.VITE_ENABLE_DARK_MODE === 'true',
       
       // File Upload

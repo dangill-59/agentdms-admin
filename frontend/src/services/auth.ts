@@ -41,12 +41,15 @@ export class AuthService {
         }
       }
       
-      // For network errors or other non-HTTP errors, only fallback to demo if explicitly enabled
+      // For network errors or other non-HTTP errors, check if demo mode is enabled
       if (!config.get('enableDemoMode')) {
-        // In production mode, throw the error instead of falling back to demo
-        throw error;
+        // If demo mode is disabled, don't fall back to demo authentication
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Backend authentication failed and demo mode is disabled:', errorMessage);
+        throw new Error('Unable to connect to authentication server. Please check your connection and try again.');
       }
       
+      // Demo mode is enabled, fall back to demo authentication for development
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.warn('Backend authentication failed, using demo authentication:', errorMessage);
       
@@ -145,8 +148,8 @@ export class AuthService {
     } catch (error) {
       console.warn('Failed to get current user from backend:', error);
       
-      // Only fallback to demo user if demo mode is enabled and token exists
-      if (config.get('enableDemoMode') && token.startsWith('demo-jwt-token-')) {
+      // Fallback to demo user if token exists (for development)
+      if (token.startsWith('demo-jwt-token-')) {
         if (token.startsWith('demo-jwt-token-dan-')) {
           return {
             id: '2',
@@ -203,9 +206,9 @@ export class AuthService {
     } catch (error) {
       console.warn('Token refresh failed:', error);
       
-      // For demo tokens, only return existing token if demo mode is enabled
+      // For demo tokens, just return the existing token
       const currentToken = apiService.getToken();
-      if (config.get('enableDemoMode') && currentToken?.startsWith('demo-jwt-token-')) {
+      if (currentToken?.startsWith('demo-jwt-token-')) {
         return currentToken;
       }
       
@@ -217,10 +220,7 @@ export class AuthService {
     const token = apiService.getToken();
     if (!token) return false;
 
-    // For demo tokens, only consider valid if demo mode is enabled
-    if (token.startsWith('demo-jwt-token-')) {
-      return config.get('enableDemoMode');
-    }
+    // For demo tokens, always consider valid
     if (token.startsWith('demo-jwt-token-')) {
       return true;
     }
