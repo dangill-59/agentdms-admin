@@ -27,4 +27,11 @@ public interface IAuthorizationService
     /// </summary>
     /// <returns>Current user DTO or null if not authenticated</returns>
     UserDto? GetCurrentUser();
+    
+    /// <summary>
+    /// Checks if the current user has the specified role
+    /// </summary>
+    /// <param name="roleName">Name of the role to check</param>
+    /// <returns>True if user has role, false otherwise</returns>
+    Task<bool> HasRoleAsync(string roleName);
 }

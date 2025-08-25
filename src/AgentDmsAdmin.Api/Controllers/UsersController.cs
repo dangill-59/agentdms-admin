@@ -4,6 +4,7 @@ using AgentDmsAdmin.Api.Models;
 using AgentDmsAdmin.Data.Data;
 using AgentDmsAdmin.Data.Models;
 using AgentDmsAdmin.Api.Attributes;
+using AgentDmsAdmin.Api.Services;
 using BCrypt.Net;
 
 namespace AgentDmsAdmin.Api.Controllers;
@@ -355,6 +356,47 @@ public class UsersController : ControllerBase
         {
             _logger.LogError(ex, "Error deleting user {UserId}", id);
             return StatusCode(500, "An error occurred while deleting the user");
+        }
+    }
+
+    [HttpPost("{id}/change-password")]
+    public async Task<ActionResult> ChangeUserPassword(int id, [FromBody] ChangePasswordRequest request)
+    {
+        try
+        {
+            // Inject authorization service to check role
+            var authorizationService = HttpContext.RequestServices.GetRequiredService<IAuthorizationService>();
+            
+            // Check if current user has Super Admin role
+            var isSuperAdmin = await authorizationService.HasRoleAsync("Super Admin");
+            if (!isSuperAdmin)
+            {
+                return Forbid("Only Super Admin users can change passwords manually.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.NewPassword))
+            {
+                return BadRequest("New password is required.");
+            }
+
+            var user = await _context.Users.FindAsync(id);
+            if (user == null)
+            {
+                return NotFound($"User with ID {id} not found.");
+            }
+
+            // Super Admin can change password for any user, including immutable ones
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Password changed for user {UserId} by Super Admin", id);
+            
+            return Ok(new { message = "Password changed successfully." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error changing password for user {UserId}", id);
+            return StatusCode(500, "An error occurred while changing the password");
         }
     }
 }

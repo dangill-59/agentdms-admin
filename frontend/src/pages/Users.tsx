@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useIsSuperAdmin } from '../hooks/usePermissions';
 import type { User } from '../types/auth';
 import type { Role } from '../types/api';
 import { userService } from '../services/users';
@@ -29,6 +30,7 @@ interface FlexibleUserResponse extends User {
 
 const Users: React.FC = () => {
   const { user: currentUser } = useAuth();
+  const isSuperAdmin = useIsSuperAdmin();
   
   // Helper function to get first letter for avatar
   const getUserInitial = (user: User): string => {
@@ -43,6 +45,8 @@ const Users: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [changingPasswordUser, setChangingPasswordUser] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState('');
   const [newUser, setNewUser] = useState<NewUser>({
     username: '',
     email: '',
@@ -207,6 +211,24 @@ const Users: React.FC = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete user');
     }
+  };
+
+  const handleChangePassword = async () => {
+    if (!changingPasswordUser || !newPassword.trim()) return;
+    
+    try {
+      await userService.changeUserPassword(changingPasswordUser.id, newPassword);
+      setChangingPasswordUser(null);
+      setNewPassword('');
+      // You could show a success message here if desired
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to change password');
+    }
+  };
+
+  const openChangePasswordModal = (user: User) => {
+    setChangingPasswordUser(user);
+    setNewPassword('');
   };
 
   const handleOpenCreateModal = () => {
@@ -406,6 +428,17 @@ const Users: React.FC = () => {
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                              )}
+                              {isSuperAdmin && (
+                                <button
+                                  onClick={() => openChangePasswordModal(user)}
+                                  className="text-green-600 hover:text-green-900"
+                                  title="Change password (Super Admin only)"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                                   </svg>
                                 </button>
                               )}
@@ -609,6 +642,76 @@ const Users: React.FC = () => {
                 disabled={!newUser.username || !newUser.email || (!editingUser && !newUser.password)}
               >
                 {editingUser ? 'Update' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
+      {changingPasswordUser && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                Change Password for {getUserDisplayName(changingPasswordUser)}
+              </h3>
+              <button
+                onClick={() => {
+                  setChangingPasswordUser(null);
+                  setNewPassword('');
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter new password"
+                  autoFocus
+                />
+              </div>
+              <div className="text-sm text-gray-600 bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                <div className="flex">
+                  <svg className="w-5 h-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.732 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  <div>
+                    <strong>Super Admin Action:</strong> You are changing the password for this user. 
+                    This action bypasses normal security restrictions.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setChangingPasswordUser(null);
+                  setNewPassword('');
+                }}
+                className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleChangePassword}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                disabled={!newPassword.trim()}
+              >
+                Change Password
               </button>
             </div>
           </div>
