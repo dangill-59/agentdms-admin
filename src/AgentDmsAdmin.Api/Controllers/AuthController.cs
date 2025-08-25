@@ -460,7 +460,7 @@ public class AuthController : ControllerBase
     /// <param name="request">Request containing the reset token and new password</param>
     /// <returns>Success message indicating password was reset</returns>
     [HttpPost("reset-password")]
-    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    public ActionResult ResetPassword([FromBody] ResetPasswordRequest request)
     {
         _logger.LogInformation("Password reset attempt with token");
 
