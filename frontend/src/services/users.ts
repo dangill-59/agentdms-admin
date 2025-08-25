@@ -157,6 +157,21 @@ export class UserService {
       // Demo mode - just log and continue
     }
   }
+
+  public async changeUserPassword(id: string, newPassword: string): Promise<void> {
+    try {
+      await apiService.post(`/users/${id}/change-password`, { newPassword });
+    } catch (error) {
+      console.warn('Failed to change user password:', error);
+      
+      // Only simulate success if demo mode is enabled
+      if (!config.get('enableDemoMode')) {
+        throw error;
+      }
+      
+      // Demo mode - just log and continue
+    }
+  }
 }
 
 export const userService = new UserService();

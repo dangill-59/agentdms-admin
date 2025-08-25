@@ -32,3 +32,11 @@ export const useHasRole = (roleName: string): boolean => {
   
   return user.roles.some(role => role.roleName === roleName);
 };
+
+/**
+ * Hook to check if the current user is a Super Admin
+ * @returns boolean indicating if user is a Super Admin
+ */
+export const useIsSuperAdmin = (): boolean => {
+  return useHasRole('Super Admin');
+};

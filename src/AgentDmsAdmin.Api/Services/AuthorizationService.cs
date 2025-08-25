@@ -85,4 +85,28 @@ public class AuthorizationService : IAuthorizationService
 
         return null;
     }
+
+    /// <summary>
+    /// Checks if the current user has the specified role
+    /// </summary>
+    public async Task<bool> HasRoleAsync(string roleName)
+    {
+        var currentUser = GetCurrentUser();
+        if (currentUser == null)
+        {
+            return false;
+        }
+
+        if (!int.TryParse(currentUser.Id, out var userId))
+        {
+            return false;
+        }
+
+        var hasRole = await _context.Users
+            .Where(u => u.Id == userId)
+            .SelectMany(u => u.UserRoles)
+            .AnyAsync(ur => ur.Role.Name == roleName);
+
+        return hasRole;
+    }
 }
