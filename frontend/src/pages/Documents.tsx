@@ -252,10 +252,26 @@ const Documents: React.FC = () => {
       }
 
     } catch (error) {
+      console.error('Upload failed for file:', file.name, error);
+      
+      let errorMessage = 'Upload failed';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Add specific guidance for connection issues
+        if (error.message.includes('connection') || error.message.includes('reset')) {
+          errorMessage += ' This may be due to network issues. The upload will automatically retry.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage += ' Try uploading a smaller file or check your internet connection.';
+        } else if (error.message.includes('blocked')) {
+          errorMessage += ' Please check your browser settings and network firewall.';
+        }
+      }
+      
       setUploadProgress(prev =>
         prev.map(item =>
           item.fileName === file.name
-            ? { ...item, status: 'error', error: error instanceof Error ? error.message : 'Upload failed' }
+            ? { ...item, status: 'error', error: errorMessage }
             : item
         )
       );
@@ -289,6 +305,13 @@ const Documents: React.FC = () => {
     if (errors.length > 0) {
       setError(errors.join('\n'));
       return;
+    }
+
+    // Check connection health before starting uploads
+    console.log('Checking connection health before upload...');
+    const healthCheck = await documentService.checkUploadHealth();
+    if (!healthCheck) {
+      console.warn('Health check failed, but proceeding with upload (may retry on failure)');
     }
 
     // Start uploads
