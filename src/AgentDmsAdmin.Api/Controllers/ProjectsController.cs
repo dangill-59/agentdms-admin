@@ -73,8 +73,16 @@ public class ProjectsController : ControllerBase
                 query = query.Where(p => p.IsActive && !p.IsArchived);
             }
 
-            // Filter projects where user's roles have access
-            query = query.Where(p => p.ProjectRoles.Any(pr => userRoles.Contains(pr.RoleId) && pr.CanView));
+            // Check if user has workspace.admin permission (admins can see all projects)
+            var isWorkspaceAdmin = await _authorizationService.UserHasPermissionAsync(userId, "workspace.admin");
+            
+            // Filter projects based on role permissions
+            if (!isWorkspaceAdmin)
+            {
+                // Non-admin users can only see projects where their roles have explicit view access
+                query = query.Where(p => p.ProjectRoles.Any(pr => userRoles.Contains(pr.RoleId) && pr.CanView));
+            }
+            // Admin users can see all projects (no additional filtering needed)
             
             var totalCount = await query.CountAsync();
             
