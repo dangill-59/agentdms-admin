@@ -106,8 +106,63 @@ export class DocumentService {
     }
   }
 
+  // Health check before upload
+  public async checkUploadHealth(): Promise<boolean> {
+    try {
+      const baseUrl = apiService.getBaseURL();
+      const healthUrl = `${baseUrl.replace('/api', '')}/health`;
+      
+      // Create an AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(healthUrl, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      return response.ok;
+    } catch (error) {
+      console.warn('Health check failed:', error);
+      return false;
+    }
+  }
+
   // File upload operations (integrating with AgentDMS backend)
   public async uploadFile(file: File, projectId?: number, onProgress?: (progress: number) => void): Promise<UploadResponse> {
+    const maxRetries = 3;
+    const retryDelay = 1000; // Start with 1 second
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Upload attempt ${attempt}/${maxRetries} for file: ${file.name}`);
+        return await this.attemptUpload(file, projectId, onProgress, attempt);
+      } catch (error) {
+        const isNetworkError = error instanceof Error && (
+          error.message.includes('Network error') ||
+          error.message.includes('connection') ||
+          error.message.includes('timeout') ||
+          error.message.includes('aborted')
+        );
+
+        if (isNetworkError && attempt < maxRetries) {
+          const delay = retryDelay * Math.pow(2, attempt - 1); // Exponential backoff
+          console.warn(`Upload attempt ${attempt} failed, retrying in ${delay}ms:`, error.message);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+
+        // If this is the last attempt or not a network error, throw the error
+        console.error(`Upload failed after ${attempt} attempts:`, error);
+        throw error;
+      }
+    }
+
+    throw new Error('Upload failed after all retry attempts');
+  }
+
+  private async attemptUpload(file: File, projectId?: number, onProgress?: (progress: number) => void, attempt: number = 1): Promise<UploadResponse> {
     return new Promise((resolve, reject) => {
       const formData = new FormData();
       formData.append('file', file);
@@ -118,6 +173,10 @@ export class DocumentService {
       }
 
       const xhr = new XMLHttpRequest();
+      
+      // Set timeout based on file size (minimum 30 seconds, add 10 seconds per MB)
+      const timeoutMs = Math.max(30000, 30000 + (file.size / (1024 * 1024)) * 10000);
+      xhr.timeout = timeoutMs;
 
       // Track upload progress
       if (onProgress) {
@@ -131,14 +190,18 @@ export class DocumentService {
 
       // Handle completion
       xhr.onload = () => {
+        console.log('XHR onload - Status:', xhr.status, 'Response:', xhr.responseText);
         if (xhr.status === 200) {
           try {
             const response = JSON.parse(xhr.responseText);
+            console.log('Upload successful:', response);
             resolve(response);
-          } catch {
+          } catch (parseError) {
+            console.error('Failed to parse response:', parseError, 'Response text:', xhr.responseText);
             reject(new Error('Failed to parse upload response'));
           }
         } else {
+          console.error('Upload failed with status:', xhr.status, 'Response:', xhr.responseText);
           try {
             const errorData = JSON.parse(xhr.responseText);
             reject(new Error(errorData.error || `Upload failed: ${xhr.statusText}`));
@@ -148,19 +211,55 @@ export class DocumentService {
         }
       };
 
-      xhr.onerror = () => {
-        reject(new Error('Network error during upload'));
+      xhr.onerror = (event) => {
+        console.error('XHR error event:', event);
+        console.error('XHR ready state:', xhr.readyState);
+        console.error('XHR status:', xhr.status);
+        
+        // Provide more specific error messages based on the state
+        let errorMessage = 'Network error during upload';
+        if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 0) {
+          errorMessage = 'Connection failed or was blocked. Please check your network connection and try again.';
+        } else if (xhr.status === 0) {
+          errorMessage = 'Connection was reset or blocked. This may be due to network issues or security settings.';
+        }
+        
+        reject(new Error(errorMessage));
+      };
+
+      xhr.onabort = () => {
+        console.error('XHR request was aborted');
+        reject(new Error('Upload was aborted. Please try again.'));
+      };
+
+      xhr.ontimeout = () => {
+        console.error('XHR request timed out after', timeoutMs, 'ms');
+        reject(new Error(`Upload timed out after ${Math.round(timeoutMs / 1000)} seconds. Please try uploading a smaller file or check your connection.`));
       };
 
       // Use the AgentDMS endpoint
       const baseUrl = apiService.getBaseURL();
-      xhr.open('POST', `${baseUrl}/imageprocessing/upload`);
+      const uploadUrl = `${baseUrl}/imageprocessing/upload`;
+      
+      console.log(`[Attempt ${attempt}] Starting upload to:`, uploadUrl);
+      console.log('File details:', { name: file.name, size: file.size, type: file.type });
+      console.log('Project ID:', projectId);
+      console.log('Timeout set to:', timeoutMs, 'ms');
+      
+      xhr.open('POST', uploadUrl);
       
       // Add auth token if available
       const token = apiService.getToken();
       if (token) {
+        console.log('Adding authorization header');
         xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      } else {
+        console.log('No auth token found');
       }
+
+      // Add custom headers for debugging
+      xhr.setRequestHeader('X-Upload-Attempt', attempt.toString());
+      xhr.setRequestHeader('X-File-Size', file.size.toString());
 
       xhr.send(formData);
     });
