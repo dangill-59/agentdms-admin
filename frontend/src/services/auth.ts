@@ -265,7 +265,18 @@ export class AuthService {
   }
 
   public async forgotPassword(email: string): Promise<void> {
-    await apiService.post('/auth/forgot-password', { email });
+    try {
+      await apiService.post('/auth/forgot-password', { email });
+    } catch (error) {
+      // In demo mode, simulate success even if backend fails
+      if (config.get('enableDemoMode')) {
+        console.warn('Backend password reset failed, simulating demo success:', error);
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return; // Success
+      }
+      throw error;
+    }
   }
 
   public async resetPassword(token: string, newPassword: string): Promise<void> {
