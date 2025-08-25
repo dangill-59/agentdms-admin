@@ -406,4 +406,96 @@ public class AuthController : ControllerBase
         _logger.LogDebug("Returning demo user data");
         return Ok(demoUser);
     }
+
+    /// <summary>
+    /// Initiates a password reset process by sending a reset email to the user.
+    /// For demo purposes, this endpoint simulates the password reset email sending.
+    /// </summary>
+    /// <param name="request">Request containing the email address</param>
+    /// <returns>Success message indicating reset email was sent</returns>
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        _logger.LogInformation("Password reset request for email: {Email}", request.Email);
+
+        try
+        {
+            // Check if user exists in database
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == request.Email);
+
+            if (user != null)
+            {
+                _logger.LogInformation("User found in database for password reset: {Email}", request.Email);
+                
+                // In a real implementation, you would:
+                // 1. Generate a secure reset token
+                // 2. Store it in the database with an expiration time
+                // 3. Send an email with the reset link
+                
+                // For demo purposes, we'll just log and return success
+                _logger.LogInformation("Password reset email would be sent to: {Email}", request.Email);
+            }
+            else
+            {
+                // For security, always return success even if user doesn't exist
+                // This prevents email enumeration attacks
+                _logger.LogWarning("Password reset requested for non-existent user: {Email}", request.Email);
+            }
+
+            // Always return success to prevent email enumeration
+            return Ok(new { message = "If an account with that email exists, a password reset link has been sent." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing password reset request for email: {Email}", request.Email);
+            return StatusCode(500, new { message = "An error occurred while processing your request" });
+        }
+    }
+
+    /// <summary>
+    /// Resets a user's password using a valid reset token.
+    /// For demo purposes, this endpoint simulates the password reset process.
+    /// </summary>
+    /// <param name="request">Request containing the reset token and new password</param>
+    /// <returns>Success message indicating password was reset</returns>
+    [HttpPost("reset-password")]
+    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        _logger.LogInformation("Password reset attempt with token");
+
+        try
+        {
+            // In a real implementation, you would:
+            // 1. Validate the reset token
+            // 2. Check if it's not expired
+            // 3. Find the associated user
+            // 4. Hash the new password
+            // 5. Update the user's password in the database
+            // 6. Invalidate the reset token
+
+            // For demo purposes, we'll simulate this process
+            if (string.IsNullOrEmpty(request.Token) || string.IsNullOrEmpty(request.NewPassword))
+            {
+                return BadRequest(new { message = "Invalid reset token or password" });
+            }
+
+            // Simulate token validation (in reality, you'd validate against database)
+            if (request.Token.StartsWith("demo-reset-token-"))
+            {
+                _logger.LogInformation("Demo password reset successful");
+                return Ok(new { message = "Password has been reset successfully" });
+            }
+            else
+            {
+                _logger.LogWarning("Invalid reset token provided");
+                return BadRequest(new { message = "Invalid or expired reset token" });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing password reset");
+            return StatusCode(500, new { message = "An error occurred while resetting your password" });
+        }
+    }
 }

@@ -52,7 +52,7 @@ class ConfigService {
       environment: 'production', // Always run in production mode for live testing
       
       // Feature Flags
-      enableDemoMode: false, // Always disabled for live testing
+      enableDemoMode: import.meta.env.VITE_ENABLE_DEMO_MODE === 'true',
       enableSignalR: import.meta.env.VITE_ENABLE_SIGNALR === 'true',
       enableRealTimeUpdates: import.meta.env.VITE_ENABLE_REAL_TIME_UPDATES === 'true',
       enableDebug: false, // Always disabled in production mode
