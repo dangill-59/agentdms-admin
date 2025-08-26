@@ -41,6 +41,12 @@ export class AuthService {
         }
       }
       
+      // For the admin@agentdms.com demo user, always try to reach the backend since it supports this user
+      if (credentials.email === 'admin@agentdms.com' && credentials.password === 'admin123') {
+        console.warn('Backend authentication failed for demo admin user, but this should work. Rethrowing error:', error);
+        throw error;
+      }
+      
       // For network errors or other non-HTTP errors, only fallback to demo if explicitly enabled
       if (!config.get('enableDemoMode')) {
         // In production mode, throw the error instead of falling back to demo
@@ -53,18 +59,18 @@ export class AuthService {
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Demo validation - remove this in production
-      if (credentials.email === 'admin@agentdms.com' && credentials.password === 'admin123') {
+      // Demo validation for other users - remove this in production
+      if (credentials.email === 'demo@agentdms.com' && credentials.password === 'demo123') {
         const user: User = {
           id: '1',
-          username: 'admin',
+          username: 'demo',
           email: credentials.email,
           roles: [
             {
               id: '1',
               userId: '1',
               roleId: '1',
-              roleName: 'Administrator',
+              roleName: 'User', // Demo user has limited permissions
               createdAt: new Date().toISOString()
             }
           ]
