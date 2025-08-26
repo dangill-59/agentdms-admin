@@ -104,6 +104,19 @@ if (app.Environment.IsDevelopment())
 // Uncomment the following line if you have HTTPS configured locally.
 // app.UseHttpsRedirection();
 
+// Enable static file serving for uploads
+app.UseStaticFiles();
+
+// Configure custom static file serving for uploads directory
+var uploadsPath = Path.Combine(app.Environment.WebRootPath ?? app.Environment.ContentRootPath, "uploads");
+Directory.CreateDirectory(uploadsPath);
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads"
+});
+
 // Enable CORS for frontend requests
 app.UseCors("AllowFrontend");
 

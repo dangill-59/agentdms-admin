@@ -75,6 +75,22 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     });
   };
 
+  const handleDownload = async () => {
+    try {
+      const blob = await documentService.downloadDocument(document.id);
+      const url = window.URL.createObjectURL(blob);
+      const a = window.document.createElement('a');
+      a.href = url;
+      a.download = document.fileName;
+      window.document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      window.document.body.removeChild(a);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to download document');
+    }
+  };
+
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -200,25 +216,60 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
               </div>
             </div>
 
-            {/* Mock Document Preview */}
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
-              <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <div className="mt-4">
-                <p className="text-lg font-medium text-gray-900">Document Preview</p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Document viewer will be displayed here
-                </p>
-                <p className="text-xs text-gray-400 mt-2">
-                  * Preview functionality would be integrated with actual document storage
-                </p>
-              </div>
+            {/* Document Preview */}
+            <div className="border-2 border-gray-200 rounded-lg overflow-hidden bg-white">
+              {document.mimeType?.startsWith('image/') ? (
+                <div className="relative">
+                  <img
+                    src={documentService.getDocumentPreviewUrl(document.id)}
+                    alt={document.fileName}
+                    className="w-full h-auto max-h-96 object-contain"
+                    onError={(e) => {
+                      // Fallback to placeholder if image fails to load
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
+                  <div className="hidden border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
+                    <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <div className="mt-4">
+                      <p className="text-lg font-medium text-gray-900">Image Preview Unavailable</p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Failed to load image preview
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
+                  <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <div className="mt-4">
+                    <p className="text-lg font-medium text-gray-900">Document Preview</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {document.mimeType?.includes('pdf') 
+                        ? 'PDF preview not yet supported - use download button to view'
+                        : 'Preview not available for this file type'
+                      }
+                    </p>
+                    <p className="text-xs text-gray-400 mt-2">
+                      File type: {document.mimeType || 'Unknown'}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Download Actions */}
             <div className="flex space-x-3">
-              <button className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <button 
+                onClick={handleDownload}
+                className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
