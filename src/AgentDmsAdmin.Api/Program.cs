@@ -52,6 +52,21 @@ builder.Services.AddAuthorization();
 // Add controllers support
 builder.Services.AddControllers();
 
+// Configure form options for larger file uploads (100MB)
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 100 * 1024 * 1024; // 100MB
+    options.ValueLengthLimit = int.MaxValue;
+    options.ValueCountLimit = int.MaxValue;
+    options.KeyLengthLimit = int.MaxValue;
+});
+
+// Configure Kestrel server limits for larger uploads
+builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>
+{
+    options.Limits.MaxRequestBodySize = 100 * 1024 * 1024; // 100MB
+});
+
 // Add CORS policy for frontend
 builder.Services.AddCors(options =>
 {

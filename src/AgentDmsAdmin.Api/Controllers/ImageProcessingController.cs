@@ -50,11 +50,11 @@ public class ImageProcessingController : ControllerBase
                 return BadRequest($"File type {fileExtension} is not supported");
             }
 
-            // Validate file size (50MB limit)
-            const long maxFileSize = 50 * 1024 * 1024;
+            // Validate file size (100MB limit)
+            const long maxFileSize = 100 * 1024 * 1024;
             if (file.Length > maxFileSize)
             {
-                return BadRequest("File size exceeds the 50MB limit");
+                return BadRequest("File size exceeds the 100MB limit");
             }
 
             // Generate unique job ID and file name
