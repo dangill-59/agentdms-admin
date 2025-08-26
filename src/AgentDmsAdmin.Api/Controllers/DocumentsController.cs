@@ -302,4 +302,100 @@ public class DocumentsController : ControllerBase
         }
         // Note: In a real implementation, you'd handle creating new field values for missing custom fields
     }
+
+    [HttpGet("{id}/download")]
+    public async Task<ActionResult> DownloadDocument(int id)
+    {
+        try
+        {
+            var document = await _context.Documents.FindAsync(id);
+            if (document == null)
+            {
+                return NotFound($"Document with ID {id} not found.");
+            }
+
+            if (string.IsNullOrEmpty(document.StoragePath) || !System.IO.File.Exists(document.StoragePath))
+            {
+                return NotFound("Document file not found on disk.");
+            }
+
+            var fileBytes = await System.IO.File.ReadAllBytesAsync(document.StoragePath);
+            var contentType = document.MimeType ?? "application/octet-stream";
+
+            return File(fileBytes, contentType, document.FileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error downloading document {DocumentId}", id);
+            return StatusCode(500, "An error occurred while downloading the document");
+        }
+    }
+
+    [HttpGet("{id}/preview")]
+    public async Task<ActionResult> PreviewDocument(int id)
+    {
+        try
+        {
+            var document = await _context.Documents.FindAsync(id);
+            if (document == null)
+            {
+                return NotFound($"Document with ID {id} not found.");
+            }
+
+            if (string.IsNullOrEmpty(document.StoragePath) || !System.IO.File.Exists(document.StoragePath))
+            {
+                return NotFound("Document file not found on disk.");
+            }
+
+            var fileBytes = await System.IO.File.ReadAllBytesAsync(document.StoragePath);
+            var contentType = document.MimeType ?? "application/octet-stream";
+
+            // For preview, we want to display inline rather than download
+            Response.Headers["Content-Disposition"] = $"inline; filename=\"{document.FileName}\"";
+            return File(fileBytes, contentType);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error previewing document {DocumentId}", id);
+            return StatusCode(500, "An error occurred while previewing the document");
+        }
+    }
+
+    [HttpGet("{id}/thumbnail")]
+    public async Task<ActionResult> GetDocumentThumbnail(int id)
+    {
+        try
+        {
+            var document = await _context.Documents.FindAsync(id);
+            if (document == null)
+            {
+                return NotFound($"Document with ID {id} not found.");
+            }
+
+            if (string.IsNullOrEmpty(document.StoragePath) || !System.IO.File.Exists(document.StoragePath))
+            {
+                return NotFound("Document file not found on disk.");
+            }
+
+            // For now, return the original file as thumbnail
+            // In a production environment, you would generate actual thumbnails
+            var fileBytes = await System.IO.File.ReadAllBytesAsync(document.StoragePath);
+            var contentType = document.MimeType ?? "application/octet-stream";
+
+            // For images, return as-is for thumbnail. For other types, you might want to generate previews
+            if (contentType.StartsWith("image/"))
+            {
+                Response.Headers["Content-Disposition"] = $"inline; filename=\"thumbnail_{document.FileName}\"";
+                return File(fileBytes, contentType);
+            }
+
+            // For non-image files, return a placeholder or generate a preview
+            return NotFound("Thumbnail not available for this file type");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting document thumbnail {DocumentId}", id);
+            return StatusCode(500, "An error occurred while getting the document thumbnail");
+        }
+    }
 }
