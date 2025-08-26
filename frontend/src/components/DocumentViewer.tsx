@@ -226,9 +226,22 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                     className="w-full h-auto max-h-96 object-contain"
                     onError={(e) => {
                       // Fallback to placeholder if image fails to load
+                      console.log('Image failed to load:', e);
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
-                      target.nextElementSibling?.classList.remove('hidden');
+                      const fallback = target.nextElementSibling as HTMLElement;
+                      if (fallback) {
+                        fallback.classList.remove('hidden');
+                      }
+                    }}
+                    onLoad={(e) => {
+                      // Log successful load for debugging
+                      const target = e.target as HTMLImageElement;
+                      console.log('Image loaded successfully:', {
+                        src: target.src,
+                        naturalWidth: target.naturalWidth,
+                        naturalHeight: target.naturalHeight
+                      });
                     }}
                   />
                   <div className="hidden border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
