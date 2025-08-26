@@ -83,7 +83,7 @@ export class SettingsService {
       console.error('Failed to fetch app settings:', error);
       // Return default settings for development
       return {
-        maxFileSize: 50 * 1024 * 1024, // 50MB
+        maxFileSize: 100 * 1024 * 1024, // 100MB
         allowedFileTypes: ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tif', '.tiff', '.pdf', '.webp'],
         autoProcessUploads: true,
         processingTimeout: 300, // 5 minutes
