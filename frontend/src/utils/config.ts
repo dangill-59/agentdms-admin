@@ -59,7 +59,7 @@ class ConfigService {
       enableDarkMode: import.meta.env.VITE_ENABLE_DARK_MODE === 'true',
       
       // File Upload
-      maxFileSize: parseInt(import.meta.env.VITE_MAX_FILE_SIZE || '52428800'), // 50MB
+      maxFileSize: parseInt(import.meta.env.VITE_MAX_FILE_SIZE || '104857600'), // 100MB
       supportedFileTypes: (import.meta.env.VITE_SUPPORTED_FILE_TYPES || '.jpg,.jpeg,.png,.bmp,.gif,.tif,.tiff,.pdf,.webp').split(','),
       
       // Authentication

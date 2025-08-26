@@ -31,7 +31,7 @@ const Settings: React.FC = () => {
 
   // App settings state
   const [appSettings, setAppSettings] = useState<AppSettings>({
-    maxFileSize: 50 * 1024 * 1024, // 50MB in bytes
+    maxFileSize: 100 * 1024 * 1024, // 100MB in bytes
     allowedFileTypes: ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tif', '.tiff', '.pdf', '.webp'],
     autoProcessUploads: true,
     processingTimeout: 300,
