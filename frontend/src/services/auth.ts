@@ -1,6 +1,5 @@
 import type { LoginCredentials, AuthResponse, User } from '../types/auth';
 import { apiService } from './api';
-import config from '../utils/config';
 
 export class AuthService {
   public async login(credentials: LoginCredentials): Promise<AuthResponse> {
@@ -41,80 +40,8 @@ export class AuthService {
         }
       }
       
-      // For network errors or other non-HTTP errors, only fallback to demo if explicitly enabled
-      if (!config.get('enableDemoMode')) {
-        // In production mode, throw the error instead of falling back to demo
-        throw error;
-      }
-      
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.warn('Backend authentication failed, using demo authentication:', errorMessage);
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Demo validation - remove this in production
-      if (credentials.email === 'admin@agentdms.com' && credentials.password === 'admin123') {
-        const user: User = {
-          id: '1',
-          username: 'admin',
-          email: credentials.email,
-          roles: [
-            {
-              id: '1',
-              userId: '1',
-              roleId: '1',
-              roleName: 'Administrator',
-              createdAt: new Date().toISOString()
-            }
-          ]
-        };
-
-        const token = 'demo-jwt-token-' + Date.now();
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
-
-        const response: AuthResponse = {
-          token,
-          user,
-          expiresAt
-        };
-
-        // Store token
-        apiService.setToken(token);
-        
-        return response;
-      } else if (credentials.email === 'gill.dan2@gmail.com' && credentials.password === 'admin123') {
-        const user: User = {
-          id: '2',
-          username: 'gill.dan2',
-          email: credentials.email,
-          roles: [
-            {
-              id: '2',
-              userId: '2',
-              roleId: '2',
-              roleName: 'User',
-              createdAt: new Date().toISOString()
-            }
-          ]
-        };
-
-        const token = 'demo-jwt-token-dan-' + Date.now();
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
-
-        const response: AuthResponse = {
-          token,
-          user,
-          expiresAt
-        };
-
-        // Store token
-        apiService.setToken(token);
-        
-        return response;
-      } else {
-        throw new Error('Invalid email or password');
-      }
+      // For all errors, throw them in production mode - no demo fallbacks
+      throw error;
     }
   }
 
@@ -135,7 +62,7 @@ export class AuthService {
     if (!token) return null;
 
     try {
-      // Try to get current user from backend
+      // Get current user from backend
       const response = await apiService.get<User>('/auth/me');
       
       // The backend returns the user directly (not wrapped in ApiResponse.data)
@@ -144,42 +71,6 @@ export class AuthService {
       return user;
     } catch (error) {
       console.warn('Failed to get current user from backend:', error);
-      
-      // Only fallback to demo user if demo mode is enabled and token exists
-      if (config.get('enableDemoMode') && token.startsWith('demo-jwt-token-')) {
-        if (token.startsWith('demo-jwt-token-dan-')) {
-          return {
-            id: '2',
-            username: 'gill.dan2',
-            email: 'gill.dan2@gmail.com',
-            roles: [
-              {
-                id: '2',
-                userId: '2',
-                roleId: '2',
-                roleName: 'User',
-                createdAt: new Date().toISOString()
-              }
-            ]
-          };
-        } else {
-          return {
-            id: '1',
-            username: 'admin',
-            email: 'admin@agentdms.com',
-            roles: [
-              {
-                id: '1',
-                userId: '1',
-                roleId: '1',
-                roleName: 'Administrator',
-                createdAt: new Date().toISOString()
-              }
-            ]
-          };
-        }
-      }
-      
       return null;
     }
   }
@@ -202,13 +93,6 @@ export class AuthService {
       return newToken;
     } catch (error) {
       console.warn('Token refresh failed:', error);
-      
-      // For demo tokens, only return existing token if demo mode is enabled
-      const currentToken = apiService.getToken();
-      if (config.get('enableDemoMode') && currentToken?.startsWith('demo-jwt-token-')) {
-        return currentToken;
-      }
-      
       return null;
     }
   }
@@ -217,16 +101,7 @@ export class AuthService {
     const token = apiService.getToken();
     if (!token) return false;
 
-    // For demo tokens, only consider valid if demo mode is enabled
-    if (token.startsWith('demo-jwt-token-')) {
-      return config.get('enableDemoMode');
-    }
-    if (token.startsWith('demo-jwt-token-')) {
-      return true;
-    }
-
-    // For real JWT tokens, you would decode and validate the token
-    // For now, just check if token exists
+    // For real JWT tokens, validate properly
     try {
       // You can add JWT token validation here
       // const decoded = jwt.decode(token);
@@ -268,13 +143,6 @@ export class AuthService {
     try {
       await apiService.post('/auth/forgot-password', { email });
     } catch (error) {
-      // In demo mode, simulate success even if backend fails
-      if (config.get('enableDemoMode')) {
-        console.warn('Backend password reset failed, simulating demo success:', error);
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return; // Success
-      }
       throw error;
     }
   }

@@ -1,176 +1,34 @@
 import type { User } from '../types/auth';
 import type { PaginatedResponse } from '../types/api';
 import { apiService } from './api';
-import config from '../utils/config';
 
 export class UserService {
   public async getUsers(page = 1, pageSize = 10): Promise<PaginatedResponse<User>> {
-    try {
-      // Use real API regardless of demo mode
-      const response = await apiService.get<PaginatedResponse<User>>(`/users?page=${page}&pageSize=${pageSize}`);
-      return response.data || response;
-    } catch (error) {
-      console.warn('Failed to fetch users from backend:', error);
-      
-      // Only fall back to demo data if demo mode is enabled
-      if (!config.get('enableDemoMode')) {
-        throw error;
-      }
-      
-      // Fallback to demo data for development
-      const mockUsers: User[] = [
-        {
-          id: '1',
-          username: 'admin',
-          email: 'admin@agentdms.com',
-          roles: [
-            {
-              id: '1',
-              userId: '1',
-              roleId: '1',
-              roleName: 'Admin',
-              createdAt: '2024-01-01T00:00:00Z'
-            }
-          ]
-        },
-        {
-          id: '2',
-          username: 'johnmanager',
-          email: 'john@agentdms.com',
-          roles: [
-            {
-              id: '2',
-              userId: '2',
-              roleId: '2',
-              roleName: 'Manager',
-              createdAt: '2024-01-01T00:00:00Z'
-            }
-          ]
-        },
-        {
-          id: '3',
-          username: 'janeuser',
-          email: 'jane@agentdms.com',
-          roles: [
-            {
-              id: '3',
-              userId: '3',
-              roleId: '3',
-              roleName: 'User',
-              createdAt: '2024-01-01T00:00:00Z'
-            }
-          ]
-        }
-      ];
-
-      const totalCount = mockUsers.length;
-      const totalPages = Math.ceil(totalCount / pageSize);
-      const pagedUsers = mockUsers.slice((page - 1) * pageSize, page * pageSize);
-
-      return {
-        data: pagedUsers,
-        totalCount,
-        page,
-        pageSize,
-        totalPages
-      };
-    }
+    const response = await apiService.get<PaginatedResponse<User>>(`/users?page=${page}&pageSize=${pageSize}`);
+    return response.data || response;
   }
 
   public async getUser(id: string): Promise<User> {
-    try {
-      const response = await apiService.get<User>(`/users/${id}`);
-      return response.data || response;
-    } catch (error) {
-      console.warn('Failed to fetch user from backend:', error);
-      
-      // Only fall back to demo data if demo mode is enabled
-      if (!config.get('enableDemoMode')) {
-        throw error;
-      }
-      
-      // Demo data fallback
-      return {
-        id,
-        username: 'demouser',
-        email: 'demo@agentdms.com',
-        roles: []
-      };
-    }
+    const response = await apiService.get<User>(`/users/${id}`);
+    return response.data || response;
   }
 
   public async createUser(userData: { username: string; email: string; passwordHash: string; roleIds?: string[] }): Promise<User> {
-    try {
-      const response = await apiService.post<User>('/users', userData);
-      return response.data || response;
-    } catch (error) {
-      console.warn('Failed to create user:', error);
-      
-      // Only simulate success if demo mode is enabled
-      if (!config.get('enableDemoMode')) {
-        throw error;
-      }
-      
-      // Demo simulation
-      return {
-        id: Math.random().toString(),
-        username: userData.username,
-        email: userData.email,
-        roles: []
-      };
-    }
+    const response = await apiService.post<User>('/users', userData);
+    return response.data || response;
   }
 
   public async updateUser(id: string, userData: Partial<User> & { roleIds?: string[] }): Promise<User> {
-    try {
-      const response = await apiService.put<User>(`/users/${id}`, userData);
-      return response.data || response;
-    } catch (error) {
-      console.warn('Failed to update user:', error);
-      
-      // Only simulate success if demo mode is enabled
-      if (!config.get('enableDemoMode')) {
-        throw error;
-      }
-      
-      // Demo simulation
-      return {
-        id,
-        username: userData.username || 'updated',
-        email: userData.email || 'updated@agentdms.com',
-        roles: userData.roles || []
-      };
-    }
+    const response = await apiService.put<User>(`/users/${id}`, userData);
+    return response.data || response;
   }
 
   public async deleteUser(id: string): Promise<void> {
-    try {
-      await apiService.delete(`/users/${id}`);
-    } catch (error) {
-      console.warn('Failed to delete user:', error);
-      
-      // Only simulate success if demo mode is enabled
-      if (!config.get('enableDemoMode')) {
-        throw error;
-      }
-      
-      // Demo mode - just log and continue
-    }
+    await apiService.delete(`/users/${id}`);
   }
 
   public async changeUserPassword(id: string, newPassword: string): Promise<void> {
-    try {
-      await apiService.post(`/users/${id}/change-password`, { newPassword });
-    } catch (error) {
-      console.warn('Failed to change user password:', error);
-      
-      // Only simulate success if demo mode is enabled
-      if (!config.get('enableDemoMode')) {
-        throw error;
-      }
-      
-      // Demo mode - just log and continue
-    }
+    await apiService.post(`/users/${id}/change-password`, { newPassword });
   }
 }
 

@@ -16,7 +16,6 @@ export interface AppConfig {
   environment: string;
   
   // Feature Flags
-  enableDemoMode: boolean;
   enableSignalR: boolean;
   enableRealTimeUpdates: boolean;
   enableDebug: boolean;
@@ -52,7 +51,6 @@ class ConfigService {
       environment: 'production', // Always run in production mode for live testing
       
       // Feature Flags
-      enableDemoMode: import.meta.env.VITE_ENABLE_DEMO_MODE === 'true',
       enableSignalR: import.meta.env.VITE_ENABLE_SIGNALR === 'true',
       enableRealTimeUpdates: import.meta.env.VITE_ENABLE_REAL_TIME_UPDATES === 'true',
       enableDebug: false, // Always disabled in production mode

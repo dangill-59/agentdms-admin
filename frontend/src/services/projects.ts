@@ -8,125 +8,14 @@ import type {
   CreateCustomFieldRequest,
   UpdateCustomFieldRequest 
 } from '../types/api';
-import config from '../utils/config';
 import { apiService } from './api';
 
 export class ProjectService {
   // Projects CRUD operations
   public async getProjects(page = 1, pageSize = 10, includeArchived = false): Promise<PaginatedResponse<Project>> {
-    try {
-      // Use direct method since backend returns data directly, not wrapped in ApiResponse
-      const response = await apiService.getDirect<PaginatedResponse<Project>>(`/projects?page=${page}&pageSize=${pageSize}&includeArchived=${includeArchived}`);
-      return response;
-    } catch (error) {
-      console.warn('Failed to fetch projects from backend:', error);
-      
-      // Only fall back to demo data if demo mode is enabled
-      if (!config.get('enableDemoMode')) {
-        throw error;
-      }
-      
-      // Fallback to demo data for development
-      const mockProjects: Project[] = [
-        {
-          id: '1',
-          name: 'Sample Project 1',
-          description: 'A sample project for testing',
-          fileName: 'DefaultFilename',
-          createdAt: '2024-01-01T00:00:00Z',
-          modifiedAt: '2024-01-01T00:00:00Z',
-          isActive: true,
-          isArchived: false,
-          projectRoles: [
-            {
-              id: '1',
-              projectId: '1',
-              roleId: '1',
-              roleName: 'Admin',
-              canView: true,
-              canEdit: true,
-              canDelete: true,
-              createdAt: '2024-01-01T00:00:00Z'
-            },
-            {
-              id: '2',
-              projectId: '1',
-              roleId: '2',
-              roleName: 'Manager',
-              canView: true,
-              canEdit: true,
-              canDelete: false,
-              createdAt: '2024-01-01T00:00:00Z'
-            }
-          ]
-        },
-        {
-          id: '2',
-          name: 'Document Management System',
-          description: 'Main DMS project',
-          fileName: 'DefaultFilename',
-          createdAt: '2024-01-02T00:00:00Z',
-          modifiedAt: '2024-01-02T00:00:00Z',
-          isActive: true,
-          isArchived: false,
-          projectRoles: [
-            {
-              id: '3',
-              projectId: '2',
-              roleId: '1',
-              roleName: 'Admin',
-              canView: true,
-              canEdit: true,
-              canDelete: true,
-              createdAt: '2024-01-01T00:00:00Z'
-            }
-          ]
-        },
-        {
-          id: '3',
-          name: 'AP Project',
-          description: 'Accounts Payable project with view-only access for dan user',
-          fileName: 'ap-project.dms',
-          createdAt: '2024-01-03T00:00:00Z',
-          modifiedAt: '2024-01-03T00:00:00Z',
-          isActive: true,
-          isArchived: false,
-          projectRoles: [
-            {
-              id: '4',
-              projectId: '3',
-              roleId: '1',
-              roleName: 'Admin',
-              canView: true,
-              canEdit: true,
-              canDelete: true,
-              createdAt: '2024-01-01T00:00:00Z'
-            },
-            {
-              id: '5',
-              projectId: '3',
-              roleId: '2',
-              roleName: 'User',
-              canView: true,
-              canEdit: false,
-              canDelete: false,
-              createdAt: '2024-01-01T00:00:00Z'
-            }
-          ]
-        }
-      ];
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      return {
-        data: mockProjects,
-        totalCount: mockProjects.length,
-        page,
-        pageSize,
-        totalPages: Math.ceil(mockProjects.length / pageSize)
-      };
-    }
+    // Use direct method since backend returns data directly, not wrapped in ApiResponse
+    const response = await apiService.getDirect<PaginatedResponse<Project>>(`/projects?page=${page}&pageSize=${pageSize}&includeArchived=${includeArchived}`);
+    return response;
   }
 
   public async getProject(id: string): Promise<Project> {

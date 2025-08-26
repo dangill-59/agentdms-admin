@@ -370,6 +370,105 @@ export class DocumentService {
     };
   }
 
+  private async getMockSearchResults(filters: DocumentSearchFilters, page = 1, pageSize = 10): Promise<PaginatedResponse<DocumentSearchResult>> {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const mockResults: DocumentSearchResult[] = [
+        {
+          id: '1',
+          projectId: filters.projectId || '1',
+          fileName: 'Invoice_ABC123.pdf',
+          customerName: 'ABC Company Inc.',
+          invoiceNumber: 'INV-2024-001',
+          invoiceDate: '2024-01-15',
+          docType: 'Invoice',
+          status: 'Processed',
+          createdAt: '2024-01-15T10:30:00Z',
+          modifiedAt: '2024-01-15T10:30:00Z',
+          fileSize: 245760,
+          mimeType: 'application/pdf'
+        },
+        {
+          id: '2',
+          projectId: filters.projectId || '1',
+          fileName: 'Receipt_XYZ789.jpg',
+          customerName: 'XYZ Corporation',
+          invoiceNumber: 'RCP-2024-002',
+          invoiceDate: '2024-01-20',
+          docType: 'Receipt',
+          status: 'Pending Review',
+          createdAt: '2024-01-20T14:15:00Z',
+          modifiedAt: '2024-01-20T14:15:00Z',
+          fileSize: 1048576,
+          mimeType: 'image/jpeg'
+        },
+        {
+          id: '3',
+          projectId: filters.projectId || '1',
+          fileName: 'PO_DEF456.pdf',
+          customerName: 'DEF Industries Ltd.',
+          invoiceNumber: 'PO-2024-003',
+          invoiceDate: '2024-01-25',
+          docType: 'Purchase Order',
+          status: 'Approved',
+          createdAt: '2024-01-25T09:45:00Z',
+          modifiedAt: '2024-01-25T16:20:00Z',
+          fileSize: 512000,
+          mimeType: 'application/pdf'
+        },
+        {
+          id: '4',
+          projectId: filters.projectId || '1',
+          fileName: 'Estimate_GHI789.pdf',
+          customerName: 'GHI Services',
+          invoiceNumber: 'EST-2024-004',
+          invoiceDate: '2024-02-01',
+          docType: 'Estimate',
+          status: 'Draft',
+          createdAt: '2024-02-01T11:00:00Z',
+          modifiedAt: '2024-02-01T11:00:00Z',
+          fileSize: 320000,
+          mimeType: 'application/pdf'
+        }
+      ];
+
+      // Apply filters
+      let filteredResults = mockResults;
+      
+      if (filters.invoiceNumber) {
+        filteredResults = filteredResults.filter(doc => 
+          doc.invoiceNumber.toLowerCase().includes(filters.invoiceNumber!.toLowerCase())
+        );
+      }
+      
+      if (filters.customerName) {
+        filteredResults = filteredResults.filter(doc => 
+          doc.customerName.toLowerCase().includes(filters.customerName!.toLowerCase())
+        );
+      }
+      
+      if (filters.docType) {
+        filteredResults = filteredResults.filter(doc => 
+          doc.docType.toLowerCase().includes(filters.docType!.toLowerCase())
+        );
+      }
+
+      // Simulate pagination
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedResults = filteredResults.slice(startIndex, endIndex);
+
+      return {
+        data: paginatedResults,
+        totalCount: filteredResults.length,
+        page,
+        pageSize,
+        totalPages: Math.ceil(filteredResults.length / pageSize)
+      };
+  }
+
+  // Get document metadata for editing
   public async getDocumentMetadata(documentId: string): Promise<DocumentMetadata> {
     const response = await apiService.get<DocumentMetadata>(`/documents/${documentId}/metadata`);
     return response.data || response;
