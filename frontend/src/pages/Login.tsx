@@ -141,16 +141,6 @@ const Login: React.FC = () => {
             <div className="text-red-600 text-sm text-center">{error}</div>
           )}
 
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-            <div className="text-sm text-blue-800">
-              <strong>Demo Credentials:</strong>
-              <br />
-              Email: admin@agentdms.com
-              <br />
-              Password: admin123
-            </div>
-          </div>
-
           <div>
             <button
               type="submit"

@@ -1,56 +1,12 @@
-# Live Mode Configuration
+# Production Mode Configuration
 
-This document explains how to switch between **Demo Mode** and **Live Mode** in the AgentDMS Admin application.
+This document explains the configuration and deployment of the AgentDMS Admin application in **production mode**.
 
-## Mode Overview
+## Production Mode Overview
 
-### Demo Mode
-- Uses mock/sample data for testing and demonstrations
-- Does not require a live backend API
-- Shows sample documents, users, and projects
-- Perfect for showcasing features without real data
+The AgentDMS Admin application now operates exclusively in production mode, connecting directly to the real backend API and database for all operations.
 
-### Live Mode 
-- Connects to the real backend API and database
-- Shows actual data from the SQLite database
-- Requires the backend API to be running
-- Used for production and real testing scenarios
-
-## Switching Between Modes
-
-The mode is controlled by the `VITE_ENABLE_DEMO_MODE` environment variable in the frontend.
-
-### To Enable Live Mode (Default)
-
-1. Edit `frontend/.env`:
-   ```bash
-   # Enable live testing mode (disable demo mode)
-   VITE_ENABLE_DEMO_MODE=false
-   ```
-
-2. Ensure the backend API is running:
-   ```bash
-   cd src/AgentDmsAdmin.Api
-   dotnet run
-   ```
-
-3. Start the frontend:
-   ```bash
-   cd frontend
-   npm run dev
-   ```
-
-### To Enable Demo Mode
-
-1. Edit `frontend/.env`:
-   ```bash
-   # Enable demo mode for testing
-   VITE_ENABLE_DEMO_MODE=true
-   ```
-
-2. Restart the frontend (backend is optional for demo mode)
-
-## Features Supported in Live Mode
+### Features Available in Production Mode
 
 - ✅ **User Authentication**: Real JWT-based authentication against the backend
 - ✅ **User Management**: CRUD operations on real users from the database
@@ -58,50 +14,148 @@ The mode is controlled by the `VITE_ENABLE_DEMO_MODE` environment variable in th
 - ✅ **Document Search**: Live document search using the backend API
 - ✅ **Document Metadata**: Get and update real document metadata
 - ✅ **Error Handling**: Proper error responses from the backend API
+- ✅ **Role Management**: Complete role and permission management system
+- ✅ **Real-time Updates**: Live data updates from the backend
 
-## Features Available in Demo Mode
+## Getting Started
 
-- ✅ **Sample Users**: Pre-defined demo users for testing UI
-- ✅ **Sample Projects**: Mock project data
-- ✅ **Sample Documents**: Mock document search results with realistic data
-- ✅ **Full UI Testing**: Test all UI components without backend dependency
+### Prerequisites
 
-## Login Credentials
+1. **Backend API**: Ensure the AgentDMS backend API is running and accessible
+2. **Database**: SQLite database must be properly initialized with required tables
+3. **Environment Configuration**: Proper environment variables configured
 
-### Live Mode
-- **Email**: admin@agentdms.com  
-- **Password**: admin123
-- **Note**: This authenticates against the real backend database
+### Starting the Application
 
-### Demo Mode
-- **Email**: admin@agentdms.com
-- **Password**: admin123  
-- **Note**: This uses mock authentication (any credentials work)
+1. **Ensure the backend API is running**:
+   ```bash
+   cd src/AgentDmsAdmin.Api
+   dotnet run
+   ```
 
-## API Endpoints Used in Live Mode
+2. **Start the frontend**:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+3. **Build for production**:
+   ```bash
+   cd frontend
+   npm run build
+   ```
+
+## API Endpoints
+
+The application uses the following backend API endpoints:
 
 - `POST /api/auth/login` - User authentication
+- `GET /api/auth/me` - Get current user
+- `POST /api/auth/logout` - User logout
 - `GET /api/users` - List users
-- `GET /api/projects` - List projects  
+- `GET /api/projects` - List projects
 - `POST /api/documents/search` - Search documents
 - `GET /api/documents/{id}/metadata` - Get document metadata
 - `PUT /api/documents/{id}/metadata` - Update document metadata
+- `GET /api/roles` - List roles
+- `GET /api/permissions` - List permissions
 
-## Configuration Details
+## Configuration
 
-The application automatically detects the mode based on the environment variable and:
+The application is configured through environment variables:
 
-- **Live Mode**: Makes real API calls, throws errors on failures
-- **Demo Mode**: Falls back to mock data when API calls fail
-- **Mixed Mode**: If `VITE_ENABLE_DEMO_MODE=false` but backend is unavailable, errors are thrown (no fallback)
+### Required Environment Variables
+
+```bash
+# API Configuration
+VITE_API_URL=http://localhost:5267/api
+VITE_WS_URL=ws://localhost:5267/progressHub
+
+# Optional Configuration
+VITE_API_TIMEOUT=30000
+VITE_RETRY_ATTEMPTS=3
+VITE_ENABLE_SIGNALR=true
+VITE_ENABLE_REAL_TIME_UPDATES=true
+```
+
+### Frontend Configuration File
+
+Create a `.env` file in the `frontend` directory:
+
+```bash
+# API URL for the backend
+VITE_API_URL=http://localhost:5267/api
+
+# WebSocket URL for real-time features
+VITE_WS_URL=ws://localhost:5267/progressHub
+
+# App Environment
+VITE_APP_ENV=production
+```
 
 ## Troubleshooting
 
-### "No documents found" in Live Mode
-This is expected behavior if no documents have been uploaded yet. The message indicates the live API is working correctly.
+### Connection Errors
 
-### Connection errors in Live Mode
-Ensure the backend API is running on `http://localhost:5267` and accessible.
+**Issue**: Cannot connect to backend API  
+**Solution**: Ensure the backend API is running on the configured URL (default: `http://localhost:5267`)
 
-### Demo mode not working
-Verify the `VITE_ENABLE_DEMO_MODE=true` setting and restart the frontend development server.
+### Authentication Failures
+
+**Issue**: Login attempts fail  
+**Solution**: 
+1. Verify backend authentication service is working
+2. Check that user accounts exist in the database
+3. Ensure JWT token configuration is correct
+
+### "No documents found" Message
+
+**Issue**: Document search returns no results  
+**Solution**: This is expected if no documents have been uploaded. Use the document upload feature to add documents to the system.
+
+### Build Errors
+
+**Issue**: Frontend build fails  
+**Solution**: 
+1. Ensure all dependencies are installed: `npm install`
+2. Check TypeScript configuration
+3. Verify all environment variables are properly set
+
+## Deployment
+
+### Production Deployment
+
+1. **Build the frontend**:
+   ```bash
+   cd frontend
+   npm run build
+   ```
+
+2. **Deploy backend API**:
+   ```bash
+   cd src/AgentDmsAdmin.Api
+   dotnet publish -c Release
+   ```
+
+3. **Configure production environment**:
+   - Set production API URLs
+   - Configure SSL certificates
+   - Set up proper database connections
+   - Configure authentication providers
+
+### Environment Variables for Production
+
+```bash
+VITE_API_URL=https://your-production-api.com/api
+VITE_WS_URL=wss://your-production-api.com/progressHub
+VITE_APP_ENV=production
+```
+
+## Security Considerations
+
+- All API communications use HTTPS in production
+- JWT tokens are securely stored and validated
+- User authentication is required for all operations
+- Role-based access control is enforced
+- Input validation and sanitization is performed on all data

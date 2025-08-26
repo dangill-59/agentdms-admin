@@ -91,12 +91,6 @@ frontend/
 
 The application uses JWT-based authentication with the following features:
 
-### Demo Credentials
-```
-Email: admin@agentdms.com
-Password: admin123
-```
-
 ### Authentication Flow
 1. **Login**: User enters credentials on `/login`
 2. **Token Storage**: JWT token stored in localStorage
@@ -117,17 +111,11 @@ The frontend communicates with the backend API using Axios with:
 - Error handling for authentication failures
 - Configurable base URL via environment variables
 
-### Mock Data
-Currently includes mock data for development:
-- Sample projects for dashboard display
-- Mock authentication responses
-- Example API service patterns
-
-### Real API Integration
-To connect with the actual backend:
+### Production API Integration
+The application connects directly with the backend API:
 1. Ensure backend is running on configured port
-2. Update service files to remove mock data
-3. Implement actual API endpoints in backend
+2. All services communicate with real API endpoints
+3. No mock data or fallbacks - production-ready implementation
 
 ## Styling
 
