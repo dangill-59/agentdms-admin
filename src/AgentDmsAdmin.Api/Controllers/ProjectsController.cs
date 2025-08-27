@@ -462,6 +462,7 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpPatch("{id}/archive")]
+    [RequirePermission("workspace.admin")]
     public async Task<ActionResult<ProjectDto>> ArchiveProject(int id, [FromBody] ArchiveProjectRequest request)
     {
         try
