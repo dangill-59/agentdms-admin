@@ -363,13 +363,10 @@ export class DocumentService {
         return this.getMockSearchResults(filters, page, pageSize);
       }
 
-      // Use real API when not in demo mode
-      const response = await apiService.post<PaginatedResponse<DocumentDto>>('/documents/search', 
+      // Use real API when not in demo mode - use postDirect since backend returns data directly
+      const responseData = await apiService.postDirect<PaginatedResponse<DocumentDto>>('/documents/search', 
         { ...filters, page, pageSize }
       );
-      
-      // Handle the API response format - apiService returns ApiResponse wrapper
-      const responseData = response.data;
       
       // Convert DocumentDto to DocumentSearchResult
       const searchResults: DocumentSearchResult[] = (responseData.data || []).map((doc: DocumentDto) => ({
