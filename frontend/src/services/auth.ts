@@ -73,7 +73,8 @@ export class AuthService {
               roleName: 'User', // Demo user has limited permissions
               createdAt: new Date().toISOString()
             }
-          ]
+          ],
+          permissions: []
         };
 
         const token = 'demo-jwt-token-' + Date.now();
@@ -102,7 +103,8 @@ export class AuthService {
               roleName: 'User',
               createdAt: new Date().toISOString()
             }
-          ]
+          ],
+          permissions: []
         };
 
         const token = 'demo-jwt-token-dan-' + Date.now();
@@ -166,7 +168,8 @@ export class AuthService {
                 roleName: 'User',
                 createdAt: new Date().toISOString()
               }
-            ]
+            ],
+            permissions: []
           };
         } else {
           return {
@@ -181,7 +184,8 @@ export class AuthService {
                 roleName: 'Administrator',
                 createdAt: new Date().toISOString()
               }
-            ]
+            ],
+            permissions: ['workspace.admin']
           };
         }
       }

@@ -4,7 +4,7 @@ import type { Role, Permission, RolePermission, CreateRoleRequest, UpdateRoleReq
 import { roleService } from '../services/roles';
 import { permissionService } from '../services/permissions';
 import Header from '../components/Header';
-import { userIsAdmin, userHasPermission } from '../utils/userHelpers';
+import { userHasPermission } from '../utils/userHelpers';
 
 interface NewRole {
   name: string;
