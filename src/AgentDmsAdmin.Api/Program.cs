@@ -96,6 +96,7 @@ if (app.Environment.IsDevelopment())
         await seeder.SeedAdminUserAsync(); // Seed regular admin user
         await seeder.SeedGillDanUserAsync(); // Seed gill.dan2@gmail.com user
         await seeder.SeedUser1Async(); // Seed user1@agentdms.com user
+        await seeder.SetupUserRolePermissionsAsync(); // Ensure User role has basic permissions
         await seeder.SetupDanUserProjectPermissionsAsync(); // Setup project permissions for dan user
         await seeder.SetupAdministratorProjectPermissionsAsync(); // Setup Administrator role permissions for all projects
         
