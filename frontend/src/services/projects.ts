@@ -130,8 +130,118 @@ export class ProjectService {
   }
 
   public async getProject(id: string): Promise<Project> {
-    const response = await apiService.getDirect<Project>(`/projects/${id}`);
-    return response;
+    try {
+      const response = await apiService.getDirect<Project>(`/projects/${id}`);
+      return response;
+    } catch (error) {
+      console.warn('Failed to fetch project from backend:', error);
+      
+      // Only fall back to demo data if demo mode is enabled
+      if (!config.get('enableDemoMode')) {
+        throw error;
+      }
+      
+      // Fallback to demo data for development
+      const mockProjects = [
+        {
+          id: '1',
+          name: 'Sample Project 1',
+          description: 'A sample project for testing',
+          fileName: 'DefaultFilename',
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z',
+          isActive: true,
+          isArchived: false,
+          projectRoles: [
+            {
+              id: '1',
+              projectId: '1',
+              roleId: '1',
+              roleName: 'Admin',
+              canView: true,
+              canEdit: true,
+              canDelete: true,
+              createdAt: '2024-01-01T00:00:00Z'
+            },
+            {
+              id: '2',
+              projectId: '1',
+              roleId: '2',
+              roleName: 'Manager',
+              canView: true,
+              canEdit: true,
+              canDelete: false,
+              createdAt: '2024-01-01T00:00:00Z'
+            }
+          ]
+        },
+        {
+          id: '2',
+          name: 'Document Management System',
+          description: 'Main DMS project',
+          fileName: 'DefaultFilename',
+          createdAt: '2024-01-02T00:00:00Z',
+          modifiedAt: '2024-01-02T00:00:00Z',
+          isActive: true,
+          isArchived: false,
+          projectRoles: [
+            {
+              id: '3',
+              projectId: '2',
+              roleId: '1',
+              roleName: 'Admin',
+              canView: true,
+              canEdit: true,
+              canDelete: true,
+              createdAt: '2024-01-01T00:00:00Z'
+            }
+          ]
+        },
+        {
+          id: '3',
+          name: 'AP Project',
+          description: 'Accounts Payable project with view-only access for dan user',
+          fileName: 'ap-project.dms',
+          createdAt: '2024-01-03T00:00:00Z',
+          modifiedAt: '2024-01-03T00:00:00Z',
+          isActive: true,
+          isArchived: false,
+          projectRoles: [
+            {
+              id: '4',
+              projectId: '3',
+              roleId: '1',
+              roleName: 'Admin',
+              canView: true,
+              canEdit: true,
+              canDelete: true,
+              createdAt: '2024-01-01T00:00:00Z'
+            },
+            {
+              id: '5',
+              projectId: '3',
+              roleId: '2',
+              roleName: 'User',
+              canView: true,
+              canEdit: false,
+              canDelete: false,
+              createdAt: '2024-01-01T00:00:00Z'
+            }
+          ]
+        }
+      ];
+
+      // Find the project by ID
+      const project = mockProjects.find(p => p.id === id);
+      if (!project) {
+        throw new Error(`Project with ID ${id} not found`);
+      }
+
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      return project;
+    }
   }
 
   public async createProject(request: CreateProjectRequest): Promise<Project> {
