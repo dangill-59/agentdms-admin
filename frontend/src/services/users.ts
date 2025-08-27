@@ -31,7 +31,8 @@ export class UserService {
               roleName: 'Admin',
               createdAt: '2024-01-01T00:00:00Z'
             }
-          ]
+          ],
+          permissions: ['workspace.admin']
         },
         {
           id: '2',
@@ -45,7 +46,8 @@ export class UserService {
               roleName: 'Manager',
               createdAt: '2024-01-01T00:00:00Z'
             }
-          ]
+          ],
+          permissions: []
         },
         {
           id: '3',
@@ -59,7 +61,8 @@ export class UserService {
               roleName: 'User',
               createdAt: '2024-01-01T00:00:00Z'
             }
-          ]
+          ],
+          permissions: []
         }
       ];
 
@@ -94,7 +97,8 @@ export class UserService {
         id,
         username: 'demouser',
         email: 'demo@agentdms.com',
-        roles: []
+        roles: [],
+        permissions: []
       };
     }
   }
@@ -116,7 +120,8 @@ export class UserService {
         id: Math.random().toString(),
         username: userData.username,
         email: userData.email,
-        roles: []
+        roles: [],
+        permissions: []
       };
     }
   }
@@ -138,7 +143,8 @@ export class UserService {
         id,
         username: userData.username || 'updated',
         email: userData.email || 'updated@agentdms.com',
-        roles: userData.roles || []
+        roles: userData.roles || [],
+        permissions: []
       };
     }
   }

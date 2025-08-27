@@ -5,7 +5,7 @@ import { roleService } from '../services/roles';
 import ProjectCard from '../components/ProjectCard';
 import Header from '../components/Header';
 import { useAuth } from '../hooks/useAuth';
-import { userIsAdmin, userHasPermission } from '../utils/userHelpers';
+import { userHasPermission } from '../utils/userHelpers';
 
 const Projects: React.FC = () => {
   const { user } = useAuth();
