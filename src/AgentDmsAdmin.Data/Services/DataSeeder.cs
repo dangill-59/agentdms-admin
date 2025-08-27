@@ -221,51 +221,49 @@ public class DataSeeder
             _context.Roles.Add(adminRole);
             await _context.SaveChangesAsync();
 
-            // Assign workspace.admin permission to Administrator role
-            var workspaceAdminPermission = await _context.Permissions
-                .FirstOrDefaultAsync(p => p.Name == "workspace.admin");
-                
-            if (workspaceAdminPermission != null)
+            // Assign all permissions to Administrator role (same as Super Admin)
+            var allPermissions = await _context.Permissions.ToListAsync();
+            foreach (var permission in allPermissions)
             {
                 var existingRolePermission = await _context.RolePermissions
-                    .FirstOrDefaultAsync(rp => rp.RoleId == adminRole.Id && rp.PermissionId == workspaceAdminPermission.Id);
+                    .FirstOrDefaultAsync(rp => rp.RoleId == adminRole.Id && rp.PermissionId == permission.Id);
                     
                 if (existingRolePermission == null)
                 {
                     var rolePermission = new RolePermission
                     {
                         RoleId = adminRole.Id,
-                        PermissionId = workspaceAdminPermission.Id
+                        PermissionId = permission.Id
                     };
 
                     _context.RolePermissions.Add(rolePermission);
-                    await _context.SaveChangesAsync();
                 }
             }
+            
+            await _context.SaveChangesAsync();
         }
         else
         {
-            // Administrator role already exists, ensure it has workspace.admin permission
-            var workspaceAdminPermission = await _context.Permissions
-                .FirstOrDefaultAsync(p => p.Name == "workspace.admin");
-                
-            if (workspaceAdminPermission != null)
+            // Administrator role already exists, ensure it has all permissions
+            var allPermissions = await _context.Permissions.ToListAsync();
+            foreach (var permission in allPermissions)
             {
                 var existingRolePermission = await _context.RolePermissions
-                    .FirstOrDefaultAsync(rp => rp.RoleId == adminRole.Id && rp.PermissionId == workspaceAdminPermission.Id);
+                    .FirstOrDefaultAsync(rp => rp.RoleId == adminRole.Id && rp.PermissionId == permission.Id);
                     
                 if (existingRolePermission == null)
                 {
                     var rolePermission = new RolePermission
                     {
                         RoleId = adminRole.Id,
-                        PermissionId = workspaceAdminPermission.Id
+                        PermissionId = permission.Id
                     };
 
                     _context.RolePermissions.Add(rolePermission);
-                    await _context.SaveChangesAsync();
                 }
             }
+            
+            await _context.SaveChangesAsync();
         }
 
         // Assign Administrator role to admin user
