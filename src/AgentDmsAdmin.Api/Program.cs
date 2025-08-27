@@ -98,6 +98,9 @@ if (app.Environment.IsDevelopment())
         await seeder.SeedUser1Async(); // Seed user1@agentdms.com user
         await seeder.SetupDanUserProjectPermissionsAsync(); // Setup project permissions for dan user
         await seeder.SetupAdministratorProjectPermissionsAsync(); // Setup Administrator role permissions for all projects
+        
+        // Seed sample documents for testing
+        await AgentDmsAdmin.Api.Scripts.SeedSampleDocuments.SeedDocuments(context);
     }
 }
 
