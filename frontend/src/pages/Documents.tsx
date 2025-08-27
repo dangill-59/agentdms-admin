@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { Document, DocumentSearchFilters, DocumentSearchResult, PaginatedResponse, Project } from '../types/api';
 import { documentService } from '../services/documents';
 import { projectService } from '../services/projects';
@@ -19,6 +20,8 @@ interface UploadProgress {
 type ViewMode = 'search' | 'results' | 'viewer' | 'upload';
 
 const Documents: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  
   // State for different views
   const [viewMode, setViewMode] = useState<ViewMode>('search');
   
@@ -70,8 +73,16 @@ const Documents: React.FC = () => {
       const response = await projectService.getProjects(1, 50); // Get first 50 projects
       setProjects(response.data);
       
-      // Auto-select first project if none selected
-      if (response.data.length > 0 && !selectedProjectId) {
+      // Check for project ID from URL parameter
+      const projectIdFromUrl = searchParams.get('projectId');
+      
+      if (projectIdFromUrl && response.data.some(p => p.id === projectIdFromUrl)) {
+        // Set the project from URL parameter if it exists in the list
+        setSelectedProjectId(projectIdFromUrl);
+        // Also set it in search filters for search functionality
+        setSearchFilters(prev => ({ ...prev, projectId: projectIdFromUrl }));
+      } else if (response.data.length > 0 && !selectedProjectId) {
+        // Auto-select first project if none selected and no URL parameter
         setSelectedProjectId(response.data[0].id);
       }
     } catch (error) {
@@ -326,6 +337,11 @@ const Documents: React.FC = () => {
     }
     loadSupportedFormats();
   }, [viewMode, fetchDocuments]);
+
+  // Load projects on component mount to handle URL parameters
+  useEffect(() => {
+    loadProjects();
+  }, [searchParams]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
