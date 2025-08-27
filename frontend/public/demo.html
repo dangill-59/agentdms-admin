@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigation Fix Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .demo-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #4F46E5;
+        }
+        .project-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #1E3A8A;
+            margin-bottom: 10px;
+        }
+        .demo-button {
+            background-color: #4F46E5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .demo-button:hover {
+            background-color: #4338CA;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .before {
+            background-color: #FEE2E2;
+            border: 1px solid #FECACA;
+            color: #991B1B;
+        }
+        .after {
+            background-color: #D1FAE5;
+            border: 1px solid #A7F3D0;
+            color: #065F46;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .status.broken {
+            background-color: #FEE2E2;
+            color: #991B1B;
+        }
+        .status.fixed {
+            background-color: #D1FAE5;
+            color: #065F46;
+        }
+    </style>
+</head>
+<body>
+    <h1>📋 AgentDMS Admin - Navigation Fix Demo</h1>
+    
+    <div class="demo-card">
+        <div class="project-name">Sample Project #2</div>
+        <p><strong>Issue:</strong> "View Documents" button was navigating to project detail page instead of documents search/upload page</p>
+        
+        <h3>Before Fix <span class="status broken">❌ BROKEN</span></h3>
+        <button class="demo-button" onclick="showBefore()">View Documents</button>
+        <div id="before-result" class="result before" style="display: none;">
+            Navigation: /projects/2<br>
+            Result: Shows project overview, roles, and custom fields tabs<br>
+            Problem: User can't search or upload documents!
+        </div>
+        
+        <h3>After Fix <span class="status fixed">✅ FIXED</span></h3>
+        <button class="demo-button" onclick="showAfter()">View Documents</button>
+        <div id="after-result" class="result after" style="display: none;">
+            Navigation: /documents?projectId=2<br>
+            Result: Shows document search and upload interface<br>
+            Benefit: Project #2 is automatically pre-selected!
+        </div>
+    </div>
+
+    <div class="demo-card">
+        <h3>📋 Changes Summary</h3>
+        <ul>
+            <li><strong>ProjectCard.tsx:</strong> Changed navigation from <code>/projects/${project.id}</code> to <code>/documents?projectId=${project.id}</code></li>
+            <li><strong>Documents.tsx:</strong> Added URL parameter handling to pre-select the project from the URL</li>
+            <li><strong>Impact:</strong> Minimal changes that fix the navigation without affecting other functionality</li>
+        </ul>
+    </div>
+
+    <div class="demo-card">
+        <h3>🧪 Technical Verification</h3>
+        <ul>
+            <li>✅ TypeScript build passes without errors</li>
+            <li>✅ ESLint warnings fixed for new code</li>
+            <li>✅ Navigation logic tested and verified</li>
+            <li>✅ URL parameter parsing works correctly</li>
+        </ul>
+    </div>
+
+    <script>
+        function showBefore() {
+            document.getElementById('before-result').style.display = 'block';
+            document.getElementById('after-result').style.display = 'none';
+        }
+
+        function showAfter() {
+            document.getElementById('after-result').style.display = 'block';
+            document.getElementById('before-result').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
