@@ -24,7 +24,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onEdit, onClone, onD
   };
 
   const handleView = () => {
-    navigate(`/projects/${project.id}`);
+    navigate(`/documents?projectId=${project.id}`);
   };
 
   const handleEdit = () => {
