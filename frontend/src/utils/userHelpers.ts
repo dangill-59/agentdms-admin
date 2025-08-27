@@ -81,3 +81,37 @@ export function canAccessNavItem(user: User | null, requiredRoles: string[]): bo
   
   return user.roles.some(role => requiredRoles.includes(role.roleName));
 }
+
+/**
+ * Check if user has a specific permission
+ */
+export function userHasPermission(user: User | null, permission: string): boolean {
+  if (!user || !user.permissions) return false;
+  return user.permissions.includes(permission);
+}
+
+/**
+ * Check if user has any of the specified permissions
+ */
+export function userHasAnyPermission(user: User | null, permissions: string[]): boolean {
+  if (!user || !user.permissions || permissions.length === 0) return false;
+  return permissions.some(permission => user.permissions.includes(permission));
+}
+
+/**
+ * Check if user has all of the specified permissions
+ */
+export function userHasAllPermissions(user: User | null, permissions: string[]): boolean {
+  if (!user || !user.permissions || permissions.length === 0) return false;
+  return permissions.every(permission => user.permissions.includes(permission));
+}
+
+/**
+ * Check if user can access a feature based on required permissions
+ */
+export function canAccessFeature(user: User | null, requiredPermissions: string[]): boolean {
+  if (!user || !user.permissions) return false;
+  if (requiredPermissions.length === 0) return true;
+  
+  return userHasAnyPermission(user, requiredPermissions);
+}

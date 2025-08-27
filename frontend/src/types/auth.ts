@@ -7,6 +7,7 @@ export interface User {
   email: string;
   isImmutable?: boolean;
   roles: UserRole[];
+  permissions: string[];
 }
 
 export interface LoginCredentials {
