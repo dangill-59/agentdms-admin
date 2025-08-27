@@ -159,9 +159,26 @@ const ProjectRoleManagement: React.FC<ProjectRoleManagementProps> = ({
               </div>
               
               <div className="mt-2">
-                <p className="text-sm text-gray-600">
-                  Permissions are defined by the role configuration
-                </p>
+                <div className="flex flex-wrap gap-1">
+                  {projectRole.canView && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      View
+                    </span>
+                  )}
+                  {projectRole.canEdit && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Edit
+                    </span>
+                  )}
+                  {projectRole.canDelete && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      Delete
+                    </span>
+                  )}
+                </div>
+                {!projectRole.canView && !projectRole.canEdit && !projectRole.canDelete && (
+                  <p className="text-sm text-gray-500 italic">No permissions assigned</p>
+                )}
               </div>
               
               <div className="mt-2 text-xs text-gray-500">

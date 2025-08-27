@@ -188,10 +188,20 @@ export class RoleService {
         {
           id: '1',
           projectId: projectId || '1',
-          roleId: roleId || '1',
-          roleName: 'Demo Role',
+          roleId: '1',
+          roleName: 'Admin',
           canView: true,
-          canEdit: false,
+          canEdit: true,
+          canDelete: true,
+          createdAt: '2024-01-01T00:00:00Z'
+        },
+        {
+          id: '2',
+          projectId: projectId || '1',
+          roleId: '2',
+          roleName: 'Manager',
+          canView: true,
+          canEdit: true,
           canDelete: false,
           createdAt: '2024-01-01T00:00:00Z'
         }
