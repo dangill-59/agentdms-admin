@@ -30,6 +30,7 @@ public class UsersController : ControllerBase
         {
             var totalCount = await _context.Users.CountAsync();
             
+            // Load users with their roles and permissions in a SQLite-compatible way
             var users = await _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
@@ -38,33 +39,35 @@ public class UsersController : ControllerBase
                 .OrderByDescending(u => u.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(u => new UserDto
-                {
-                    Id = u.Id.ToString(),
-                    Username = u.Username,
-                    Email = u.Email,
-                    IsImmutable = u.IsImmutable,
-                    Roles = u.UserRoles.Select(ur => new UserRoleDto
-                    {
-                        Id = ur.Id.ToString(),
-                        UserId = ur.UserId.ToString(),
-                        RoleId = ur.RoleId.ToString(),
-                        RoleName = ur.Role.Name,
-                        CreatedAt = ur.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
-                    }).ToList(),
-                    Permissions = u.UserRoles
-                        .SelectMany(ur => ur.Role.RolePermissions)
-                        .Select(rp => rp.Permission.Name)
-                        .Distinct()
-                        .ToList()
-                })
                 .ToListAsync();
+
+            // Convert to DTOs in memory to avoid SQLite SQL APPLY issues
+            var userDtos = users.Select(u => new UserDto
+            {
+                Id = u.Id.ToString(),
+                Username = u.Username,
+                Email = u.Email,
+                IsImmutable = u.IsImmutable,
+                Roles = u.UserRoles.Select(ur => new UserRoleDto
+                {
+                    Id = ur.Id.ToString(),
+                    UserId = ur.UserId.ToString(),
+                    RoleId = ur.RoleId.ToString(),
+                    RoleName = ur.Role.Name,
+                    CreatedAt = ur.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                }).ToList(),
+                Permissions = u.UserRoles
+                    .SelectMany(ur => ur.Role.RolePermissions)
+                    .Select(rp => rp.Permission.Name)
+                    .Distinct()
+                    .ToList()
+            }).ToList();
 
             var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
 
             var response = new PaginatedResponse<UserDto>
             {
-                Data = users,
+                Data = userDtos,
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize,
