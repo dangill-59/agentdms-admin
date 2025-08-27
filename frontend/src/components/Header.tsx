@@ -2,13 +2,14 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import type { User } from '../types/auth';
-import { getUserDisplayName, getUserPrimaryRole, userIsAdmin, canAccessNavItem } from '../utils/userHelpers';
+import { getUserDisplayName, getUserPrimaryRole, userIsAdmin, canAccessNavItem, canAccessFeature } from '../utils/userHelpers';
 
 interface NavItem {
   name: string;
   path: string;
   icon: React.ReactNode;
-  roles?: string[]; // Optional role restriction
+  roles?: string[]; // Optional role restriction (legacy)
+  permissions?: string[]; // Permission-based restriction (preferred)
 }
 
 const Header: React.FC = () => {
@@ -47,6 +48,7 @@ const Header: React.FC = () => {
     {
       name: 'Documents',
       path: '/documents',
+      permissions: ['document.view'], // Require document view permission
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -56,22 +58,22 @@ const Header: React.FC = () => {
     {
       name: 'Users',
       path: '/users',
+      permissions: ['workspace.admin'], // Require admin permission
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
         </svg>
       ),
-      roles: ['Administrator'], // Only admins can see users page
     },
     {
       name: 'Roles',
       path: '/roles',
+      permissions: ['workspace.admin'], // Require admin permission
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
         </svg>
       ),
-      roles: ['Administrator'], // Only admins can see roles page
     },
     {
       name: 'Settings',
@@ -85,14 +87,24 @@ const Header: React.FC = () => {
     },
   ];
 
-  // Filter navigation items based on user role
+  // Filter navigation items based on user permissions
   const visibleNavItems = navigationItems.filter(item => {
-    if (!item.roles) return true;
-    // Special handling for Users and Roles pages - use userIsAdmin function
-    if (item.path === '/users' || item.path === '/roles') {
-      return userIsAdmin(user);
+    // If item has permissions, check those first (preferred method)
+    if (item.permissions) {
+      return canAccessFeature(user, item.permissions);
     }
-    return canAccessNavItem(user, item.roles);
+    
+    // Fallback to legacy role-based checking
+    if (item.roles) {
+      // Special handling for Users and Roles pages - use userIsAdmin function for backward compatibility
+      if (item.path === '/users' || item.path === '/roles') {
+        return userIsAdmin(user);
+      }
+      return canAccessNavItem(user, item.roles);
+    }
+    
+    // No restrictions, show to all authenticated users
+    return true;
   });
 
   const isCurrentPath = (path: string) => location.pathname === path;

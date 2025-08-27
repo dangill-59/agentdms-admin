@@ -4,7 +4,7 @@ import type { Role, Permission, RolePermission, CreateRoleRequest, UpdateRoleReq
 import { roleService } from '../services/roles';
 import { permissionService } from '../services/permissions';
 import Header from '../components/Header';
-import { userIsAdmin } from '../utils/userHelpers';
+import { userIsAdmin, userHasPermission } from '../utils/userHelpers';
 
 interface NewRole {
   name: string;
@@ -249,8 +249,8 @@ const Roles: React.FC = () => {
     }
   };
 
-  // Only administrators can access role management
-  if (!userIsAdmin(currentUser)) {
+  // Only users with workspace.admin permission can access role management
+  if (!userHasPermission(currentUser, 'workspace.admin')) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />

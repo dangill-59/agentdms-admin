@@ -6,7 +6,7 @@ import type { Role } from '../types/api';
 import { userService } from '../services/users';
 import { roleService } from '../services/roles';
 import Header from '../components/Header';
-import { getUserDisplayName, userIsAdmin, getRoleColor, getRoleIcon } from '../utils/userHelpers';
+import { getUserDisplayName, userIsAdmin, getRoleColor, getRoleIcon, userHasPermission } from '../utils/userHelpers';
 
 interface NewUser {
   username: string;
@@ -243,8 +243,8 @@ const Users: React.FC = () => {
     fetchRoles();
   };
 
-  // Only administrators can access user management
-  if (!userIsAdmin(currentUser)) {
+  // Only users with workspace.admin permission can access user management
+  if (!userHasPermission(currentUser, 'workspace.admin')) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />

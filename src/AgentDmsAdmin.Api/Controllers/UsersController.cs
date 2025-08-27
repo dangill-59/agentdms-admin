@@ -33,6 +33,8 @@ public class UsersController : ControllerBase
             var users = await _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                    .ThenInclude(r => r.RolePermissions)
+                        .ThenInclude(rp => rp.Permission)
                 .OrderByDescending(u => u.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -49,7 +51,12 @@ public class UsersController : ControllerBase
                         RoleId = ur.RoleId.ToString(),
                         RoleName = ur.Role.Name,
                         CreatedAt = ur.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
-                    }).ToList()
+                    }).ToList(),
+                    Permissions = u.UserRoles
+                        .SelectMany(ur => ur.Role.RolePermissions)
+                        .Select(rp => rp.Permission.Name)
+                        .Distinct()
+                        .ToList()
                 })
                 .ToListAsync();
 
@@ -144,8 +151,23 @@ public class UsersController : ControllerBase
                 Username = user.Username,
                 Email = user.Email,
                 IsImmutable = user.IsImmutable,
-                Roles = userRoles
+                Roles = userRoles,
+                Permissions = new List<string>() // Will be populated below if roles have permissions
             };
+
+            // If roles were assigned, fetch permissions
+            if (userRoles.Any())
+            {
+                var assignedRoleIds = userRoles.Select(ur => int.Parse(ur.RoleId)).ToList();
+                var permissions = await _context.RolePermissions
+                    .Where(rp => assignedRoleIds.Contains(rp.RoleId))
+                    .Include(rp => rp.Permission)
+                    .Select(rp => rp.Permission.Name)
+                    .Distinct()
+                    .ToListAsync();
+                
+                userDto.Permissions = permissions;
+            }
 
             return CreatedAtAction(nameof(GetUser), new { id = user.Id }, userDto);
         }
@@ -164,6 +186,8 @@ public class UsersController : ControllerBase
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                    .ThenInclude(r => r.RolePermissions)
+                        .ThenInclude(rp => rp.Permission)
                 .FirstOrDefaultAsync(u => u.Id == id);
             
             if (user == null)
@@ -184,7 +208,12 @@ public class UsersController : ControllerBase
                     RoleId = ur.RoleId.ToString(),
                     RoleName = ur.Role.Name,
                     CreatedAt = ur.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
-                }).ToList()
+                }).ToList(),
+                Permissions = user.UserRoles
+                    .SelectMany(ur => ur.Role.RolePermissions)
+                    .Select(rp => rp.Permission.Name)
+                    .Distinct()
+                    .ToList()
             };
 
             return Ok(userDto);
@@ -303,6 +332,8 @@ public class UsersController : ControllerBase
             user = await _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                    .ThenInclude(r => r.RolePermissions)
+                        .ThenInclude(rp => rp.Permission)
                 .FirstOrDefaultAsync(u => u.Id == id);
 
             var userDto = new UserDto
@@ -318,7 +349,12 @@ public class UsersController : ControllerBase
                     RoleId = ur.RoleId.ToString(),
                     RoleName = ur.Role.Name,
                     CreatedAt = ur.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
-                }).ToList()
+                }).ToList(),
+                Permissions = user.UserRoles
+                    .SelectMany(ur => ur.Role.RolePermissions)
+                    .Select(rp => rp.Permission.Name)
+                    .Distinct()
+                    .ToList()
             };
 
             return Ok(userDto);

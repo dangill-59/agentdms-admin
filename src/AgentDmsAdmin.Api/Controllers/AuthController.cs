@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using AgentDmsAdmin.Api.Models;
 using AgentDmsAdmin.Api.Services;
 using AgentDmsAdmin.Data.Data;
+using AgentDmsAdmin.Data.Models;
 using BCrypt.Net;
 
 namespace AgentDmsAdmin.Api.Controllers;
@@ -49,6 +50,8 @@ public class AuthController : ControllerBase
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
+                        .ThenInclude(r => r.RolePermissions)
+                            .ThenInclude(rp => rp.Permission)
                 .FirstOrDefaultAsync(u => u.Email == request.Email);
 
             if (user != null)
@@ -63,21 +66,8 @@ public class AuthController : ControllerBase
                 {
                     _logger.LogInformation("Database authentication successful for email: {Email}", request.Email);
                     
-                    // Database authentication successful - create UserDto with roles
-                    var userDto = new UserDto
-                    {
-                        Id = user.Id.ToString(),
-                        Username = user.Username,
-                        Email = user.Email,
-                        Roles = user.UserRoles.Select(ur => new UserRoleDto
-                        {
-                            Id = ur.Id.ToString(),
-                            UserId = ur.UserId.ToString(),
-                            RoleId = ur.RoleId.ToString(),
-                            RoleName = ur.Role.Name,
-                            CreatedAt = ur.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-                        }).ToList()
-                    };
+                    // Database authentication successful - create UserDto with roles and permissions
+                    var userDto = CreateUserDtoWithPermissions(user);
 
                     // Generate real JWT token
                     var token = _jwtService.GenerateToken(userDto);
@@ -105,20 +95,7 @@ public class AuthController : ControllerBase
                     {
                         _logger.LogInformation("Demo authentication successful for existing user: {Email}", request.Email);
                         
-                        var demoUser = new UserDto
-                        {
-                            Id = user.Id.ToString(),
-                            Username = user.Username,
-                            Email = user.Email,
-                            Roles = user.UserRoles.Select(ur => new UserRoleDto
-                            {
-                                Id = ur.Id.ToString(),
-                                UserId = ur.UserId.ToString(),
-                                RoleId = ur.RoleId.ToString(),
-                                RoleName = ur.Role.Name,
-                                CreatedAt = ur.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-                            }).ToList()
-                        };
+                        var demoUser = CreateUserDtoWithPermissions(user);
 
                         // Generate real JWT token for demo user too
                         var demoToken = _jwtService.GenerateToken(demoUser);
@@ -139,20 +116,7 @@ public class AuthController : ControllerBase
                     {
                         _logger.LogInformation("Demo authentication successful for existing dan user: {Email}", request.Email);
                         
-                        var danUser = new UserDto
-                        {
-                            Id = user.Id.ToString(),
-                            Username = user.Username,
-                            Email = user.Email,
-                            Roles = user.UserRoles.Select(ur => new UserRoleDto
-                            {
-                                Id = ur.Id.ToString(),
-                                UserId = ur.UserId.ToString(),
-                                RoleId = ur.RoleId.ToString(),
-                                RoleName = ur.Role.Name,
-                                CreatedAt = ur.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-                            }).ToList()
-                        };
+                        var danUser = CreateUserDtoWithPermissions(user);
 
                         // Generate real JWT token for dan user
                         var danToken = _jwtService.GenerateToken(danUser);
@@ -173,20 +137,7 @@ public class AuthController : ControllerBase
                     {
                         _logger.LogInformation("Hardcoded superadmin authentication successful for existing user: {Email}", request.Email);
                         
-                        var superAdminUser = new UserDto
-                        {
-                            Id = user.Id.ToString(),
-                            Username = user.Username,
-                            Email = user.Email,
-                            Roles = user.UserRoles.Select(ur => new UserRoleDto
-                            {
-                                Id = ur.Id.ToString(),
-                                UserId = ur.UserId.ToString(),
-                                RoleId = ur.RoleId.ToString(),
-                                RoleName = ur.Role.Name,
-                                CreatedAt = ur.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-                            }).ToList()
-                        };
+                        var superAdminUser = CreateUserDtoWithPermissions(user);
 
                         // Generate real JWT token for superadmin user
                         var superAdminToken = _jwtService.GenerateToken(superAdminUser);
@@ -228,7 +179,19 @@ public class AuthController : ControllerBase
                     {
                         Id = "1",
                         Username = "admin",
-                        Email = request.Email
+                        Email = request.Email,
+                        Roles = new List<UserRoleDto>
+                        {
+                            new UserRoleDto
+                            {
+                                Id = "1",
+                                UserId = "1",
+                                RoleId = "1",
+                                RoleName = "Administrator",
+                                CreatedAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                            }
+                        },
+                        Permissions = new List<string> { "workspace.admin" }
                     };
 
                     // Generate real JWT token for demo user too
@@ -265,7 +228,8 @@ public class AuthController : ControllerBase
                                 RoleName = "User",
                                 CreatedAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
                             }
-                        }
+                        },
+                        Permissions = new List<string> { "document.view" }
                     };
 
                     // Generate real JWT token for dan user
@@ -302,7 +266,8 @@ public class AuthController : ControllerBase
                                 RoleName = "Super Admin",
                                 CreatedAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
                             }
-                        }
+                        },
+                        Permissions = new List<string> { "workspace.admin", "document.view", "document.edit", "document.delete", "document.print", "document.annotate" }
                     };
 
                     // Generate real JWT token for superadmin user
@@ -400,7 +365,19 @@ public class AuthController : ControllerBase
         {
             Id = "1",
             Username = "admin",
-            Email = "admin@agentdms.com"
+            Email = "admin@agentdms.com",
+            Roles = new List<UserRoleDto>
+            {
+                new UserRoleDto
+                {
+                    Id = "1",
+                    UserId = "1",
+                    RoleId = "1",
+                    RoleName = "Administrator",
+                    CreatedAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                }
+            },
+            Permissions = new List<string> { "workspace.admin" }
         };
 
         _logger.LogDebug("Returning demo user data");
@@ -497,5 +474,34 @@ public class AuthController : ControllerBase
             _logger.LogError(ex, "Error processing password reset");
             return StatusCode(500, new { message = "An error occurred while resetting your password" });
         }
+    }
+
+    /// <summary>
+    /// Helper method to create UserDto with permissions from database user entity
+    /// </summary>
+    private UserDto CreateUserDtoWithPermissions(User user)
+    {
+        var userPermissions = user.UserRoles
+            .SelectMany(ur => ur.Role.RolePermissions)
+            .Select(rp => rp.Permission.Name)
+            .Distinct()
+            .ToList();
+            
+        return new UserDto
+        {
+            Id = user.Id.ToString(),
+            Username = user.Username,
+            Email = user.Email,
+            IsImmutable = user.IsImmutable,
+            Roles = user.UserRoles.Select(ur => new UserRoleDto
+            {
+                Id = ur.Id.ToString(),
+                UserId = ur.UserId.ToString(),
+                RoleId = ur.RoleId.ToString(),
+                RoleName = ur.Role.Name,
+                CreatedAt = ur.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+            }).ToList(),
+            Permissions = userPermissions
+        };
     }
 }
