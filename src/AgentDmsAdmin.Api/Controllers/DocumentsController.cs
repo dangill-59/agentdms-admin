@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using AgentDmsAdmin.Api.Models;
 using AgentDmsAdmin.Data.Data;
 using AgentDmsAdmin.Data.Models;
+using AgentDmsAdmin.Api.Attributes;
 
 namespace AgentDmsAdmin.Api.Controllers;
 
@@ -20,6 +21,7 @@ public class DocumentsController : ControllerBase
     }
 
     [HttpGet]
+    [RequirePermission("document.view")]
     public async Task<ActionResult<PaginatedResponse<DocumentDto>>> GetDocuments(
         [FromQuery] int page = 1, 
         [FromQuery] int pageSize = 10,
@@ -76,6 +78,7 @@ public class DocumentsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [RequirePermission("document.view")]
     public async Task<ActionResult<DocumentDto>> GetDocument(int id)
     {
         try
@@ -111,6 +114,7 @@ public class DocumentsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [RequirePermission("document.delete")]
     public async Task<ActionResult> DeleteDocument(int id)
     {
         try
@@ -136,6 +140,7 @@ public class DocumentsController : ControllerBase
     }
 
     [HttpGet("{id}/metadata")]
+    [RequirePermission("document.view")]
     public async Task<ActionResult<DocumentMetadata>> GetDocumentMetadata(int id)
     {
         try
@@ -173,6 +178,7 @@ public class DocumentsController : ControllerBase
     }
 
     [HttpPut("{id}/metadata")]
+    [RequirePermission("document.edit")]
     public async Task<ActionResult<DocumentMetadata>> UpdateDocumentMetadata(int id, [FromBody] UpdateDocumentMetadataRequest request)
     {
         try
@@ -225,6 +231,7 @@ public class DocumentsController : ControllerBase
     }
 
     [HttpPost("search")]
+    [RequirePermission("document.view")]
     public async Task<ActionResult<PaginatedResponse<DocumentDto>>> SearchDocuments(
         [FromBody] DocumentSearchFilters filters, 
         [FromQuery] int page = 1, 
@@ -304,6 +311,7 @@ public class DocumentsController : ControllerBase
     }
 
     [HttpGet("{id}/download")]
+    [RequirePermission("document.print")]
     public async Task<ActionResult> DownloadDocument(int id)
     {
         try
@@ -332,6 +340,7 @@ public class DocumentsController : ControllerBase
     }
 
     [HttpGet("{id}/preview")]
+    [RequirePermission("document.view")]
     public async Task<ActionResult> PreviewDocument(int id)
     {
         try
@@ -362,6 +371,7 @@ public class DocumentsController : ControllerBase
     }
 
     [HttpGet("{id}/thumbnail")]
+    [RequirePermission("document.view")]
     public async Task<ActionResult> GetDocumentThumbnail(int id)
     {
         try

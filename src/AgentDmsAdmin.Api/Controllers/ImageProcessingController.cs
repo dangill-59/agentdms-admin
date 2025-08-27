@@ -4,6 +4,7 @@ using AgentDmsAdmin.Data.Data;
 using AgentDmsAdmin.Data.Models;
 using AgentDmsAdmin.Data.Services;
 using Microsoft.EntityFrameworkCore;
+using AgentDmsAdmin.Api.Attributes;
 
 namespace AgentDmsAdmin.Api.Controllers;
 
@@ -32,6 +33,7 @@ public class ImageProcessingController : ControllerBase
     }
 
     [HttpPost("upload")]
+    [RequirePermission("document.edit")]
     public async Task<ActionResult<UploadResponse>> UploadFile(IFormFile file, [FromForm] int? projectId = null)
     {
         try
@@ -185,6 +187,7 @@ public class ImageProcessingController : ControllerBase
     }
 
     [HttpGet("job/{jobId}/status")]
+    [RequirePermission("document.view")]
     public ActionResult<JobStatus> GetJobStatus(string jobId)
     {
         try
@@ -212,6 +215,7 @@ public class ImageProcessingController : ControllerBase
     }
 
     [HttpGet("job/{jobId}/result")]
+    [RequirePermission("document.view")]
     public ActionResult<ProcessingResult> GetJobResult(string jobId)
     {
         try
