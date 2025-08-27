@@ -5,7 +5,7 @@ import { roleService } from '../services/roles';
 import ProjectCard from '../components/ProjectCard';
 import Header from '../components/Header';
 import { useAuth } from '../hooks/useAuth';
-import { userIsAdmin } from '../utils/userHelpers';
+import { userIsAdmin, userHasPermission } from '../utils/userHelpers';
 
 const Projects: React.FC = () => {
   const { user } = useAuth();
@@ -270,7 +270,7 @@ const Projects: React.FC = () => {
                 Manage and organize your document processing projects.
               </p>
             </div>
-            {userIsAdmin(user) && (
+            {userHasPermission(user, 'workspace.admin') && (
               <div className="mt-4 sm:mt-0">
                 <button
                   onClick={handleCreateProject}
@@ -347,10 +347,10 @@ const Projects: React.FC = () => {
               <ProjectCard 
                 key={project.id} 
                 project={project} 
-                onEdit={userIsAdmin(user) ? handleEditProject : undefined}
-                onClone={userIsAdmin(user) ? handleCloneProject : undefined}
-                onDelete={userIsAdmin(user) ? handleDeleteProject : undefined}
-                onRestore={userIsAdmin(user) ? handleRestoreProject : undefined}
+                onEdit={userHasPermission(user, 'workspace.admin') ? handleEditProject : undefined}
+                onClone={userHasPermission(user, 'workspace.admin') ? handleCloneProject : undefined}
+                onDelete={userHasPermission(user, 'workspace.admin') ? handleDeleteProject : undefined}
+                onRestore={userHasPermission(user, 'workspace.admin') ? handleRestoreProject : undefined}
               />
             ))
           ) : (
@@ -362,12 +362,12 @@ const Projects: React.FC = () => {
               <p className="mt-1 text-sm text-gray-500">
                 {searchTerm 
                   ? 'Try adjusting your search terms.' 
-                  : userIsAdmin(user) 
+                  : userHasPermission(user, 'workspace.admin') 
                     ? 'Get started by creating a new project.'
                     : 'No projects have been assigned to you yet. Contact your administrator for access.'
                 }
               </p>
-              {!searchTerm && userIsAdmin(user) && (
+              {!searchTerm && userHasPermission(user, 'workspace.admin') && (
                 <div className="mt-6">
                   <button
                     onClick={handleCreateProject}
