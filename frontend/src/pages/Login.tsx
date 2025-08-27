@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { authService } from '../services/auth';
+import config from '../utils/config';
 import type { LoginCredentials } from '../types/auth';
 
 const Login: React.FC = () => {
@@ -141,15 +142,17 @@ const Login: React.FC = () => {
             <div className="text-red-600 text-sm text-center">{error}</div>
           )}
 
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-            <div className="text-sm text-blue-800">
-              <strong>Demo Credentials:</strong>
-              <br />
-              Email: admin@agentdms.com
-              <br />
-              Password: admin123
+          {config.get('enableDemoMode') && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+              <div className="text-sm text-blue-800">
+                <strong>Demo Credentials:</strong>
+                <br />
+                Email: admin@agentdms.com
+                <br />
+                Password: admin123
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <button
