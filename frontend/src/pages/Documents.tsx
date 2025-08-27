@@ -67,7 +67,7 @@ const Documents: React.FC = () => {
     }
   };
 
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
     try {
       setIsLoadingProjects(true);
       const response = await projectService.getProjects(1, 50); // Get first 50 projects
@@ -91,7 +91,7 @@ const Documents: React.FC = () => {
     } finally {
       setIsLoadingProjects(false);
     }
-  };
+  }, [searchParams, selectedProjectId]);
 
   // Search functionality
   const handleSearch = async () => {
@@ -336,12 +336,12 @@ const Documents: React.FC = () => {
       loadProjects();
     }
     loadSupportedFormats();
-  }, [viewMode, fetchDocuments]);
+  }, [viewMode, fetchDocuments, loadProjects]);
 
   // Load projects on component mount to handle URL parameters
   useEffect(() => {
     loadProjects();
-  }, [searchParams]);
+  }, [loadProjects]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
