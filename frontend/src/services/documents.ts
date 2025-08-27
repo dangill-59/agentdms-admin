@@ -368,8 +368,8 @@ export class DocumentService {
         { ...filters, page, pageSize }
       );
       
-      // Handle the API response format
-      const responseData = response.data || response;
+      // Handle the API response format - apiService already unwraps response.data
+      const responseData = response;
       
       // Convert DocumentDto to DocumentSearchResult
       const searchResults: DocumentSearchResult[] = (responseData.data || []).map(doc => ({
