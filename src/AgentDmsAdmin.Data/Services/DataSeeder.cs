@@ -317,6 +317,9 @@ public class DataSeeder
             _context.Roles.Add(userRole);
             await _context.SaveChangesAsync();
         }
+        
+        // Always ensure User role has basic permissions set up
+        await SetupUserRolePermissionsAsync();
 
         // Assign User role to gill.dan2 user (not Administrator)
         var userRoleAssignment = new UserRole
@@ -372,6 +375,9 @@ public class DataSeeder
             _context.Roles.Add(userRole);
             await _context.SaveChangesAsync();
         }
+        
+        // Always ensure User role has basic permissions set up
+        await SetupUserRolePermissionsAsync();
 
         // Assign User role to user1
         var userRoleAssignment = new UserRole
@@ -381,6 +387,56 @@ public class DataSeeder
         };
 
         _context.UserRoles.Add(userRoleAssignment);
+        await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Sets up basic permissions for the User role
+    /// </summary>
+    public async Task SetupUserRolePermissionsAsync()
+    {
+        // Find User role
+        var userRole = await _context.Roles
+            .FirstOrDefaultAsync(r => r.Name == "User");
+            
+        if (userRole == null)
+        {
+            return; // User role doesn't exist
+        }
+
+        // Define basic permissions that regular users should have
+        var basicPermissions = new[]
+        {
+            "document.view"  // Users need this to search and view documents
+        };
+
+        foreach (var permissionName in basicPermissions)
+        {
+            // Find the permission
+            var permission = await _context.Permissions
+                .FirstOrDefaultAsync(p => p.Name == permissionName);
+                
+            if (permission == null)
+            {
+                continue; // Permission doesn't exist, skip
+            }
+
+            // Check if role-permission association already exists
+            var existingRolePermission = await _context.RolePermissions
+                .FirstOrDefaultAsync(rp => rp.RoleId == userRole.Id && rp.PermissionId == permission.Id);
+                
+            if (existingRolePermission == null)
+            {
+                var rolePermission = new RolePermission
+                {
+                    RoleId = userRole.Id,
+                    PermissionId = permission.Id
+                };
+
+                _context.RolePermissions.Add(rolePermission);
+            }
+        }
+
         await _context.SaveChangesAsync();
     }
 
