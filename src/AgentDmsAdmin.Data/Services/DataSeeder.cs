@@ -188,11 +188,17 @@ public class DataSeeder
     {
         // Check if admin user already exists
         var existingAdmin = await _context.Users
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .ThenInclude(r => r.RolePermissions)
+            .ThenInclude(rp => rp.Permission)
             .FirstOrDefaultAsync(u => u.Username == "admin");
 
         if (existingAdmin != null)
         {
-            return; // Admin user already exists
+            // Admin user exists, verify they have all required permissions
+            await EnsureAdminHasAllPermissions(existingAdmin);
+            return;
         }
 
         // Create the default admin user
@@ -579,6 +585,94 @@ public class DataSeeder
 
             _context.CustomFields.Add(customField);
             await _context.SaveChangesAsync();
+        }
+    }
+
+    /// <summary>
+    /// Ensures the admin user has all required permissions for document access
+    /// </summary>
+    private async Task EnsureAdminHasAllPermissions(User adminUser)
+    {
+        // Find Administrator role
+        var adminRole = await _context.Roles
+            .Include(r => r.RolePermissions)
+            .ThenInclude(rp => rp.Permission)
+            .FirstOrDefaultAsync(r => r.Name == "Administrator");
+
+        if (adminRole == null)
+        {
+            // Create Administrator role if it doesn't exist
+            adminRole = new Role
+            {
+                Name = "Administrator",
+                Description = "Full system administrator with all permissions"
+            };
+
+            _context.Roles.Add(adminRole);
+            await _context.SaveChangesAsync();
+        }
+
+        // Ensure Administrator role has ALL permissions
+        var allPermissions = await _context.Permissions.ToListAsync();
+        var requiredPermissionNames = new[]
+        {
+            "workspace.admin",
+            "document.view", 
+            "document.edit",
+            "document.delete",
+            "document.print",
+            "document.annotate"
+        };
+
+        foreach (var permission in allPermissions)
+        {
+            var existingRolePermission = await _context.RolePermissions
+                .FirstOrDefaultAsync(rp => rp.RoleId == adminRole.Id && rp.PermissionId == permission.Id);
+                
+            if (existingRolePermission == null)
+            {
+                var rolePermission = new RolePermission
+                {
+                    RoleId = adminRole.Id,
+                    PermissionId = permission.Id
+                };
+
+                _context.RolePermissions.Add(rolePermission);
+            }
+        }
+
+        await _context.SaveChangesAsync();
+
+        // Ensure admin user has Administrator role
+        var userRole = await _context.UserRoles
+            .FirstOrDefaultAsync(ur => ur.UserId == adminUser.Id && ur.RoleId == adminRole.Id);
+
+        if (userRole == null)
+        {
+            var newUserRole = new UserRole
+            {
+                UserId = adminUser.Id,
+                RoleId = adminRole.Id
+            };
+
+            _context.UserRoles.Add(newUserRole);
+            await _context.SaveChangesAsync();
+        }
+
+        // Verify the admin user now has all required permissions (for logging)
+        var userPermissions = await _context.Users
+            .Where(u => u.Id == adminUser.Id)
+            .SelectMany(u => u.UserRoles)
+            .SelectMany(ur => ur.Role.RolePermissions)
+            .Select(rp => rp.Permission.Name)
+            .ToListAsync();
+
+        foreach (var requiredPermission in requiredPermissionNames)
+        {
+            if (!userPermissions.Contains(requiredPermission))
+            {
+                throw new InvalidOperationException($"Admin user is missing required permission: {requiredPermission}");
+            }
         }
     }
 }
