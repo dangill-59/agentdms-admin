@@ -33,15 +33,34 @@ public class AuthorizationService : IAuthorizationService
         var currentUser = GetCurrentUser();
         if (currentUser == null)
         {
+            Console.WriteLine($"[AUTH DEBUG] No current user found for permission check: {permissionName}");
             return false;
         }
 
         if (!int.TryParse(currentUser.Id, out var userId))
         {
+            Console.WriteLine($"[AUTH DEBUG] Invalid user ID '{currentUser.Id}' for permission check: {permissionName}");
             return false;
         }
 
-        return await UserHasPermissionAsync(userId, permissionName);
+        var hasPermission = await UserHasPermissionAsync(userId, permissionName);
+        
+        if (!hasPermission)
+        {
+            Console.WriteLine($"[AUTH DEBUG] User {currentUser.Username} (ID: {userId}) lacks permission: {permissionName}");
+            
+            // Log user's current permissions for debugging
+            var userPermissions = await _context.Users
+                .Where(u => u.Id == userId)
+                .SelectMany(u => u.UserRoles)
+                .SelectMany(ur => ur.Role.RolePermissions)
+                .Select(rp => rp.Permission.Name)
+                .ToListAsync();
+            
+            Console.WriteLine($"[AUTH DEBUG] User {currentUser.Username} has permissions: [{string.Join(", ", userPermissions)}]");
+        }
+
+        return hasPermission;
     }
 
     /// <summary>
