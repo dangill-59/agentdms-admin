@@ -41,12 +41,6 @@ export class AuthService {
         }
       }
       
-      // For the admin@agentdms.com demo user, always try to reach the backend since it supports this user
-      if (credentials.email === 'admin@agentdms.com' && credentials.password === 'admin123') {
-        console.warn('Backend authentication failed for demo admin user, but this should work. Rethrowing error:', error);
-        throw error;
-      }
-      
       // For network errors or other non-HTTP errors, only fallback to demo if explicitly enabled
       if (!config.get('enableDemoMode')) {
         // In production mode, throw the error instead of falling back to demo
@@ -60,7 +54,37 @@ export class AuthService {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Demo validation for other users - remove this in production
-      if (credentials.email === 'demo@agentdms.com' && credentials.password === 'demo123') {
+      if (credentials.email === 'admin@agentdms.com' && credentials.password === 'admin123') {
+        const user: User = {
+          id: '3',
+          username: 'admin',
+          email: credentials.email,
+          roles: [
+            {
+              id: '3',
+              userId: '3',
+              roleId: '3',
+              roleName: 'Administrator',
+              createdAt: new Date().toISOString()
+            }
+          ],
+          permissions: ['workspace.admin']
+        };
+
+        const token = 'demo-jwt-token-admin-' + Date.now();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
+
+        const response: AuthResponse = {
+          token,
+          user,
+          expiresAt
+        };
+
+        // Store token
+        apiService.setToken(token);
+        
+        return response;
+      } else if (credentials.email === 'demo@agentdms.com' && credentials.password === 'demo123') {
         const user: User = {
           id: '1',
           username: 'demo',
@@ -171,21 +195,37 @@ export class AuthService {
             ],
             permissions: []
           };
-        } else {
+        } else if (token.startsWith('demo-jwt-token-admin-')) {
           return {
-            id: '1',
+            id: '3',
             username: 'admin',
             email: 'admin@agentdms.com',
             roles: [
               {
-                id: '1',
-                userId: '1',
-                roleId: '1',
+                id: '3',
+                userId: '3',
+                roleId: '3',
                 roleName: 'Administrator',
                 createdAt: new Date().toISOString()
               }
             ],
             permissions: ['workspace.admin']
+          };
+        } else {
+          return {
+            id: '1',
+            username: 'demo',
+            email: 'demo@agentdms.com',
+            roles: [
+              {
+                id: '1',
+                userId: '1',
+                roleId: '1',
+                roleName: 'User',
+                createdAt: new Date().toISOString()
+              }
+            ],
+            permissions: []
           };
         }
       }
