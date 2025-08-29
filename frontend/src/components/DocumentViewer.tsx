@@ -141,22 +141,32 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     }
   };
 
-  const handleMetadataChange = (key: keyof DocumentMetadata, value: string) => {
-    if (!editedMetadata) return;
-    setEditedMetadata({
-      ...editedMetadata,
-      [key]: value
-    });
-  };
+  // Legacy metadata change handler - keeping for potential future backward compatibility
+  // const handleMetadataChange = (key: keyof DocumentMetadata, value: string) => {
+  //   if (!editedMetadata) return;
+  //   setEditedMetadata({
+  //     ...editedMetadata,
+  //     [key]: value
+  //   });
+  // };
 
   const handleCustomFieldChange = (fieldId: string, value: string) => {
     if (!editedMetadata || !editedMetadata.customFields) return;
+    
+    // Find the field to get its name
+    const field = editedMetadata.customFields.find(f => f.fieldId === fieldId);
+    if (!field) return;
     
     setEditedMetadata({
       ...editedMetadata,
       customFields: editedMetadata.customFields.map(field =>
         field.fieldId === fieldId ? { ...field, value } : field
-      )
+      ),
+      // Also update customFieldValues for backend compatibility
+      customFieldValues: {
+        ...editedMetadata.customFieldValues,
+        [field.fieldName]: value
+      }
     });
   };
 
@@ -184,22 +194,23 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getStatusBadgeColor = (status: string): string => {
-    switch (status.toLowerCase()) {
-      case 'draft':
-        return 'bg-gray-100 text-gray-800';
-      case 'pending review':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'processed':
-        return 'bg-green-100 text-green-800';
-      case 'approved':
-        return 'bg-blue-100 text-blue-800';
-      case 'rejected':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // Legacy status badge color function - keeping for potential future use
+  // const getStatusBadgeColor = (status: string): string => {
+  //   switch (status.toLowerCase()) {
+  //     case 'draft':
+  //       return 'bg-gray-100 text-gray-800';
+  //     case 'pending review':
+  //       return 'bg-yellow-100 text-yellow-800';
+  //     case 'processed':
+  //       return 'bg-green-100 text-green-800';
+  //     case 'approved':
+  //       return 'bg-blue-100 text-blue-800';
+  //     case 'rejected':
+  //       return 'bg-red-100 text-red-800';
+  //     default:
+  //       return 'bg-gray-100 text-gray-800';
+  //   }
+  // };
 
   const renderCustomField = (field: DocumentCustomFieldValue, isEditing: boolean) => {
     const fieldValue = field.value || '';
@@ -575,7 +586,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
               </div>
             ) : metadata && editedMetadata ? (
               <div className="space-y-4">
-                {/* Render dynamic custom fields */}
+                {/* Always prefer custom fields when available */}
                 {metadata.customFields && metadata.customFields.length > 0 ? (
                   metadata.customFields
                     .sort((a, b) => (projectFields.find(f => f.id === a.fieldId)?.order || 0) - (projectFields.find(f => f.id === b.fieldId)?.order || 0))
@@ -592,131 +603,13 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                       </div>
                     ))
                 ) : (
-                  // Fallback to legacy hardcoded fields if no custom fields exist
-                  <>
-                    {/* Customer Name */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Customer Name
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editedMetadata.customerName}
-                          onChange={(e) => handleMetadataChange('customerName', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      ) : (
-                        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
-                          {metadata.customerName}
-                        </div>
-                      )}
+                  // Fallback to legacy hardcoded fields only if no custom fields exist
+                  <div className="text-center py-8 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="text-yellow-800">
+                      <p className="font-medium">No custom fields configured</p>
+                      <p className="text-sm mt-1">This project has no custom index fields defined. Please configure custom fields in the project settings to enable document indexing.</p>
                     </div>
-
-                    {/* Invoice Number */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Invoice Number
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editedMetadata.invoiceNumber}
-                          onChange={(e) => handleMetadataChange('invoiceNumber', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      ) : (
-                        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
-                          {metadata.invoiceNumber}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Invoice Date */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Invoice Date
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="date"
-                          value={editedMetadata.invoiceDate}
-                          onChange={(e) => handleMetadataChange('invoiceDate', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      ) : (
-                        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
-                          {new Date(metadata.invoiceDate).toLocaleDateString()}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Document Type */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Document Type
-                      </label>
-                      {isEditing ? (
-                        <select
-                          value={editedMetadata.docType}
-                          onChange={(e) => handleMetadataChange('docType', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        >
-                          {documentService.getDocumentTypes().map(type => (
-                            <option key={type} value={type}>{type}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
-                          {metadata.docType}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Status */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Status
-                      </label>
-                      {isEditing ? (
-                        <select
-                          value={editedMetadata.status}
-                          onChange={(e) => handleMetadataChange('status', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        >
-                          {documentService.getStatusOptions().map(status => (
-                            <option key={status} value={status}>{status}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <div className="flex items-center">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(metadata.status)}`}>
-                            {metadata.status}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Notes */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Notes
-                      </label>
-                      {isEditing ? (
-                        <textarea
-                          value={editedMetadata.notes || ''}
-                          onChange={(e) => handleMetadataChange('notes', e.target.value)}
-                          rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="Add notes..."
-                        />
-                      ) : (
-                        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900 min-h-[80px]">
-                          {metadata.notes || 'No notes added'}
-                        </div>
-                      )}
-                    </div>
-                  </>
+                  </div>
                 )}
               </div>
             ) : (
