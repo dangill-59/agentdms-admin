@@ -64,7 +64,7 @@ export interface ProcessingResult {
 }
 
 export class DocumentService {
-  private readonly basePath = '/documents';
+  private readonly basePath = '/Documents';
 
   // Document CRUD operations
   public async getDocuments(page = 1, pageSize = 10): Promise<PaginatedResponse<Document>> {
@@ -385,11 +385,11 @@ export class DocumentService {
 
   // Legacy URL methods (deprecated - use getDocumentPreview/getDocumentThumbnail instead)
   public getDocumentPreviewUrl(documentId: string): string {
-    return `${apiService.getBaseURL()}/documents/${documentId}/preview`;
+    return `${apiService.getBaseURL()}${this.basePath}/${documentId}/preview`;
   }
 
   public getDocumentThumbnailUrl(documentId: string): string {
-    return `${apiService.getBaseURL()}/documents/${documentId}/thumbnail`;
+    return `${apiService.getBaseURL()}${this.basePath}/${documentId}/thumbnail`;
   }
 
   // Document search functionality
@@ -402,7 +402,7 @@ export class DocumentService {
       }
 
       // Use real API when not in demo mode - use postDirect since backend returns data directly
-      const responseData = await apiService.postDirect<PaginatedResponse<DocumentDto>>('/documents/search', 
+      const responseData = await apiService.postDirect<PaginatedResponse<DocumentDto>>(`${this.basePath}/search`, 
         { ...filters, page, pageSize }
       );
       
@@ -579,7 +579,7 @@ export class DocumentService {
       }
 
       // Use real API when not in demo mode
-      const response = await apiService.get<DocumentMetadata>(`/documents/${documentId}/metadata`);
+      const response = await apiService.get<DocumentMetadata>(`${this.basePath}/${documentId}/metadata`);
       return response.data || response;
     } catch (error) {
       console.error('Failed to fetch document metadata:', error);
@@ -687,7 +687,7 @@ export class DocumentService {
       }
 
       // Use real API when not in demo mode
-      const response = await apiService.put<DocumentMetadata>(`/documents/${documentId}/metadata`, metadata);
+      const response = await apiService.put<DocumentMetadata>(`${this.basePath}/${documentId}/metadata`, metadata);
       return response.data || response;
     } catch (error) {
       console.error('Failed to update document metadata:', error);
