@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { ProjectRole, Role, AssignProjectRoleRequest } from '../types/api';
 import { roleService } from '../services/roles';
 
@@ -27,7 +27,7 @@ const ProjectRoleManagement: React.FC<ProjectRoleManagementProps> = ({
     canDelete: true
   });
 
-  const fetchProjectRoles = async () => {
+  const fetchProjectRoles = useCallback(async () => {
     try {
       setIsLoading(true);
       const roles = await roleService.getProjectRoles(projectId);
@@ -38,21 +38,21 @@ const ProjectRoleManagement: React.FC<ProjectRoleManagementProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [projectId]);
 
-  const fetchAllRoles = async () => {
+  const fetchAllRoles = useCallback(async () => {
     try {
       const response = await roleService.getRoles(1, 100);
       setAllRoles(response.data || []);
     } catch (err) {
       console.error('Error fetching roles:', err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchProjectRoles();
     fetchAllRoles();
-  }, [projectId]);
+  }, [fetchProjectRoles, fetchAllRoles]);
 
   const handleAssignRole = async (e: React.FormEvent) => {
     e.preventDefault();
