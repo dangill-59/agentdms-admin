@@ -53,7 +53,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     let previewBlobUrl = '';
     
     const loadPreview = async () => {
-      if (document.mimeType?.startsWith('image/') || document.mimeType?.includes('pdf')) {
+      if (document.mimeType?.startsWith('image/') || document.mimeType === 'application/pdf') {
         try {
           setIsLoadingPreview(true);
           const url = await documentService.getDocumentPreview(document.id);
@@ -392,7 +392,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
             {/* Document Preview */}
             <div className="border-2 border-gray-200 rounded-lg overflow-hidden bg-white">
-              {document.mimeType?.startsWith('image/') || document.mimeType?.includes('pdf') ? (
+              {document.mimeType?.startsWith('image/') || document.mimeType === 'application/pdf' ? (
                 <div className="relative">
                   {isLoadingPreview ? (
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
@@ -407,7 +407,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                       </div>
                     </div>
                   ) : previewUrl ? (
-                    document.mimeType?.includes('pdf') ? (
+                    document.mimeType === 'application/pdf' ? (
                       <iframe
                         src={previewUrl}
                         title={document.fileName}
