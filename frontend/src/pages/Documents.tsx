@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { Document, DocumentSearchFilters, DocumentSearchResult, PaginatedResponse, Project } from '../types/api';
+import type { Document, DocumentSearchFilters, DocumentSearchResult, PaginatedResponse, Project, CustomField } from '../types/api';
 import { documentService } from '../services/documents';
 import { projectService } from '../services/projects';
 import config from '../utils/config';
@@ -26,7 +26,9 @@ const Documents: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('search');
   
   // Search functionality state
-  const [searchFilters, setSearchFilters] = useState<DocumentSearchFilters>({});
+  const [searchFilters, setSearchFilters] = useState<DocumentSearchFilters>({
+    customFieldFilters: {}
+  });
   const [searchResults, setSearchResults] = useState<PaginatedResponse<DocumentSearchResult>>({
     data: [],
     totalCount: 0,
@@ -37,6 +39,9 @@ const Documents: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<DocumentSearchResult | null>(null);
+  
+  // Custom fields for current project
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
 
   // Original upload functionality state
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -93,6 +98,26 @@ const Documents: React.FC = () => {
     }
   }, [searchParams, selectedProjectId]);
 
+  // Load custom fields when project changes in search filters
+  useEffect(() => {
+    const loadCustomFields = async () => {
+      if (!searchFilters.projectId) {
+        setCustomFields([]);
+        return;
+      }
+
+      try {
+        const fields = await projectService.getProjectCustomFields(searchFilters.projectId);
+        setCustomFields(fields);
+      } catch (error) {
+        console.error('Failed to load custom fields:', error);
+        setCustomFields([]);
+      }
+    };
+
+    loadCustomFields();
+  }, [searchFilters.projectId]);
+
   // Search functionality
   const handleSearch = async () => {
     if (!searchFilters.projectId) {
@@ -115,7 +140,9 @@ const Documents: React.FC = () => {
   };
 
   const handleClearSearch = () => {
-    setSearchFilters({});
+    setSearchFilters({
+      customFieldFilters: {}
+    });
     setSearchResults({
       data: [],
       totalCount: 0,
@@ -480,6 +507,7 @@ const Documents: React.FC = () => {
             onDocumentSelect={handleDocumentSelect}
             onUpdateSearch={handleUpdateSearch}
             isLoading={isSearching}
+            customFields={customFields}
           />
         )}
 

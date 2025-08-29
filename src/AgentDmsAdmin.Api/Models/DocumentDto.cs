@@ -11,7 +11,10 @@ public class DocumentDto
     public string CreatedAt { get; set; } = string.Empty;
     public string ModifiedAt { get; set; } = string.Empty;
     
-    // Extended metadata for search results (optional fields)
+    // Dynamic custom field values
+    public Dictionary<string, string> CustomFieldValues { get; set; } = new Dictionary<string, string>();
+    
+    // Legacy fields for backward compatibility (will be removed after frontend update)
     public string? CustomerName { get; set; }
     public string? InvoiceNumber { get; set; }
     public string? InvoiceDate { get; set; }
@@ -22,17 +25,27 @@ public class DocumentDto
 public class DocumentSearchFilters
 {
     public string? ProjectId { get; set; }
+    public string? DateFrom { get; set; }
+    public string? DateTo { get; set; }
+    
+    // Dynamic custom field filters - key is field name, value is search term
+    public Dictionary<string, string> CustomFieldFilters { get; set; } = new Dictionary<string, string>();
+    
+    // Legacy filters for backward compatibility (will be removed after frontend update)
     public string? InvoiceNumber { get; set; }
     public string? CustomerName { get; set; }
     public string? DocType { get; set; }
-    public string? DateFrom { get; set; }
-    public string? DateTo { get; set; }
     public string? Status { get; set; }
 }
 
 public class DocumentMetadata
 {
     public string Id { get; set; } = string.Empty;
+    
+    // Dynamic custom field values
+    public Dictionary<string, string> CustomFieldValues { get; set; } = new Dictionary<string, string>();
+    
+    // Legacy fields for backward compatibility (will be removed after frontend update)
     public string CustomerName { get; set; } = string.Empty;
     public string InvoiceNumber { get; set; } = string.Empty;
     public string InvoiceDate { get; set; } = string.Empty;
@@ -43,6 +56,10 @@ public class DocumentMetadata
 
 public class UpdateDocumentMetadataRequest
 {
+    // Dynamic custom field values to update
+    public Dictionary<string, string> CustomFieldValues { get; set; } = new Dictionary<string, string>();
+    
+    // Legacy fields for backward compatibility (will be removed after frontend update)
     public string? CustomerName { get; set; }
     public string? InvoiceNumber { get; set; }
     public string? InvoiceDate { get; set; }

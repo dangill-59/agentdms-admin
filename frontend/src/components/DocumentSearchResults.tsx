@@ -1,5 +1,5 @@
 import React from 'react';
-import type { DocumentSearchResult, PaginatedResponse } from '../types/api';
+import type { DocumentSearchResult, PaginatedResponse, CustomField } from '../types/api';
 
 interface DocumentSearchResultsProps {
   results: PaginatedResponse<DocumentSearchResult>;
@@ -8,6 +8,7 @@ interface DocumentSearchResultsProps {
   onDocumentSelect: (document: DocumentSearchResult) => void;
   onUpdateSearch: () => void;
   isLoading?: boolean;
+  customFields?: CustomField[];
 }
 
 const DocumentSearchResults: React.FC<DocumentSearchResultsProps> = ({
@@ -16,7 +17,8 @@ const DocumentSearchResults: React.FC<DocumentSearchResultsProps> = ({
   onPageChange,
   onDocumentSelect,
   onUpdateSearch,
-  isLoading = false
+  isLoading = false,
+  customFields = []
 }) => {
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -195,20 +197,17 @@ const DocumentSearchResults: React.FC<DocumentSearchResultsProps> = ({
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Customer Name
+                  File Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Invoice Number
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Invoice Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Doc Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
+                {/* Show first 3 non-default custom fields */}
+                {customFields
+                  .filter(field => !field.isDefault)
+                  .slice(0, 3)
+                  .map(field => (
+                    <th key={field.id} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {field.name}
+                    </th>
+                  ))}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Created
                 </th>
@@ -228,22 +227,17 @@ const DocumentSearchResults: React.FC<DocumentSearchResultsProps> = ({
                   onClick={() => onDocumentSelect(document)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {document.customerName}
+                    {document.fileName}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {document.invoiceNumber}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(document.invoiceDate)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {document.docType}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(document.status)}`}>
-                      {document.status}
-                    </span>
-                  </td>
+                  {/* Show values for first 3 non-default custom fields */}
+                  {customFields
+                    .filter(field => !field.isDefault)
+                    .slice(0, 3)
+                    .map(field => (
+                      <td key={field.id} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {document.customFieldValues[field.name] || '-'}
+                      </td>
+                    ))}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatDate(document.createdAt)}
                   </td>
