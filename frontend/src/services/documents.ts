@@ -417,11 +417,11 @@ export class DocumentService {
         mimeType: doc.mimeType || '',
         customFieldValues: doc.customFieldValues || {},
         // Backward compatibility - fallback to legacy fields or custom field values
-        customerName: doc.customerName || doc.customFieldValues?.['CustomerName'] || 'Unknown Customer',
-        invoiceNumber: doc.invoiceNumber || doc.customFieldValues?.['InvoiceNumber'] || 'N/A',
+        customerName: doc.customerName || doc.customFieldValues?.['CustomerName'] || '',
+        invoiceNumber: doc.invoiceNumber || doc.customFieldValues?.['InvoiceNumber'] || '',
         invoiceDate: doc.invoiceDate || doc.customFieldValues?.['InvoiceDate'] || '',
-        docType: doc.docType || doc.customFieldValues?.['DocType'] || 'Document',
-        status: doc.status || doc.customFieldValues?.['Status'] || 'Processed'
+        docType: doc.docType || doc.customFieldValues?.['DocType'] || '',
+        status: doc.status || doc.customFieldValues?.['Status'] || ''
       }));
       
       return {
