@@ -22,6 +22,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const [editedMetadata, setEditedMetadata] = useState<DocumentMetadata | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [isLoadingPreview, setIsLoadingPreview] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -56,11 +57,13 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       if (document.mimeType?.startsWith('image/')) {
         try {
           setIsLoadingPreview(true);
+          setImageError(false);
           const url = await documentService.getDocumentPreview(document.id);
           previewBlobUrl = url;
           setPreviewUrl(url);
         } catch (err) {
           console.error('Failed to load document preview:', err);
+          setImageError(true);
           // Don't set error state here, just let the image fallback handle it
         } finally {
           setIsLoadingPreview(false);
@@ -406,24 +409,37 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                         </p>
                       </div>
                     </div>
-                  ) : previewUrl ? (
+                  ) : imageError || !previewUrl ? (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
+                      <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <div className="mt-4">
+                        <p className="text-lg font-medium text-gray-900">Image Preview Unavailable</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Failed to load image preview
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
                     <img
                       src={previewUrl}
                       alt={document.fileName}
                       className="w-full h-auto max-h-96 object-contain"
                       onError={(e) => {
-                        // Fallback to placeholder if image fails to load
+                        // Set error state when image fails to load
                         console.log('Image failed to load:', e);
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const fallback = target.nextElementSibling as HTMLElement;
-                        if (fallback) {
-                          fallback.classList.remove('hidden');
+                        setImageError(true);
+                        // Clean up the blob URL if it exists
+                        if (previewUrl) {
+                          URL.revokeObjectURL(previewUrl);
+                          setPreviewUrl('');
                         }
                       }}
                       onLoad={(e) => {
-                        // Log successful load for debugging
+                        // Log successful load for debugging and ensure error state is cleared
                         const target = e.target as HTMLImageElement;
+                        setImageError(false);
                         console.log('Image loaded successfully:', {
                           src: target.src,
                           naturalWidth: target.naturalWidth,
@@ -431,18 +447,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                         });
                       }}
                     />
-                  ) : null}
-                  <div className="hidden border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
-                    <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <div className="mt-4">
-                      <p className="text-lg font-medium text-gray-900">Image Preview Unavailable</p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Failed to load image preview
-                      </p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               ) : (
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
