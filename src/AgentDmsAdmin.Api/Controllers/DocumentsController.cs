@@ -495,12 +495,8 @@ public class DocumentsController : ControllerBase
                 return NotFound($"Document with ID {id} not found.");
             }
 
-            // Handle storage path - if it starts with /uploads/, treat as relative to current directory
-            var filePath = document.StoragePath;
-            if (filePath.StartsWith("/uploads/"))
-            {
-                filePath = "." + filePath; // Convert "/uploads/file.pdf" to "./uploads/file.pdf"
-            }
+            // Resolve storage path for file access
+            var filePath = ResolveStoragePath(document.StoragePath);
 
             if (string.IsNullOrEmpty(document.StoragePath) || !System.IO.File.Exists(filePath))
             {
@@ -531,12 +527,8 @@ public class DocumentsController : ControllerBase
                 return NotFound($"Document with ID {id} not found.");
             }
 
-            // Handle storage path - if it starts with /uploads/, treat as relative to current directory
-            var filePath = document.StoragePath;
-            if (filePath.StartsWith("/uploads/"))
-            {
-                filePath = "." + filePath; // Convert "/uploads/file.pdf" to "./uploads/file.pdf"
-            }
+            // Resolve storage path for file access
+            var filePath = ResolveStoragePath(document.StoragePath);
 
             if (string.IsNullOrEmpty(document.StoragePath) || !System.IO.File.Exists(filePath))
             {
@@ -569,12 +561,8 @@ public class DocumentsController : ControllerBase
                 return NotFound($"Document with ID {id} not found.");
             }
 
-            // Handle storage path - if it starts with /uploads/, treat as relative to current directory
-            var filePath = document.StoragePath;
-            if (filePath.StartsWith("/uploads/"))
-            {
-                filePath = "." + filePath; // Convert "/uploads/file.pdf" to "./uploads/file.pdf"
-            }
+            // Resolve storage path for file access
+            var filePath = ResolveStoragePath(document.StoragePath);
 
             if (string.IsNullOrEmpty(document.StoragePath) || !System.IO.File.Exists(filePath))
             {
@@ -601,5 +589,19 @@ public class DocumentsController : ControllerBase
             _logger.LogError(ex, "Error getting document thumbnail {DocumentId}", id);
             return StatusCode(500, "An error occurred while getting the document thumbnail");
         }
+    }
+
+    /// <summary>
+    /// Resolves the storage path by converting /uploads/ paths to relative ./uploads/ paths
+    /// </summary>
+    /// <param name="storagePath">The original storage path</param>
+    /// <returns>The resolved file path</returns>
+    private static string ResolveStoragePath(string storagePath)
+    {
+        if (storagePath.StartsWith("/uploads/"))
+        {
+            return "." + storagePath; // Convert "/uploads/file.pdf" to "./uploads/file.pdf"
+        }
+        return storagePath;
     }
 }
