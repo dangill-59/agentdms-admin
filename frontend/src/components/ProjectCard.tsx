@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import type { Project } from '../types/api';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import { userIsAdmin } from '../utils/userHelpers';
 
 interface ProjectCardProps {
   project: Project;
@@ -12,8 +14,11 @@ interface ProjectCardProps {
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, onEdit, onClone, onDelete, onRestore }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const isAdmin = userIsAdmin(user);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -72,6 +77,11 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onEdit, onClone, onD
 
   const handleManageFields = () => {
     navigate(`/projects/${project.id}/fields`);
+    setShowDropdown(false);
+  };
+
+  const handleManageRoles = () => {
+    navigate(`/projects/${project.id}`);
     setShowDropdown(false);
   };
 
@@ -160,6 +170,17 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onEdit, onClone, onD
                           </svg>
                           Manage Fields
                         </button>
+                        {isAdmin && (
+                          <button
+                            onClick={handleManageRoles}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                          >
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                            </svg>
+                            Manage Roles
+                          </button>
+                        )}
                         <button
                           onClick={handleClone}
                           disabled={isProcessing}
