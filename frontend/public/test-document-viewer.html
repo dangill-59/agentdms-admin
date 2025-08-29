@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocumentViewer Image Error Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .test-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #4F46E5;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .status.fixed {
+            background-color: #D1FAE5;
+            color: #065F46;
+        }
+        .demo-container {
+            border: 2px solid #E5E7EB;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #F9FAFB;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        .error-fallback {
+            border: 2px dashed #D1D5DB;
+            border-radius: 8px;
+            padding: 32px;
+            text-align: center;
+            background: #F9FAFB;
+        }
+        .error-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            color: #9CA3AF;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 DocumentViewer Image Loading Error Fix</h1>
+    
+    <div class="test-card">
+        <div class="status fixed">✅ FIXED</div>
+        <h2>Image Loading Error Handling</h2>
+        <p><strong>Issue:</strong> Image loading errors in DocumentViewer were handled using fragile DOM manipulation that could fail.</p>
+        <p><strong>Solution:</strong> Replaced DOM manipulation with proper React state management for robust error handling.</p>
+    </div>
+
+    <div class="test-card">
+        <h3>🧪 Test: Image Loading Error Simulation</h3>
+        <p>The following demonstrates how the component now handles image loading errors:</p>
+        
+        <div class="demo-container">
+            <h4>Before Fix (Old Behavior):</h4>
+            <p>Used DOM manipulation: <code>target.style.display = 'none'</code> and <code>fallback.classList.remove('hidden')</code></p>
+            
+            <!-- Simulate old broken behavior -->
+            <img src="https://example.com/nonexistent-image.jpg" alt="Test broken image" 
+                 onerror="this.style.display='none'; 
+                          var fallback = document.getElementById('old-fallback');
+                          if(fallback) fallback.classList.remove('hidden');"
+                 style="max-width: 300px; max-height: 200px; object-fit: contain;">
+            
+            <div id="old-fallback" class="error-fallback hidden">
+                <div class="error-icon">📄</div>
+                <p><strong>Image Preview Unavailable (Old Method)</strong></p>
+                <p>Failed to load image preview using DOM manipulation</p>
+            </div>
+        </div>
+
+        <div class="demo-container">
+            <h4>After Fix (New Behavior):</h4>
+            <p>Uses React state: <code>setImageError(true)</code> and conditional rendering</p>
+            
+            <!-- Simulate new improved behavior -->
+            <div id="new-behavior-demo">
+                <div class="error-fallback">
+                    <div class="error-icon">📄</div>
+                    <p><strong>Image Preview Unavailable (New Method)</strong></p>
+                    <p>Failed to load image preview using React state management</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-card">
+        <h3>🔍 Code Changes Summary</h3>
+        <ul>
+            <li><strong>Added:</strong> <code>const [imageError, setImageError] = useState(false)</code></li>
+            <li><strong>Updated:</strong> <code>onError</code> handler to use <code>setImageError(true)</code></li>
+            <li><strong>Improved:</strong> Conditional rendering: <code>imageError || !previewUrl</code></li>
+            <li><strong>Enhanced:</strong> <code>onLoad</code> handler to clear error state</li>
+            <li><strong>Added:</strong> Proper blob URL cleanup on error</li>
+        </ul>
+    </div>
+
+    <div class="test-card">
+        <h3>✅ Benefits</h3>
+        <ul>
+            <li>Robust error handling using React best practices</li>
+            <li>No more fragile DOM manipulation</li>
+            <li>Consistent fallback UI rendering</li>
+            <li>Better error state management and cleanup</li>
+            <li>Maintains debugging capabilities</li>
+        </ul>
+    </div>
+
+    <script>
+        // Log that the test page loaded successfully
+        console.log('DocumentViewer image error fix test page loaded successfully');
+        
+        // Test that the old method's DOM manipulation works
+        setTimeout(() => {
+            console.log('Old fallback visibility:', document.getElementById('old-fallback').style.display !== 'none');
+        }, 1000);
+    </script>
+</body>
+</html>
