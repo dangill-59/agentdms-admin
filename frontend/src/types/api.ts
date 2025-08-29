@@ -142,6 +142,18 @@ export interface DocumentMetadata {
   docType: string;
   status: string;
   notes?: string;
+  // Dynamic custom fields support
+  customFields?: DocumentCustomFieldValue[];
+}
+
+export interface DocumentCustomFieldValue {
+  fieldId: string;
+  fieldName: string;
+  fieldType: 'Text' | 'Number' | 'Date' | 'Boolean' | 'LongText' | 'Currency' | 'UserList';
+  value: string | null;
+  isRequired: boolean;
+  isReadonly?: boolean;
+  userListOptions?: string;
 }
 
 // Request types

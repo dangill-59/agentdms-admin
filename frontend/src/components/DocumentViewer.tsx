@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { DocumentSearchResult, DocumentMetadata } from '../types/api';
+import type { DocumentSearchResult, DocumentMetadata, DocumentCustomFieldValue, CustomField } from '../types/api';
 import { documentService } from '../services/documents';
 
 interface DocumentViewerProps {
@@ -14,6 +14,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   onSave
 }) => {
   const [metadata, setMetadata] = useState<DocumentMetadata | null>(null);
+  const [projectFields, setProjectFields] = useState<CustomField[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string>('');
@@ -21,22 +22,29 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const [editedMetadata, setEditedMetadata] = useState<DocumentMetadata | null>(null);
 
   useEffect(() => {
-    const fetchMetadata = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
         setError('');
-        const data = await documentService.getDocumentMetadata(document.id);
-        setMetadata(data);
-        setEditedMetadata(data);
+        
+        // Fetch both document metadata and project custom fields in parallel
+        const [docMetadata, customFields] = await Promise.all([
+          documentService.getDocumentMetadata(document.id),
+          documentService.getProjectCustomFields(document.projectId)
+        ]);
+        
+        setMetadata(docMetadata);
+        setProjectFields(customFields);
+        setEditedMetadata(docMetadata);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load document metadata');
+        setError(err instanceof Error ? err.message : 'Failed to load document data');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchMetadata();
-  }, [document.id]);
+    fetchData();
+  }, [document.id, document.projectId]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -72,6 +80,17 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     setEditedMetadata({
       ...editedMetadata,
       [key]: value
+    });
+  };
+
+  const handleCustomFieldChange = (fieldId: string, value: string) => {
+    if (!editedMetadata || !editedMetadata.customFields) return;
+    
+    setEditedMetadata({
+      ...editedMetadata,
+      customFields: editedMetadata.customFields.map(field =>
+        field.fieldId === fieldId ? { ...field, value } : field
+      )
     });
   };
 
@@ -113,6 +132,126 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const renderCustomField = (field: DocumentCustomFieldValue, isEditing: boolean) => {
+    const fieldValue = field.value || '';
+
+    if (isEditing) {
+      switch (field.fieldType) {
+        case 'Text':
+        case 'Number':
+          return (
+            <input
+              type={field.fieldType === 'Number' ? 'number' : 'text'}
+              value={fieldValue}
+              onChange={(e) => handleCustomFieldChange(field.fieldId, e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required={field.isRequired}
+            />
+          );
+
+        case 'Date':
+          return (
+            <input
+              type="date"
+              value={fieldValue}
+              onChange={(e) => handleCustomFieldChange(field.fieldId, e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required={field.isRequired}
+            />
+          );
+
+        case 'Boolean':
+          return (
+            <select
+              value={fieldValue}
+              onChange={(e) => handleCustomFieldChange(field.fieldId, e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required={field.isRequired}
+            >
+              <option value="">Select...</option>
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+          );
+
+        case 'UserList':
+          const options = field.userListOptions?.split(',') || [];
+          return (
+            <select
+              value={fieldValue}
+              onChange={(e) => handleCustomFieldChange(field.fieldId, e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required={field.isRequired}
+            >
+              <option value="">Select...</option>
+              {options.map(option => (
+                <option key={option} value={option.trim()}>{option.trim()}</option>
+              ))}
+            </select>
+          );
+
+        case 'LongText':
+          return (
+            <textarea
+              value={fieldValue}
+              onChange={(e) => handleCustomFieldChange(field.fieldId, e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required={field.isRequired}
+            />
+          );
+
+        case 'Currency':
+          return (
+            <input
+              type="number"
+              step="0.01"
+              value={fieldValue}
+              onChange={(e) => handleCustomFieldChange(field.fieldId, e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required={field.isRequired}
+            />
+          );
+
+        default:
+          return (
+            <input
+              type="text"
+              value={fieldValue}
+              onChange={(e) => handleCustomFieldChange(field.fieldId, e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required={field.isRequired}
+            />
+          );
+      }
+    } else {
+      // Display mode
+      let displayValue = fieldValue;
+
+      switch (field.fieldType) {
+        case 'Date':
+          if (fieldValue) {
+            displayValue = new Date(fieldValue).toLocaleDateString();
+          }
+          break;
+        case 'Boolean':
+          displayValue = fieldValue === 'true' ? 'Yes' : fieldValue === 'false' ? 'No' : '';
+          break;
+        case 'Currency':
+          if (fieldValue) {
+            displayValue = `$${parseFloat(fieldValue).toFixed(2)}`;
+          }
+          break;
+      }
+
+      return (
+        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+          {displayValue || 'Not specified'}
+        </div>
+      );
     }
   };
 
@@ -312,128 +451,149 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
               </div>
             ) : metadata && editedMetadata ? (
               <div className="space-y-4">
-                {/* Customer Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Customer Name
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editedMetadata.customerName}
-                      onChange={(e) => handleMetadataChange('customerName', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  ) : (
-                    <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
-                      {metadata.customerName}
+                {/* Render dynamic custom fields */}
+                {metadata.customFields && metadata.customFields.length > 0 ? (
+                  metadata.customFields
+                    .sort((a, b) => (projectFields.find(f => f.id === a.fieldId)?.order || 0) - (projectFields.find(f => f.id === b.fieldId)?.order || 0))
+                    .map((field) => (
+                      <div key={field.fieldId}>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {field.fieldName}
+                          {field.isRequired && <span className="text-red-500 ml-1">*</span>}
+                        </label>
+                        {renderCustomField(
+                          editedMetadata.customFields?.find(f => f.fieldId === field.fieldId) || field,
+                          isEditing
+                        )}
+                      </div>
+                    ))
+                ) : (
+                  // Fallback to legacy hardcoded fields if no custom fields exist
+                  <>
+                    {/* Customer Name */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Customer Name
+                      </label>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editedMetadata.customerName}
+                          onChange={(e) => handleMetadataChange('customerName', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      ) : (
+                        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                          {metadata.customerName}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Invoice Number */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Invoice Number
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editedMetadata.invoiceNumber}
-                      onChange={(e) => handleMetadataChange('invoiceNumber', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  ) : (
-                    <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
-                      {metadata.invoiceNumber}
+                    {/* Invoice Number */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Invoice Number
+                      </label>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editedMetadata.invoiceNumber}
+                          onChange={(e) => handleMetadataChange('invoiceNumber', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      ) : (
+                        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                          {metadata.invoiceNumber}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Invoice Date */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Invoice Date
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="date"
-                      value={editedMetadata.invoiceDate}
-                      onChange={(e) => handleMetadataChange('invoiceDate', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  ) : (
-                    <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
-                      {new Date(metadata.invoiceDate).toLocaleDateString()}
+                    {/* Invoice Date */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Invoice Date
+                      </label>
+                      {isEditing ? (
+                        <input
+                          type="date"
+                          value={editedMetadata.invoiceDate}
+                          onChange={(e) => handleMetadataChange('invoiceDate', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      ) : (
+                        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                          {new Date(metadata.invoiceDate).toLocaleDateString()}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Document Type */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Document Type
-                  </label>
-                  {isEditing ? (
-                    <select
-                      value={editedMetadata.docType}
-                      onChange={(e) => handleMetadataChange('docType', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      {documentService.getDocumentTypes().map(type => (
-                        <option key={type} value={type}>{type}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
-                      {metadata.docType}
+                    {/* Document Type */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Document Type
+                      </label>
+                      {isEditing ? (
+                        <select
+                          value={editedMetadata.docType}
+                          onChange={(e) => handleMetadataChange('docType', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          {documentService.getDocumentTypes().map(type => (
+                            <option key={type} value={type}>{type}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                          {metadata.docType}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Status */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Status
-                  </label>
-                  {isEditing ? (
-                    <select
-                      value={editedMetadata.status}
-                      onChange={(e) => handleMetadataChange('status', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      {documentService.getStatusOptions().map(status => (
-                        <option key={status} value={status}>{status}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="flex items-center">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(metadata.status)}`}>
-                        {metadata.status}
-                      </span>
+                    {/* Status */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Status
+                      </label>
+                      {isEditing ? (
+                        <select
+                          value={editedMetadata.status}
+                          onChange={(e) => handleMetadataChange('status', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          {documentService.getStatusOptions().map(status => (
+                            <option key={status} value={status}>{status}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="flex items-center">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(metadata.status)}`}>
+                            {metadata.status}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Notes */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Notes
-                  </label>
-                  {isEditing ? (
-                    <textarea
-                      value={editedMetadata.notes || ''}
-                      onChange={(e) => handleMetadataChange('notes', e.target.value)}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Add notes..."
-                    />
-                  ) : (
-                    <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900 min-h-[80px]">
-                      {metadata.notes || 'No notes added'}
+                    {/* Notes */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Notes
+                      </label>
+                      {isEditing ? (
+                        <textarea
+                          value={editedMetadata.notes || ''}
+                          onChange={(e) => handleMetadataChange('notes', e.target.value)}
+                          rows={3}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Add notes..."
+                        />
+                      ) : (
+                        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900 min-h-[80px]">
+                          {metadata.notes || 'No notes added'}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </>
+                )}
               </div>
             ) : (
               <div className="text-center py-8">
