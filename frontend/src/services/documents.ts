@@ -110,16 +110,7 @@ export class DocumentService {
     }
   }
 
-  // Get custom fields for a project
-  public async getProjectCustomFields(projectId: string): Promise<CustomField[]> {
-    try {
-      const response = await apiService.getDirect<CustomField[]>(`/documents/projects/${projectId}/custom-fields`);
-      return response;
-    } catch (error) {
-      console.error('Failed to fetch custom fields:', error);
-      throw error;
-    }
-  }
+
 
   // Health check before upload
   public async checkUploadHealth(): Promise<boolean> {
