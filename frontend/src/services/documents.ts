@@ -547,7 +547,7 @@ export class DocumentService {
       }
 
       // Use real API when not in demo mode
-      const response = await apiService.get<DocumentMetadata>(`/api/documents/${documentId}/metadata`);
+      const response = await apiService.get<DocumentMetadata>(`/documents/${documentId}/metadata`);
       return response.data || response;
     } catch (error) {
       console.error('Failed to fetch document metadata:', error);
