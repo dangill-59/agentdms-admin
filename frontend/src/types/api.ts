@@ -100,7 +100,9 @@ export interface Document {
   fileSize: number;
   createdAt: string;
   modifiedAt: string;
-  // Extended metadata for search results
+  // Dynamic custom field values
+  customFieldValues: Record<string, string>;
+  // Legacy fields for backward compatibility
   customerName?: string;
   invoiceNumber?: string;
   invoiceDate?: string;
@@ -111,11 +113,14 @@ export interface Document {
 // Document search types
 export interface DocumentSearchFilters {
   projectId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  // Dynamic custom field filters
+  customFieldFilters: Record<string, string>;
+  // Legacy filters for backward compatibility  
   invoiceNumber?: string;
   customerName?: string;
   docType?: string;
-  dateFrom?: string;
-  dateTo?: string;
   status?: string;
 }
 
@@ -123,19 +128,25 @@ export interface DocumentSearchResult {
   id: string;
   projectId: string;
   fileName: string;
+  createdAt: string;
+  modifiedAt: string;
+  fileSize: number;
+  mimeType: string;
+  // Dynamic custom field values
+  customFieldValues: Record<string, string>;
+  // Legacy fields for backward compatibility  
   customerName: string;
   invoiceNumber: string;
   invoiceDate: string;
   docType: string;
   status: string;
-  createdAt: string;
-  modifiedAt: string;
-  fileSize: number;
-  mimeType: string;
 }
 
 export interface DocumentMetadata {
   id: string;
+  // Dynamic custom field values
+  customFieldValues: Record<string, string>;
+  // Legacy fields for backward compatibility
   customerName: string;
   invoiceNumber: string;
   invoiceDate: string;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Project, DocumentSearchFilters } from '../types/api';
+import type { Project, DocumentSearchFilters, CustomField } from '../types/api';
 import { projectService } from '../services/projects';
 
 interface DocumentSearchFormProps {
@@ -18,7 +18,9 @@ const DocumentSearchForm: React.FC<DocumentSearchFormProps> = ({
   isLoading = false
 }) => {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
+  const [isLoadingFields, setIsLoadingFields] = useState(false);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -36,10 +38,56 @@ const DocumentSearchForm: React.FC<DocumentSearchFormProps> = ({
     fetchProjects();
   }, []);
 
+  // Load custom fields when project changes
+  useEffect(() => {
+    const fetchCustomFields = async () => {
+      if (!filters.projectId) {
+        setCustomFields([]);
+        return;
+      }
+
+      try {
+        setIsLoadingFields(true);
+        const fields = await projectService.getProjectCustomFields(filters.projectId);
+        setCustomFields(fields);
+      } catch (error) {
+        console.error('Failed to fetch custom fields:', error);
+        setCustomFields([]);
+      } finally {
+        setIsLoadingFields(false);
+      }
+    };
+
+    fetchCustomFields();
+  }, [filters.projectId]);
+
   const handleFilterChange = (key: keyof DocumentSearchFilters, value: string) => {
+    if (key === 'projectId') {
+      // Clear custom field filters when project changes
+      onFiltersChange({
+        ...filters,
+        [key]: value || undefined,
+        customFieldFilters: {}
+      });
+    } else {
+      onFiltersChange({
+        ...filters,
+        [key]: value || undefined
+      });
+    }
+  };
+
+  const handleCustomFieldFilterChange = (fieldName: string, value: string) => {
+    const newCustomFieldFilters = { ...filters.customFieldFilters };
+    if (value) {
+      newCustomFieldFilters[fieldName] = value;
+    } else {
+      delete newCustomFieldFilters[fieldName];
+    }
+
     onFiltersChange({
       ...filters,
-      [key]: value || undefined
+      customFieldFilters: newCustomFieldFilters
     });
   };
 
@@ -88,58 +136,58 @@ const DocumentSearchForm: React.FC<DocumentSearchFormProps> = ({
 
         {/* Search Filters Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Invoice Number */}
-          <div>
-            <label htmlFor="invoiceNumber" className="block text-sm font-medium text-gray-700 mb-2">
-              Invoice Number
-            </label>
-            <input
-              type="text"
-              id="invoiceNumber"
-              value={filters.invoiceNumber || ''}
-              onChange={(e) => handleFilterChange('invoiceNumber', e.target.value)}
-              placeholder="Enter invoice number..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
+          {/* Dynamic Custom Fields */}
+          {customFields
+            .filter(field => !field.isDefault) // Skip default fields like filename, dates
+            .map((field) => (
+              <div key={field.id}>
+                <label htmlFor={`field-${field.id}`} className="block text-sm font-medium text-gray-700 mb-2">
+                  {field.name}
+                  {field.isRequired && <span className="text-red-500 ml-1">*</span>}
+                </label>
+                {field.fieldType === 'Text' || field.fieldType === 'LongText' ? (
+                  <input
+                    type="text"
+                    id={`field-${field.id}`}
+                    value={filters.customFieldFilters[field.name] || ''}
+                    onChange={(e) => handleCustomFieldFilterChange(field.name, e.target.value)}
+                    placeholder={`Enter ${field.name.toLowerCase()}...`}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                ) : field.fieldType === 'Number' || field.fieldType === 'Currency' ? (
+                  <input
+                    type="number"
+                    id={`field-${field.id}`}
+                    value={filters.customFieldFilters[field.name] || ''}
+                    onChange={(e) => handleCustomFieldFilterChange(field.name, e.target.value)}
+                    placeholder={`Enter ${field.name.toLowerCase()}...`}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                ) : field.fieldType === 'Date' ? (
+                  <input
+                    type="date"
+                    id={`field-${field.id}`}
+                    value={filters.customFieldFilters[field.name] || ''}
+                    onChange={(e) => handleCustomFieldFilterChange(field.name, e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    id={`field-${field.id}`}
+                    value={filters.customFieldFilters[field.name] || ''}
+                    onChange={(e) => handleCustomFieldFilterChange(field.name, e.target.value)}
+                    placeholder={`Enter ${field.name.toLowerCase()}...`}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                )}
+                {field.description && (
+                  <p className="mt-1 text-xs text-gray-500">{field.description}</p>
+                )}
+              </div>
+            ))}
 
-          {/* Customer Name */}
-          <div>
-            <label htmlFor="customerName" className="block text-sm font-medium text-gray-700 mb-2">
-              Customer
-            </label>
-            <input
-              type="text"
-              id="customerName"
-              value={filters.customerName || ''}
-              onChange={(e) => handleFilterChange('customerName', e.target.value)}
-              placeholder="Enter customer name..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          {/* Document Type */}
-          <div>
-            <label htmlFor="docType" className="block text-sm font-medium text-gray-700 mb-2">
-              Document Type
-            </label>
-            <select
-              id="docType"
-              value={filters.docType || ''}
-              onChange={(e) => handleFilterChange('docType', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">All Types</option>
-              <option value="Invoice">Invoice</option>
-              <option value="Receipt">Receipt</option>
-              <option value="Purchase Order">Purchase Order</option>
-              <option value="Estimate">Estimate</option>
-              <option value="Credit Note">Credit Note</option>
-              <option value="Statement">Statement</option>
-            </select>
-          </div>
-
-          {/* Date From */}
+          {/* System Date Range Filters */}
           <div>
             <label htmlFor="dateFrom" className="block text-sm font-medium text-gray-700 mb-2">
               Date From
@@ -153,7 +201,6 @@ const DocumentSearchForm: React.FC<DocumentSearchFormProps> = ({
             />
           </div>
 
-          {/* Date To */}
           <div>
             <label htmlFor="dateTo" className="block text-sm font-medium text-gray-700 mb-2">
               Date To
@@ -167,25 +214,25 @@ const DocumentSearchForm: React.FC<DocumentSearchFormProps> = ({
             />
           </div>
 
-          {/* Status */}
-          <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
-              Status
-            </label>
-            <select
-              id="status"
-              value={filters.status || ''}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">All Statuses</option>
-              <option value="Draft">Draft</option>
-              <option value="Pending Review">Pending Review</option>
-              <option value="Processed">Processed</option>
-              <option value="Approved">Approved</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-          </div>
+          {/* Loading State for Custom Fields */}
+          {isLoadingFields && filters.projectId && (
+            <div className="col-span-full text-center py-4">
+              <div className="inline-flex items-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span className="text-gray-600">Loading search fields...</span>
+              </div>
+            </div>
+          )}
+
+          {/* No Fields Message */}
+          {!isLoadingFields && filters.projectId && customFields.filter(f => !f.isDefault).length === 0 && (
+            <div className="col-span-full text-center py-4">
+              <p className="text-gray-500">No custom fields available for this project.</p>
+            </div>
+          )}
         </div>
 
         {/* Action Buttons */}

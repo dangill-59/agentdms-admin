@@ -155,18 +155,25 @@ public class DocumentsController : ControllerBase
                 return NotFound($"Document with ID {id} not found.");
             }
 
-            // Extract metadata from document field values
-            // This is a simplified version - in a real implementation you'd map specific custom fields
             var metadata = new DocumentMetadata
             {
                 Id = document.Id.ToString(),
-                CustomerName = GetFieldValue(document.DocumentFieldValues, "CustomerName") ?? "Unknown Customer",
-                InvoiceNumber = GetFieldValue(document.DocumentFieldValues, "InvoiceNumber") ?? "N/A",
-                InvoiceDate = GetFieldValue(document.DocumentFieldValues, "InvoiceDate") ?? DateTime.Now.ToString("yyyy-MM-dd"),
-                DocType = GetFieldValue(document.DocumentFieldValues, "DocType") ?? "Document",
-                Status = GetFieldValue(document.DocumentFieldValues, "Status") ?? "Processed",
-                Notes = GetFieldValue(document.DocumentFieldValues, "Notes")
+                CustomFieldValues = new Dictionary<string, string>()
             };
+            
+            // Add all custom field values to the dictionary
+            foreach (var fieldValue in document.DocumentFieldValues)
+            {
+                metadata.CustomFieldValues[fieldValue.CustomField.Name] = fieldValue.Value ?? string.Empty;
+            }
+            
+            // Maintain backward compatibility with legacy fields
+            metadata.CustomerName = GetFieldValue(document.DocumentFieldValues, "CustomerName") ?? "Unknown Customer";
+            metadata.InvoiceNumber = GetFieldValue(document.DocumentFieldValues, "InvoiceNumber") ?? "N/A";
+            metadata.InvoiceDate = GetFieldValue(document.DocumentFieldValues, "InvoiceDate") ?? DateTime.Now.ToString("yyyy-MM-dd");
+            metadata.DocType = GetFieldValue(document.DocumentFieldValues, "DocType") ?? "Document";
+            metadata.Status = GetFieldValue(document.DocumentFieldValues, "Status") ?? "Processed";
+            metadata.Notes = GetFieldValue(document.DocumentFieldValues, "Notes");
 
             return Ok(metadata);
         }
@@ -193,14 +200,25 @@ public class DocumentsController : ControllerBase
                 return NotFound($"Document with ID {id} not found.");
             }
 
-            // Update field values - simplified implementation
-            // In a real implementation, you'd handle custom fields properly
-            UpdateFieldValue(document, "CustomerName", request.CustomerName);
-            UpdateFieldValue(document, "InvoiceNumber", request.InvoiceNumber);
-            UpdateFieldValue(document, "InvoiceDate", request.InvoiceDate);
-            UpdateFieldValue(document, "DocType", request.DocType);
-            UpdateFieldValue(document, "Status", request.Status);
-            UpdateFieldValue(document, "Notes", request.Notes);
+            // Update custom field values
+            foreach (var customFieldUpdate in request.CustomFieldValues)
+            {
+                await UpdateOrCreateFieldValue(document, customFieldUpdate.Key, customFieldUpdate.Value);
+            }
+            
+            // Update legacy field values for backward compatibility
+            if (request.CustomerName != null)
+                await UpdateOrCreateFieldValue(document, "CustomerName", request.CustomerName);
+            if (request.InvoiceNumber != null)
+                await UpdateOrCreateFieldValue(document, "InvoiceNumber", request.InvoiceNumber);
+            if (request.InvoiceDate != null)
+                await UpdateOrCreateFieldValue(document, "InvoiceDate", request.InvoiceDate);
+            if (request.DocType != null)
+                await UpdateOrCreateFieldValue(document, "DocType", request.DocType);
+            if (request.Status != null)
+                await UpdateOrCreateFieldValue(document, "Status", request.Status);
+            if (request.Notes != null)
+                await UpdateOrCreateFieldValue(document, "Notes", request.Notes);
 
             await _context.SaveChangesAsync();
 
@@ -208,13 +226,31 @@ public class DocumentsController : ControllerBase
             var metadata = new DocumentMetadata
             {
                 Id = document.Id.ToString(),
-                CustomerName = request.CustomerName ?? "Unknown Customer",
-                InvoiceNumber = request.InvoiceNumber ?? "N/A",
-                InvoiceDate = request.InvoiceDate ?? DateTime.Now.ToString("yyyy-MM-dd"),
-                DocType = request.DocType ?? "Document",
-                Status = request.Status ?? "Processed",
-                Notes = request.Notes
+                CustomFieldValues = new Dictionary<string, string>()
             };
+            
+            // Reload document with updated field values
+            document = await _context.Documents
+                .Include(d => d.DocumentFieldValues)
+                .ThenInclude(dfv => dfv.CustomField)
+                .FirstOrDefaultAsync(d => d.Id == id);
+            
+            if (document != null)
+            {
+                // Add all custom field values to the dictionary
+                foreach (var fieldValue in document.DocumentFieldValues)
+                {
+                    metadata.CustomFieldValues[fieldValue.CustomField.Name] = fieldValue.Value ?? string.Empty;
+                }
+                
+                // Maintain backward compatibility
+                metadata.CustomerName = GetFieldValue(document.DocumentFieldValues, "CustomerName") ?? "Unknown Customer";
+                metadata.InvoiceNumber = GetFieldValue(document.DocumentFieldValues, "InvoiceNumber") ?? "N/A";
+                metadata.InvoiceDate = GetFieldValue(document.DocumentFieldValues, "InvoiceDate") ?? DateTime.Now.ToString("yyyy-MM-dd");
+                metadata.DocType = GetFieldValue(document.DocumentFieldValues, "DocType") ?? "Document";
+                metadata.Status = GetFieldValue(document.DocumentFieldValues, "Status") ?? "Processed";
+                metadata.Notes = GetFieldValue(document.DocumentFieldValues, "Notes");
+            }
 
             return Ok(metadata);
         }
@@ -228,6 +264,43 @@ public class DocumentsController : ControllerBase
     private string? GetFieldValue(ICollection<DocumentFieldValue> fieldValues, string fieldName)
     {
         return fieldValues.FirstOrDefault(fv => fv.CustomField.Name == fieldName)?.Value;
+    }
+
+    [HttpGet("projects/{projectId}/custom-fields")]
+    [RequirePermission("document.view")]
+    public async Task<ActionResult<IEnumerable<CustomFieldDto>>> GetProjectCustomFields(int projectId)
+    {
+        try
+        {
+            var customFields = await _context.CustomFields
+                .Where(cf => cf.ProjectId == projectId)
+                .OrderBy(cf => cf.Order)
+                .Select(cf => new CustomFieldDto
+                {
+                    Id = cf.Id.ToString(),
+                    ProjectId = cf.ProjectId.ToString(),
+                    Name = cf.Name,
+                    Description = cf.Description,
+                    FieldType = cf.FieldType.ToString(),
+                    IsRequired = cf.IsRequired,
+                    IsDefault = cf.IsDefault,
+                    DefaultValue = cf.DefaultValue,
+                    Order = cf.Order,
+                    RoleVisibility = cf.RoleVisibility,
+                    UserListOptions = cf.UserListOptions,
+                    IsRemovable = cf.IsRemovable,
+                    CreatedAt = cf.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    ModifiedAt = cf.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                })
+                .ToListAsync();
+
+            return Ok(customFields);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching custom fields for project {ProjectId}", projectId);
+            return StatusCode(500, "An error occurred while fetching custom fields");
+        }
     }
 
     [HttpPost("search")]
@@ -247,8 +320,65 @@ public class DocumentsController : ControllerBase
                 query = query.Where(d => d.ProjectId == projectIdInt);
             }
             
-            // For now, we'll return basic document info as DocumentDto
-            // In a full implementation, you'd join with DocumentFieldValues to search custom fields
+            // Apply custom field filters
+            foreach (var customFieldFilter in filters.CustomFieldFilters)
+            {
+                if (!string.IsNullOrEmpty(customFieldFilter.Value))
+                {
+                    var fieldName = customFieldFilter.Key;
+                    var searchValue = customFieldFilter.Value;
+                    
+                    query = query.Where(d => d.DocumentFieldValues
+                        .Any(dfv => dfv.CustomField.Name == fieldName && 
+                                   dfv.Value != null && 
+                                   dfv.Value.ToLower().Contains(searchValue.ToLower())));
+                }
+            }
+            
+            // Legacy field filters for backward compatibility
+            if (!string.IsNullOrEmpty(filters.InvoiceNumber))
+            {
+                query = query.Where(d => d.DocumentFieldValues
+                    .Any(dfv => dfv.CustomField.Name == "InvoiceNumber" && 
+                               dfv.Value != null && 
+                               dfv.Value.ToLower().Contains(filters.InvoiceNumber.ToLower())));
+            }
+            
+            if (!string.IsNullOrEmpty(filters.CustomerName))
+            {
+                query = query.Where(d => d.DocumentFieldValues
+                    .Any(dfv => dfv.CustomField.Name == "CustomerName" && 
+                               dfv.Value != null && 
+                               dfv.Value.ToLower().Contains(filters.CustomerName.ToLower())));
+            }
+            
+            if (!string.IsNullOrEmpty(filters.DocType))
+            {
+                query = query.Where(d => d.DocumentFieldValues
+                    .Any(dfv => dfv.CustomField.Name == "DocType" && 
+                               dfv.Value != null && 
+                               dfv.Value.ToLower().Contains(filters.DocType.ToLower())));
+            }
+            
+            if (!string.IsNullOrEmpty(filters.Status))
+            {
+                query = query.Where(d => d.DocumentFieldValues
+                    .Any(dfv => dfv.CustomField.Name == "Status" && 
+                               dfv.Value != null && 
+                               dfv.Value.ToLower().Contains(filters.Status.ToLower())));
+            }
+            
+            // Apply date range filters
+            if (!string.IsNullOrEmpty(filters.DateFrom) && DateTime.TryParse(filters.DateFrom, out var dateFrom))
+            {
+                query = query.Where(d => d.CreatedAt >= dateFrom);
+            }
+            
+            if (!string.IsNullOrEmpty(filters.DateTo) && DateTime.TryParse(filters.DateTo, out var dateTo))
+            {
+                query = query.Where(d => d.CreatedAt <= dateTo.AddDays(1)); // Include the entire day
+            }
+            
             var totalCount = await query.CountAsync();
             
             var documents = await query
@@ -260,22 +390,34 @@ public class DocumentsController : ControllerBase
                 .Take(pageSize)
                 .ToListAsync();
 
-            var documentDtos = documents.Select(d => new DocumentDto
-            {
-                Id = d.Id.ToString(),
-                ProjectId = d.ProjectId.ToString(),
-                FileName = d.FileName,
-                StoragePath = d.StoragePath,
-                MimeType = d.MimeType,
-                FileSize = d.FileSize,
-                CreatedAt = d.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                ModifiedAt = d.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                // Extract metadata from field values (safe null handling)
-                CustomerName = GetFieldValue(d.DocumentFieldValues, "CustomerName") ?? "Unknown Customer",
-                InvoiceNumber = GetFieldValue(d.DocumentFieldValues, "InvoiceNumber") ?? "N/A",
-                InvoiceDate = GetFieldValue(d.DocumentFieldValues, "InvoiceDate") ?? DateTime.Now.ToString("yyyy-MM-dd"),
-                DocType = GetFieldValue(d.DocumentFieldValues, "DocType") ?? "Document",
-                Status = GetFieldValue(d.DocumentFieldValues, "Status") ?? "Processed"
+            var documentDtos = documents.Select(d => {
+                var dto = new DocumentDto
+                {
+                    Id = d.Id.ToString(),
+                    ProjectId = d.ProjectId.ToString(),
+                    FileName = d.FileName,
+                    StoragePath = d.StoragePath,
+                    MimeType = d.MimeType,
+                    FileSize = d.FileSize,
+                    CreatedAt = d.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    ModifiedAt = d.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    CustomFieldValues = new Dictionary<string, string>()
+                };
+                
+                // Add all custom field values to the dictionary
+                foreach (var fieldValue in d.DocumentFieldValues)
+                {
+                    dto.CustomFieldValues[fieldValue.CustomField.Name] = fieldValue.Value ?? string.Empty;
+                }
+                
+                // Maintain backward compatibility with legacy fields
+                dto.CustomerName = GetFieldValue(d.DocumentFieldValues, "CustomerName") ?? "Unknown Customer";
+                dto.InvoiceNumber = GetFieldValue(d.DocumentFieldValues, "InvoiceNumber") ?? "N/A";
+                dto.InvoiceDate = GetFieldValue(d.DocumentFieldValues, "InvoiceDate") ?? DateTime.Now.ToString("yyyy-MM-dd");
+                dto.DocType = GetFieldValue(d.DocumentFieldValues, "DocType") ?? "Document";
+                dto.Status = GetFieldValue(d.DocumentFieldValues, "Status") ?? "Processed";
+                
+                return dto;
             }).ToList();
 
             var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
@@ -295,6 +437,37 @@ public class DocumentsController : ControllerBase
         {
             _logger.LogError(ex, "Error searching documents");
             return StatusCode(500, "An error occurred while searching documents");
+        }
+    }
+
+    private async Task UpdateOrCreateFieldValue(Document document, string fieldName, string? value)
+    {
+        if (value == null) return;
+
+        var fieldValue = document.DocumentFieldValues.FirstOrDefault(fv => fv.CustomField.Name == fieldName);
+        if (fieldValue != null)
+        {
+            fieldValue.Value = value;
+        }
+        else
+        {
+            // Find the custom field for this document's project
+            var customField = await _context.CustomFields
+                .FirstOrDefaultAsync(cf => cf.ProjectId == document.ProjectId && cf.Name == fieldName);
+                
+            if (customField != null)
+            {
+                // Create new field value
+                var newFieldValue = new DocumentFieldValue
+                {
+                    DocumentId = document.Id,
+                    CustomFieldId = customField.Id,
+                    Value = value
+                };
+                
+                _context.DocumentFieldValues.Add(newFieldValue);
+                document.DocumentFieldValues.Add(newFieldValue);
+            }
         }
     }
 

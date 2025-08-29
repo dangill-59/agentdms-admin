@@ -1,4 +1,4 @@
-import type { Document, DocumentSearchFilters, DocumentSearchResult, DocumentMetadata, PaginatedResponse } from '../types/api';
+import type { Document, DocumentSearchFilters, DocumentSearchResult, DocumentMetadata, PaginatedResponse, CustomField } from '../types/api';
 import { apiService } from './api';
 import config from '../utils/config';
 
@@ -12,6 +12,9 @@ interface DocumentDto {
   fileSize: number;
   createdAt: string;
   modifiedAt: string;
+  // Dynamic custom field values from backend
+  customFieldValues: Record<string, string>;
+  // Legacy fields for backward compatibility
   customerName?: string;
   invoiceNumber?: string;
   invoiceDate?: string;
@@ -102,6 +105,17 @@ export class DocumentService {
       await apiService.delete(`${this.basePath}/${id}`);
     } catch (error) {
       console.error('Failed to delete document:', error);
+      throw error;
+    }
+  }
+
+  // Get custom fields for a project
+  public async getProjectCustomFields(projectId: string): Promise<CustomField[]> {
+    try {
+      const response = await apiService.getDirect<CustomField[]>(`/documents/projects/${projectId}/custom-fields`);
+      return response;
+    } catch (error) {
+      console.error('Failed to fetch custom fields:', error);
       throw error;
     }
   }
@@ -373,15 +387,17 @@ export class DocumentService {
         id: doc.id,
         projectId: doc.projectId,
         fileName: doc.fileName,
-        customerName: doc.customerName || 'Unknown Customer',
-        invoiceNumber: doc.invoiceNumber || 'N/A',
-        invoiceDate: doc.invoiceDate || '',
-        docType: doc.docType || 'Document',
-        status: doc.status || 'Processed',
         createdAt: doc.createdAt,
         modifiedAt: doc.modifiedAt,
         fileSize: doc.fileSize,
-        mimeType: doc.mimeType || ''
+        mimeType: doc.mimeType || '',
+        customFieldValues: doc.customFieldValues || {},
+        // Backward compatibility - fallback to legacy fields or custom field values
+        customerName: doc.customerName || doc.customFieldValues?.['CustomerName'] || 'Unknown Customer',
+        invoiceNumber: doc.invoiceNumber || doc.customFieldValues?.['InvoiceNumber'] || 'N/A',
+        invoiceDate: doc.invoiceDate || doc.customFieldValues?.['InvoiceDate'] || '',
+        docType: doc.docType || doc.customFieldValues?.['DocType'] || 'Document',
+        status: doc.status || doc.customFieldValues?.['Status'] || 'Processed'
       }));
       
       return {
@@ -413,6 +429,13 @@ export class DocumentService {
           id: '1',
           projectId: filters.projectId || '1',
           fileName: 'Invoice_ABC123.pdf',
+          customFieldValues: {
+            'CustomerName': 'ABC Company Inc.',
+            'InvoiceNumber': 'INV-2024-001',
+            'InvoiceDate': '2024-01-15',
+            'DocType': 'Invoice',
+            'Status': 'Processed'
+          },
           customerName: 'ABC Company Inc.',
           invoiceNumber: 'INV-2024-001',
           invoiceDate: '2024-01-15',
@@ -427,6 +450,13 @@ export class DocumentService {
           id: '2',
           projectId: filters.projectId || '1',
           fileName: 'Receipt_XYZ789.jpg',
+          customFieldValues: {
+            'CustomerName': 'XYZ Corporation',
+            'InvoiceNumber': 'RCP-2024-002',
+            'InvoiceDate': '2024-01-20',
+            'DocType': 'Receipt',
+            'Status': 'Pending Review'
+          },
           customerName: 'XYZ Corporation',
           invoiceNumber: 'RCP-2024-002',
           invoiceDate: '2024-01-20',
@@ -441,6 +471,13 @@ export class DocumentService {
           id: '3',
           projectId: filters.projectId || '1',
           fileName: 'PO_DEF456.pdf',
+          customFieldValues: {
+            'CustomerName': 'DEF Industries Ltd.',
+            'InvoiceNumber': 'PO-2024-003',
+            'InvoiceDate': '2024-01-25',
+            'DocType': 'Purchase Order',
+            'Status': 'Approved'
+          },
           customerName: 'DEF Industries Ltd.',
           invoiceNumber: 'PO-2024-003',
           invoiceDate: '2024-01-25',
@@ -455,6 +492,13 @@ export class DocumentService {
           id: '4',
           projectId: filters.projectId || '1',
           fileName: 'Estimate_GHI789.pdf',
+          customFieldValues: {
+            'CustomerName': 'GHI Services',
+            'InvoiceNumber': 'EST-2024-004',
+            'InvoiceDate': '2024-02-01',
+            'DocType': 'Estimate',
+            'Status': 'Draft'
+          },
           customerName: 'GHI Services',
           invoiceNumber: 'EST-2024-004',
           invoiceDate: '2024-02-01',
@@ -532,6 +576,14 @@ export class DocumentService {
       
       const mockMetadata: DocumentMetadata = {
         id: documentId,
+        customFieldValues: {
+          'CustomerName': 'ABC Company Inc.',
+          'InvoiceNumber': 'INV-2024-001',
+          'InvoiceDate': '2024-01-15',
+          'DocType': 'Invoice',
+          'Status': 'Processed',
+          'Notes': 'Payment terms: Net 30 days'
+        },
         customerName: 'ABC Company Inc.',
         invoiceNumber: 'INV-2024-001',
         invoiceDate: '2024-01-15',
