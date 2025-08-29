@@ -153,7 +153,7 @@ export interface DocumentMetadata {
   docType: string;
   status: string;
   notes?: string;
-  // Dynamic custom fields support
+  // Dynamic custom fields support - includes field definitions with values
   customFields?: DocumentCustomFieldValue[];
 }
 

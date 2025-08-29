@@ -155,16 +155,41 @@ public class DocumentsController : ControllerBase
                 return NotFound($"Document with ID {id} not found.");
             }
 
+            // Get all custom fields for this project
+            var projectCustomFields = await _context.CustomFields
+                .Where(cf => cf.ProjectId == document.ProjectId)
+                .OrderBy(cf => cf.Order)
+                .ToListAsync();
+
             var metadata = new DocumentMetadata
             {
                 Id = document.Id.ToString(),
-                CustomFieldValues = new Dictionary<string, string>()
+                CustomFieldValues = new Dictionary<string, string>(),
+                CustomFields = new List<DocumentCustomFieldValue>()
             };
             
             // Add all custom field values to the dictionary
             foreach (var fieldValue in document.DocumentFieldValues)
             {
                 metadata.CustomFieldValues[fieldValue.CustomField.Name] = fieldValue.Value ?? string.Empty;
+            }
+            
+            // Build custom fields array with definitions and current values
+            foreach (var customField in projectCustomFields)
+            {
+                var fieldValue = document.DocumentFieldValues
+                    .FirstOrDefault(dfv => dfv.CustomFieldId == customField.Id);
+                
+                metadata.CustomFields.Add(new DocumentCustomFieldValue
+                {
+                    FieldId = customField.Id.ToString(),
+                    FieldName = customField.Name,
+                    FieldType = customField.FieldType.ToString(),
+                    Value = fieldValue?.Value,
+                    IsRequired = customField.IsRequired,
+                    IsReadonly = false, // Can be extended based on user permissions
+                    UserListOptions = customField.UserListOptions
+                });
             }
             
             // Maintain backward compatibility with legacy fields
@@ -226,7 +251,8 @@ public class DocumentsController : ControllerBase
             var metadata = new DocumentMetadata
             {
                 Id = document.Id.ToString(),
-                CustomFieldValues = new Dictionary<string, string>()
+                CustomFieldValues = new Dictionary<string, string>(),
+                CustomFields = new List<DocumentCustomFieldValue>()
             };
             
             // Reload document with updated field values
@@ -237,10 +263,34 @@ public class DocumentsController : ControllerBase
             
             if (document != null)
             {
+                // Get all custom fields for this project
+                var projectCustomFields = await _context.CustomFields
+                    .Where(cf => cf.ProjectId == document.ProjectId)
+                    .OrderBy(cf => cf.Order)
+                    .ToListAsync();
+                
                 // Add all custom field values to the dictionary
                 foreach (var fieldValue in document.DocumentFieldValues)
                 {
                     metadata.CustomFieldValues[fieldValue.CustomField.Name] = fieldValue.Value ?? string.Empty;
+                }
+                
+                // Build custom fields array with definitions and current values
+                foreach (var customField in projectCustomFields)
+                {
+                    var fieldValue = document.DocumentFieldValues
+                        .FirstOrDefault(dfv => dfv.CustomFieldId == customField.Id);
+                    
+                    metadata.CustomFields.Add(new DocumentCustomFieldValue
+                    {
+                        FieldId = customField.Id.ToString(),
+                        FieldName = customField.Name,
+                        FieldType = customField.FieldType.ToString(),
+                        Value = fieldValue?.Value,
+                        IsRequired = customField.IsRequired,
+                        IsReadonly = false,
+                        UserListOptions = customField.UserListOptions
+                    });
                 }
                 
                 // Maintain backward compatibility
