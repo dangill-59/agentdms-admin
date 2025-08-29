@@ -1,5 +1,6 @@
-import type { Document, DocumentSearchFilters, DocumentSearchResult, DocumentMetadata, PaginatedResponse } from '../types/api';
+import type { Document, DocumentSearchFilters, DocumentSearchResult, DocumentMetadata, PaginatedResponse, CustomField } from '../types/api';
 import { apiService } from './api';
+import { projectService } from './projects';
 import config from '../utils/config';
 
 // Define DocumentDto to match backend response
@@ -347,11 +348,11 @@ export class DocumentService {
 
   // Get document preview/thumbnail
   public getDocumentPreviewUrl(documentId: string): string {
-    return `${apiService.getBaseURL()}${this.basePath}/${documentId}/preview`;
+    return `${apiService.getBaseURL()}/documents/${documentId}/preview`;
   }
 
   public getDocumentThumbnailUrl(documentId: string): string {
-    return `${apiService.getBaseURL()}${this.basePath}/${documentId}/thumbnail`;
+    return `${apiService.getBaseURL()}/documents/${documentId}/thumbnail`;
   }
 
   // Document search functionality
@@ -502,7 +503,7 @@ export class DocumentService {
       };
   }
 
-  // Get document metadata for editing
+  // Get document metadata for editing with custom fields support
   public async getDocumentMetadata(documentId: string): Promise<DocumentMetadata> {
     try {
       // Check if demo mode is enabled
@@ -511,7 +512,7 @@ export class DocumentService {
       }
 
       // Use real API when not in demo mode
-      const response = await apiService.get<DocumentMetadata>(`/documents/${documentId}/metadata`);
+      const response = await apiService.get<DocumentMetadata>(`/api/documents/${documentId}/metadata`);
       return response.data || response;
     } catch (error) {
       console.error('Failed to fetch document metadata:', error);
@@ -526,6 +527,19 @@ export class DocumentService {
     }
   }
 
+  // Get project custom fields for document metadata
+  public async getProjectCustomFields(projectId: string): Promise<CustomField[]> {
+    try {
+      // Use project service to get custom fields
+      return await projectService.getProjectCustomFields(projectId);
+    } catch (error) {
+      console.error('Failed to fetch project custom fields:', error);
+      
+      // Return empty array as fallback
+      return [];
+    }
+  }
+
   private async getMockDocumentMetadata(documentId: string): Promise<DocumentMetadata> {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 300));
@@ -537,7 +551,53 @@ export class DocumentService {
         invoiceDate: '2024-01-15',
         docType: 'Invoice',
         status: 'Processed',
-        notes: 'Payment terms: Net 30 days'
+        notes: 'Payment terms: Net 30 days',
+        customFields: [
+          {
+            fieldId: '1',
+            fieldName: 'Customer Name',
+            fieldType: 'Text',
+            value: 'ABC Company Inc.',
+            isRequired: true
+          },
+          {
+            fieldId: '2',
+            fieldName: 'Invoice Number',
+            fieldType: 'Text',
+            value: 'INV-2024-001',
+            isRequired: true
+          },
+          {
+            fieldId: '3',
+            fieldName: 'Invoice Date',
+            fieldType: 'Date',
+            value: '2024-01-15',
+            isRequired: true
+          },
+          {
+            fieldId: '4',
+            fieldName: 'Document Type',
+            fieldType: 'UserList',
+            value: 'Invoice',
+            isRequired: true,
+            userListOptions: 'Invoice,Receipt,Purchase Order,Estimate'
+          },
+          {
+            fieldId: '5',
+            fieldName: 'Status',
+            fieldType: 'UserList',
+            value: 'Processed',
+            isRequired: false,
+            userListOptions: 'Draft,Pending Review,Processed,Approved,Rejected'
+          },
+          {
+            fieldId: '6',
+            fieldName: 'Amount',
+            fieldType: 'Currency',
+            value: '1250.00',
+            isRequired: false
+          }
+        ]
       };
       
       return mockMetadata;
