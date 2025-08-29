@@ -1,0 +1,12 @@
+Watching for file changes with StatReloader
+"GET /health/ HTTP/1.1" 200 70
+"GET / HTTP/1.1" 200 49
+"POST /api/auth/login/ HTTP/1.1" 200 899
+Watching for file changes with StatReloader
+"GET /api/projects/ HTTP/1.1" 200 586
+"POST /api/auth/login/ HTTP/1.1" 200 899
+"POST /api/projects/create/ HTTP/1.1" 201 1131
+"POST /api/auth/login/ HTTP/1.1" 200 899
+"POST /api/projects/1/clone/ HTTP/1.1" 201 1138
+"POST /api/auth/login/ HTTP/1.1" 200 899
+"GET /api/projects/ HTTP/1.1" 200 2337
