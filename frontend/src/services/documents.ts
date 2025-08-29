@@ -351,7 +351,39 @@ export class DocumentService {
     return await response.blob();
   }
 
-  // Get document preview/thumbnail
+  // Get document preview with authentication - returns blob URL
+  public async getDocumentPreview(documentId: string): Promise<string> {
+    const response = await fetch(`${apiService.getBaseURL()}${this.basePath}/${documentId}/preview`, {
+      headers: {
+        'Authorization': `Bearer ${apiService.getToken()}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Preview failed: ${response.status} ${response.statusText}`);
+    }
+    
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  }
+
+  // Get document thumbnail with authentication - returns blob URL
+  public async getDocumentThumbnail(documentId: string): Promise<string> {
+    const response = await fetch(`${apiService.getBaseURL()}${this.basePath}/${documentId}/thumbnail`, {
+      headers: {
+        'Authorization': `Bearer ${apiService.getToken()}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Thumbnail failed: ${response.status} ${response.statusText}`);
+    }
+    
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  }
+
+  // Legacy URL methods (deprecated - use getDocumentPreview/getDocumentThumbnail instead)
   public getDocumentPreviewUrl(documentId: string): string {
     return `${apiService.getBaseURL()}/documents/${documentId}/preview`;
   }

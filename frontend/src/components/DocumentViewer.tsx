@@ -20,6 +20,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const [error, setError] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
   const [editedMetadata, setEditedMetadata] = useState<DocumentMetadata | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [isLoadingPreview, setIsLoadingPreview] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,6 +47,38 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
     fetchData();
   }, [document.id, document.projectId]);
+
+  // Load preview image with authentication
+  useEffect(() => {
+    let previewBlobUrl = '';
+    
+    const loadPreview = async () => {
+      if (document.mimeType?.startsWith('image/')) {
+        try {
+          setIsLoadingPreview(true);
+          const url = await documentService.getDocumentPreview(document.id);
+          previewBlobUrl = url;
+          setPreviewUrl(url);
+        } catch (err) {
+          console.error('Failed to load document preview:', err);
+          // Don't set error state here, just let the image fallback handle it
+        } finally {
+          setIsLoadingPreview(false);
+        }
+      } else {
+        setIsLoadingPreview(false);
+      }
+    };
+
+    loadPreview();
+
+    // Cleanup blob URL on unmount
+    return () => {
+      if (previewBlobUrl) {
+        URL.revokeObjectURL(previewBlobUrl);
+      }
+    };
+  }, [document.id, document.mimeType]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -177,7 +211,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             </select>
           );
 
-        case 'UserList':
+        case 'UserList': {
           const options = field.userListOptions?.split(',') || [];
           return (
             <select
@@ -192,6 +226,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
               ))}
             </select>
           );
+        }
 
         case 'LongText':
           return (
@@ -359,30 +394,44 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             <div className="border-2 border-gray-200 rounded-lg overflow-hidden bg-white">
               {document.mimeType?.startsWith('image/') ? (
                 <div className="relative">
-                  <img
-                    src={documentService.getDocumentPreviewUrl(document.id)}
-                    alt={document.fileName}
-                    className="w-full h-auto max-h-96 object-contain"
-                    onError={(e) => {
-                      // Fallback to placeholder if image fails to load
-                      console.log('Image failed to load:', e);
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const fallback = target.nextElementSibling as HTMLElement;
-                      if (fallback) {
-                        fallback.classList.remove('hidden');
-                      }
-                    }}
-                    onLoad={(e) => {
-                      // Log successful load for debugging
-                      const target = e.target as HTMLImageElement;
-                      console.log('Image loaded successfully:', {
-                        src: target.src,
-                        naturalWidth: target.naturalWidth,
-                        naturalHeight: target.naturalHeight
-                      });
-                    }}
-                  />
+                  {isLoadingPreview ? (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
+                      <svg className="mx-auto h-16 w-16 text-gray-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      <div className="mt-4">
+                        <p className="text-lg font-medium text-gray-900">Loading Preview...</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Please wait while we load the document preview
+                        </p>
+                      </div>
+                    </div>
+                  ) : previewUrl ? (
+                    <img
+                      src={previewUrl}
+                      alt={document.fileName}
+                      className="w-full h-auto max-h-96 object-contain"
+                      onError={(e) => {
+                        // Fallback to placeholder if image fails to load
+                        console.log('Image failed to load:', e);
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) {
+                          fallback.classList.remove('hidden');
+                        }
+                      }}
+                      onLoad={(e) => {
+                        // Log successful load for debugging
+                        const target = e.target as HTMLImageElement;
+                        console.log('Image loaded successfully:', {
+                          src: target.src,
+                          naturalWidth: target.naturalWidth,
+                          naturalHeight: target.naturalHeight
+                        });
+                      }}
+                    />
+                  ) : null}
                   <div className="hidden border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
                     <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
