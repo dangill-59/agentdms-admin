@@ -48,12 +48,44 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     fetchData();
   }, [document.id, document.projectId]);
 
-  // Load preview for images and PDFs with authentication
+  // Universal document viewer support for all image and document formats
+  const isPreviewableDocument = (mimeType: string | null, fileName: string): boolean => {
+    if (!mimeType && !fileName) return false;
+    
+    // Define supported MIME types for universal viewer
+    const supportedMimeTypes = [
+      // Image formats
+      'image/jpeg', 'image/jpg', 'image/png', 'image/bmp', 'image/x-ms-bmp',
+      'image/gif', 'image/tiff', 'image/tif', 'image/webp', 'image/svg+xml',
+      // PDF documents
+      'application/pdf',
+      // Text formats that browsers can display
+      'text/plain', 'text/html', 'text/css', 'text/javascript', 'text/csv',
+      // Additional document formats
+      'application/json', 'application/xml', 'text/xml'
+    ];
+    
+    // Check MIME type first
+    if (mimeType && supportedMimeTypes.includes(mimeType.toLowerCase())) {
+      return true;
+    }
+    
+    // Fallback to file extension if MIME type is not available or recognized
+    const fileExtension = fileName.toLowerCase().split('.').pop();
+    const supportedExtensions = [
+      'jpg', 'jpeg', 'png', 'bmp', 'gif', 'tif', 'tiff', 'webp', 'svg',
+      'pdf', 'txt', 'html', 'css', 'js', 'json', 'xml', 'csv'
+    ];
+    
+    return fileExtension ? supportedExtensions.includes(fileExtension) : false;
+  };
+
+  // Load preview for all supported document types with authentication
   useEffect(() => {
     let previewBlobUrl = '';
     
     const loadPreview = async () => {
-      if (document.mimeType?.startsWith('image/') || document.mimeType === 'application/pdf') {
+      if (isPreviewableDocument(document.mimeType, document.fileName)) {
         try {
           setIsLoadingPreview(true);
           const url = await documentService.getDocumentPreview(document.id);
@@ -78,7 +110,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         URL.revokeObjectURL(previewBlobUrl);
       }
     };
-  }, [document.id, document.mimeType]);
+  }, [document.id, document.mimeType, document.fileName]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -392,7 +424,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
             {/* Document Preview */}
             <div className="border-2 border-gray-200 rounded-lg overflow-hidden bg-white">
-              {document.mimeType?.startsWith('image/') || document.mimeType === 'application/pdf' ? (
+              {isPreviewableDocument(document.mimeType, document.fileName) ? (
                 <div className="relative">
                   {isLoadingPreview ? (
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
@@ -423,6 +455,28 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                         }}
                         onLoad={() => {
                           console.log('PDF loaded successfully in iframe');
+                        }}
+                      />
+                    ) : document.mimeType?.startsWith('text/') || 
+                         document.mimeType === 'application/json' || 
+                         document.mimeType === 'application/xml' ||
+                         document.mimeType === 'text/xml' ? (
+                      <iframe
+                        src={previewUrl}
+                        title={document.fileName}
+                        className="w-full h-96 border-0 bg-white"
+                        style={{ fontFamily: 'monospace' }}
+                        onError={(e) => {
+                          console.log('Text document iframe failed to load:', e);
+                          const target = e.target as HTMLIFrameElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) {
+                            fallback.classList.remove('hidden');
+                          }
+                        }}
+                        onLoad={() => {
+                          console.log('Text document loaded successfully in iframe');
                         }}
                       />
                     ) : (
@@ -470,12 +524,16 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   <div className="mt-4">
-                    <p className="text-lg font-medium text-gray-900">Document Preview</p>
+                    <p className="text-lg font-medium text-gray-900">Universal Document Viewer</p>
                     <p className="text-sm text-gray-500 mt-1">
                       Preview not available for this file type
                     </p>
                     <p className="text-xs text-gray-400 mt-2">
-                      File type: {document.mimeType || 'Unknown'}
+                      File type: {document.mimeType || 'Unknown'} 
+                      {document.fileName && ` • ${document.fileName.split('.').pop()?.toUpperCase()}`}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Use the download button to view this document
                     </p>
                   </div>
                 </div>
