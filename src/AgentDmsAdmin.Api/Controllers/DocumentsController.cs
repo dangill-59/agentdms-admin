@@ -168,11 +168,11 @@ public class DocumentsController : ControllerBase
             }
             
             // Maintain backward compatibility with legacy fields
-            metadata.CustomerName = GetFieldValue(document.DocumentFieldValues, "CustomerName") ?? "Unknown Customer";
-            metadata.InvoiceNumber = GetFieldValue(document.DocumentFieldValues, "InvoiceNumber") ?? "N/A";
-            metadata.InvoiceDate = GetFieldValue(document.DocumentFieldValues, "InvoiceDate") ?? DateTime.Now.ToString("yyyy-MM-dd");
-            metadata.DocType = GetFieldValue(document.DocumentFieldValues, "DocType") ?? "Document";
-            metadata.Status = GetFieldValue(document.DocumentFieldValues, "Status") ?? "Processed";
+            metadata.CustomerName = GetFieldValue(document.DocumentFieldValues, "CustomerName") ?? string.Empty;
+            metadata.InvoiceNumber = GetFieldValue(document.DocumentFieldValues, "InvoiceNumber") ?? string.Empty;
+            metadata.InvoiceDate = GetFieldValue(document.DocumentFieldValues, "InvoiceDate") ?? string.Empty;
+            metadata.DocType = GetFieldValue(document.DocumentFieldValues, "DocType") ?? string.Empty;
+            metadata.Status = GetFieldValue(document.DocumentFieldValues, "Status") ?? string.Empty;
             metadata.Notes = GetFieldValue(document.DocumentFieldValues, "Notes");
 
             return Ok(metadata);
@@ -244,11 +244,11 @@ public class DocumentsController : ControllerBase
                 }
                 
                 // Maintain backward compatibility
-                metadata.CustomerName = GetFieldValue(document.DocumentFieldValues, "CustomerName") ?? "Unknown Customer";
-                metadata.InvoiceNumber = GetFieldValue(document.DocumentFieldValues, "InvoiceNumber") ?? "N/A";
-                metadata.InvoiceDate = GetFieldValue(document.DocumentFieldValues, "InvoiceDate") ?? DateTime.Now.ToString("yyyy-MM-dd");
-                metadata.DocType = GetFieldValue(document.DocumentFieldValues, "DocType") ?? "Document";
-                metadata.Status = GetFieldValue(document.DocumentFieldValues, "Status") ?? "Processed";
+                metadata.CustomerName = GetFieldValue(document.DocumentFieldValues, "CustomerName") ?? string.Empty;
+                metadata.InvoiceNumber = GetFieldValue(document.DocumentFieldValues, "InvoiceNumber") ?? string.Empty;
+                metadata.InvoiceDate = GetFieldValue(document.DocumentFieldValues, "InvoiceDate") ?? string.Empty;
+                metadata.DocType = GetFieldValue(document.DocumentFieldValues, "DocType") ?? string.Empty;
+                metadata.Status = GetFieldValue(document.DocumentFieldValues, "Status") ?? string.Empty;
                 metadata.Notes = GetFieldValue(document.DocumentFieldValues, "Notes");
             }
 
@@ -411,11 +411,11 @@ public class DocumentsController : ControllerBase
                 }
                 
                 // Maintain backward compatibility with legacy fields
-                dto.CustomerName = GetFieldValue(d.DocumentFieldValues, "CustomerName") ?? "Unknown Customer";
-                dto.InvoiceNumber = GetFieldValue(d.DocumentFieldValues, "InvoiceNumber") ?? "N/A";
-                dto.InvoiceDate = GetFieldValue(d.DocumentFieldValues, "InvoiceDate") ?? DateTime.Now.ToString("yyyy-MM-dd");
-                dto.DocType = GetFieldValue(d.DocumentFieldValues, "DocType") ?? "Document";
-                dto.Status = GetFieldValue(d.DocumentFieldValues, "Status") ?? "Processed";
+                dto.CustomerName = GetFieldValue(d.DocumentFieldValues, "CustomerName") ?? string.Empty;
+                dto.InvoiceNumber = GetFieldValue(d.DocumentFieldValues, "InvoiceNumber") ?? string.Empty;
+                dto.InvoiceDate = GetFieldValue(d.DocumentFieldValues, "InvoiceDate") ?? string.Empty;
+                dto.DocType = GetFieldValue(d.DocumentFieldValues, "DocType") ?? string.Empty;
+                dto.Status = GetFieldValue(d.DocumentFieldValues, "Status") ?? string.Empty;
                 
                 return dto;
             }).ToList();
