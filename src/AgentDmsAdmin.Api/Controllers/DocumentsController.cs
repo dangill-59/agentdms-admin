@@ -495,12 +495,19 @@ public class DocumentsController : ControllerBase
                 return NotFound($"Document with ID {id} not found.");
             }
 
-            if (string.IsNullOrEmpty(document.StoragePath) || !System.IO.File.Exists(document.StoragePath))
+            // Handle storage path - if it starts with /uploads/, treat as relative to current directory
+            var filePath = document.StoragePath;
+            if (filePath.StartsWith("/uploads/"))
+            {
+                filePath = "." + filePath; // Convert "/uploads/file.pdf" to "./uploads/file.pdf"
+            }
+
+            if (string.IsNullOrEmpty(document.StoragePath) || !System.IO.File.Exists(filePath))
             {
                 return NotFound("Document file not found on disk.");
             }
 
-            var fileBytes = await System.IO.File.ReadAllBytesAsync(document.StoragePath);
+            var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
             var contentType = document.MimeType ?? "application/octet-stream";
 
             return File(fileBytes, contentType, document.FileName);
@@ -524,12 +531,19 @@ public class DocumentsController : ControllerBase
                 return NotFound($"Document with ID {id} not found.");
             }
 
-            if (string.IsNullOrEmpty(document.StoragePath) || !System.IO.File.Exists(document.StoragePath))
+            // Handle storage path - if it starts with /uploads/, treat as relative to current directory
+            var filePath = document.StoragePath;
+            if (filePath.StartsWith("/uploads/"))
+            {
+                filePath = "." + filePath; // Convert "/uploads/file.pdf" to "./uploads/file.pdf"
+            }
+
+            if (string.IsNullOrEmpty(document.StoragePath) || !System.IO.File.Exists(filePath))
             {
                 return NotFound("Document file not found on disk.");
             }
 
-            var fileBytes = await System.IO.File.ReadAllBytesAsync(document.StoragePath);
+            var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
             var contentType = document.MimeType ?? "application/octet-stream";
 
             // For preview, we want to display inline rather than download
@@ -555,14 +569,21 @@ public class DocumentsController : ControllerBase
                 return NotFound($"Document with ID {id} not found.");
             }
 
-            if (string.IsNullOrEmpty(document.StoragePath) || !System.IO.File.Exists(document.StoragePath))
+            // Handle storage path - if it starts with /uploads/, treat as relative to current directory
+            var filePath = document.StoragePath;
+            if (filePath.StartsWith("/uploads/"))
+            {
+                filePath = "." + filePath; // Convert "/uploads/file.pdf" to "./uploads/file.pdf"
+            }
+
+            if (string.IsNullOrEmpty(document.StoragePath) || !System.IO.File.Exists(filePath))
             {
                 return NotFound("Document file not found on disk.");
             }
 
             // For now, return the original file as thumbnail
             // In a production environment, you would generate actual thumbnails
-            var fileBytes = await System.IO.File.ReadAllBytesAsync(document.StoragePath);
+            var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
             var contentType = document.MimeType ?? "application/octet-stream";
 
             // For images, return as-is for thumbnail. For other types, you might want to generate previews

@@ -48,12 +48,12 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     fetchData();
   }, [document.id, document.projectId]);
 
-  // Load preview image with authentication
+  // Load preview for images and PDFs with authentication
   useEffect(() => {
     let previewBlobUrl = '';
     
     const loadPreview = async () => {
-      if (document.mimeType?.startsWith('image/')) {
+      if (document.mimeType?.startsWith('image/') || document.mimeType?.includes('pdf')) {
         try {
           setIsLoadingPreview(true);
           const url = await documentService.getDocumentPreview(document.id);
@@ -61,7 +61,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           setPreviewUrl(url);
         } catch (err) {
           console.error('Failed to load document preview:', err);
-          // Don't set error state here, just let the image fallback handle it
+          // Don't set error state here, just let the fallback handle it
         } finally {
           setIsLoadingPreview(false);
         }
@@ -392,7 +392,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
             {/* Document Preview */}
             <div className="border-2 border-gray-200 rounded-lg overflow-hidden bg-white">
-              {document.mimeType?.startsWith('image/') ? (
+              {document.mimeType?.startsWith('image/') || document.mimeType?.includes('pdf') ? (
                 <div className="relative">
                   {isLoadingPreview ? (
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
@@ -407,39 +407,59 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                       </div>
                     </div>
                   ) : previewUrl ? (
-                    <img
-                      src={previewUrl}
-                      alt={document.fileName}
-                      className="w-full h-auto max-h-96 object-contain"
-                      onError={(e) => {
-                        // Fallback to placeholder if image fails to load
-                        console.log('Image failed to load:', e);
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const fallback = target.nextElementSibling as HTMLElement;
-                        if (fallback) {
-                          fallback.classList.remove('hidden');
-                        }
-                      }}
-                      onLoad={(e) => {
-                        // Log successful load for debugging
-                        const target = e.target as HTMLImageElement;
-                        console.log('Image loaded successfully:', {
-                          src: target.src,
-                          naturalWidth: target.naturalWidth,
-                          naturalHeight: target.naturalHeight
-                        });
-                      }}
-                    />
+                    document.mimeType?.includes('pdf') ? (
+                      <iframe
+                        src={previewUrl}
+                        title={document.fileName}
+                        className="w-full h-96 border-0"
+                        onError={(e) => {
+                          console.log('PDF iframe failed to load:', e);
+                          const target = e.target as HTMLIFrameElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) {
+                            fallback.classList.remove('hidden');
+                          }
+                        }}
+                        onLoad={() => {
+                          console.log('PDF loaded successfully in iframe');
+                        }}
+                      />
+                    ) : (
+                      <img
+                        src={previewUrl}
+                        alt={document.fileName}
+                        className="w-full h-auto max-h-96 object-contain"
+                        onError={(e) => {
+                          // Fallback to placeholder if image fails to load
+                          console.log('Image failed to load:', e);
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) {
+                            fallback.classList.remove('hidden');
+                          }
+                        }}
+                        onLoad={(e) => {
+                          // Log successful load for debugging
+                          const target = e.target as HTMLImageElement;
+                          console.log('Image loaded successfully:', {
+                            src: target.src,
+                            naturalWidth: target.naturalWidth,
+                            naturalHeight: target.naturalHeight
+                          });
+                        }}
+                      />
+                    )
                   ) : null}
                   <div className="hidden border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
                     <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     <div className="mt-4">
-                      <p className="text-lg font-medium text-gray-900">Image Preview Unavailable</p>
+                      <p className="text-lg font-medium text-gray-900">Preview Unavailable</p>
                       <p className="text-sm text-gray-500 mt-1">
-                        Failed to load image preview
+                        Failed to load document preview
                       </p>
                     </div>
                   </div>
@@ -452,10 +472,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   <div className="mt-4">
                     <p className="text-lg font-medium text-gray-900">Document Preview</p>
                     <p className="text-sm text-gray-500 mt-1">
-                      {document.mimeType?.includes('pdf') 
-                        ? 'PDF preview not yet supported - use download button to view'
-                        : 'Preview not available for this file type'
-                      }
+                      Preview not available for this file type
                     </p>
                     <p className="text-xs text-gray-400 mt-2">
                       File type: {document.mimeType || 'Unknown'}
