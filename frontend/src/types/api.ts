@@ -100,14 +100,8 @@ export interface Document {
   fileSize: number;
   createdAt: string;
   modifiedAt: string;
-  // Dynamic custom field values
+  // Dynamic custom field values from database only
   customFieldValues: Record<string, string>;
-  // Legacy fields for backward compatibility
-  customerName?: string;
-  invoiceNumber?: string;
-  invoiceDate?: string;
-  docType?: string;
-  status?: string;
 }
 
 // Document search types
@@ -115,13 +109,8 @@ export interface DocumentSearchFilters {
   projectId?: string;
   dateFrom?: string;
   dateTo?: string;
-  // Dynamic custom field filters
+  // Dynamic custom field filters - only use database custom fields
   customFieldFilters: Record<string, string>;
-  // Legacy filters for backward compatibility  
-  invoiceNumber?: string;
-  customerName?: string;
-  docType?: string;
-  status?: string;
 }
 
 export interface DocumentSearchResult {
@@ -132,27 +121,14 @@ export interface DocumentSearchResult {
   modifiedAt: string;
   fileSize: number;
   mimeType: string;
-  // Dynamic custom field values
+  // Dynamic custom field values from database only
   customFieldValues: Record<string, string>;
-  // Legacy fields for backward compatibility  
-  customerName: string;
-  invoiceNumber: string;
-  invoiceDate: string;
-  docType: string;
-  status: string;
 }
 
 export interface DocumentMetadata {
   id: string;
-  // Dynamic custom field values
+  // Dynamic custom field values from database only
   customFieldValues: Record<string, string>;
-  // Legacy fields for backward compatibility
-  customerName: string;
-  invoiceNumber: string;
-  invoiceDate: string;
-  docType: string;
-  status: string;
-  notes?: string;
   // Dynamic custom fields support - includes field definitions with values
   customFields?: DocumentCustomFieldValue[];
 }

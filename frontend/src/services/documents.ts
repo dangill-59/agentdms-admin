@@ -1,7 +1,6 @@
 import type { Document, DocumentSearchFilters, DocumentSearchResult, DocumentMetadata, PaginatedResponse, CustomField } from '../types/api';
 import { apiService } from './api';
 import { projectService } from './projects';
-import config from '../utils/config';
 
 // Define DocumentDto to match backend response
 interface DocumentDto {
@@ -15,12 +14,6 @@ interface DocumentDto {
   modifiedAt: string;
   // Dynamic custom field values from backend
   customFieldValues: Record<string, string>;
-  // Legacy fields for backward compatibility
-  customerName?: string;
-  invoiceNumber?: string;
-  invoiceDate?: string;
-  docType?: string;
-  status?: string;
 }
 
 // Job status types (matching AgentDMS backend)
@@ -69,24 +62,11 @@ export class DocumentService {
   // Document CRUD operations
   public async getDocuments(page = 1, pageSize = 10): Promise<PaginatedResponse<Document>> {
     try {
-      // Use real API for documents regardless of demo mode (it's a real endpoint)
+      // Use real API for documents
       const response = await apiService.get<PaginatedResponse<Document>>(`${this.basePath}?page=${page}&pageSize=${pageSize}`);
       return response.data || response;
     } catch (error) {
       console.error('Failed to fetch documents:', error);
-      
-      // If API fails and we're in demo mode, return mock data
-      if (config.get('enableDemoMode')) {
-        return {
-          data: [],
-          totalCount: 0,
-          page,
-          pageSize,
-          totalPages: 0
-        };
-      }
-      
-      // In live mode, throw the error
       throw error;
     }
   }
@@ -331,9 +311,8 @@ export class DocumentService {
 
   // Get supported file formats
   public async getSupportedFormats(): Promise<string[]> {
-    // Use configuration service instead of API call to avoid 404 error
-    // The supported file types are already configured in the config service
-    return config.get('supportedFileTypes');
+    // Return common file types - in production this could come from an API endpoint
+    return ['pdf', 'jpg', 'jpeg', 'png', 'tiff', 'tif', 'bmp', 'gif', 'txt', 'doc', 'docx'];
   }
 
   // Download document file
@@ -395,13 +374,7 @@ export class DocumentService {
   // Document search functionality
   public async searchDocuments(filters: DocumentSearchFilters, page = 1, pageSize = 10): Promise<PaginatedResponse<DocumentSearchResult>> {
     try {
-      // Check if demo mode is enabled
-      if (config.get('enableDemoMode')) {
-        // Use mock data in demo mode
-        return this.getMockSearchResults(filters, page, pageSize);
-      }
-
-      // Use real API when not in demo mode - use postDirect since backend returns data directly
+      // Use real API - no demo mode check needed
       const responseData = await apiService.postDirect<PaginatedResponse<DocumentDto>>(`${this.basePath}/search`, 
         { ...filters, page, pageSize }
       );
@@ -415,13 +388,7 @@ export class DocumentService {
         modifiedAt: doc.modifiedAt,
         fileSize: doc.fileSize,
         mimeType: doc.mimeType || '',
-        customFieldValues: doc.customFieldValues || {},
-        // Backward compatibility - fallback to legacy fields or custom field values
-        customerName: doc.customerName || doc.customFieldValues?.['CustomerName'] || '',
-        invoiceNumber: doc.invoiceNumber || doc.customFieldValues?.['InvoiceNumber'] || '',
-        invoiceDate: doc.invoiceDate || doc.customFieldValues?.['InvoiceDate'] || '',
-        docType: doc.docType || doc.customFieldValues?.['DocType'] || '',
-        status: doc.status || doc.customFieldValues?.['Status'] || ''
+        customFieldValues: doc.customFieldValues || {}
       }));
       
       return {
@@ -433,163 +400,18 @@ export class DocumentService {
       };
     } catch (error) {
       console.error('Failed to search documents:', error);
-      
-      // In demo mode or if API fails, return mock data
-      if (config.get('enableDemoMode')) {
-        return this.getMockSearchResults(filters, page, pageSize);
-      }
-      
-      // In live mode, throw the error
       throw error;
     }
-  }
-
-  private async getMockSearchResults(filters: DocumentSearchFilters, page = 1, pageSize = 10): Promise<PaginatedResponse<DocumentSearchResult>> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const mockResults: DocumentSearchResult[] = [
-        {
-          id: '1',
-          projectId: filters.projectId || '1',
-          fileName: 'Invoice_ABC123.pdf',
-          customFieldValues: {
-            'CustomerName': 'ABC Company Inc.',
-            'InvoiceNumber': 'INV-2024-001',
-            'InvoiceDate': '2024-01-15',
-            'DocType': 'Invoice',
-            'Status': 'Processed'
-          },
-          customerName: 'ABC Company Inc.',
-          invoiceNumber: 'INV-2024-001',
-          invoiceDate: '2024-01-15',
-          docType: 'Invoice',
-          status: 'Processed',
-          createdAt: '2024-01-15T10:30:00Z',
-          modifiedAt: '2024-01-15T10:30:00Z',
-          fileSize: 245760,
-          mimeType: 'application/pdf'
-        },
-        {
-          id: '2',
-          projectId: filters.projectId || '1',
-          fileName: 'Receipt_XYZ789.jpg',
-          customFieldValues: {
-            'CustomerName': 'XYZ Corporation',
-            'InvoiceNumber': 'RCP-2024-002',
-            'InvoiceDate': '2024-01-20',
-            'DocType': 'Receipt',
-            'Status': 'Pending Review'
-          },
-          customerName: 'XYZ Corporation',
-          invoiceNumber: 'RCP-2024-002',
-          invoiceDate: '2024-01-20',
-          docType: 'Receipt',
-          status: 'Pending Review',
-          createdAt: '2024-01-20T14:15:00Z',
-          modifiedAt: '2024-01-20T14:15:00Z',
-          fileSize: 1048576,
-          mimeType: 'image/jpeg'
-        },
-        {
-          id: '3',
-          projectId: filters.projectId || '1',
-          fileName: 'PO_DEF456.pdf',
-          customFieldValues: {
-            'CustomerName': 'DEF Industries Ltd.',
-            'InvoiceNumber': 'PO-2024-003',
-            'InvoiceDate': '2024-01-25',
-            'DocType': 'Purchase Order',
-            'Status': 'Approved'
-          },
-          customerName: 'DEF Industries Ltd.',
-          invoiceNumber: 'PO-2024-003',
-          invoiceDate: '2024-01-25',
-          docType: 'Purchase Order',
-          status: 'Approved',
-          createdAt: '2024-01-25T09:45:00Z',
-          modifiedAt: '2024-01-25T16:20:00Z',
-          fileSize: 512000,
-          mimeType: 'application/pdf'
-        },
-        {
-          id: '4',
-          projectId: filters.projectId || '1',
-          fileName: 'Estimate_GHI789.pdf',
-          customFieldValues: {
-            'CustomerName': 'GHI Services',
-            'InvoiceNumber': 'EST-2024-004',
-            'InvoiceDate': '2024-02-01',
-            'DocType': 'Estimate',
-            'Status': 'Draft'
-          },
-          customerName: 'GHI Services',
-          invoiceNumber: 'EST-2024-004',
-          invoiceDate: '2024-02-01',
-          docType: 'Estimate',
-          status: 'Draft',
-          createdAt: '2024-02-01T11:00:00Z',
-          modifiedAt: '2024-02-01T11:00:00Z',
-          fileSize: 320000,
-          mimeType: 'application/pdf'
-        }
-      ];
-
-      // Apply filters
-      let filteredResults = mockResults;
-      
-      if (filters.invoiceNumber) {
-        filteredResults = filteredResults.filter(doc => 
-          doc.invoiceNumber.toLowerCase().includes(filters.invoiceNumber!.toLowerCase())
-        );
-      }
-      
-      if (filters.customerName) {
-        filteredResults = filteredResults.filter(doc => 
-          doc.customerName.toLowerCase().includes(filters.customerName!.toLowerCase())
-        );
-      }
-      
-      if (filters.docType) {
-        filteredResults = filteredResults.filter(doc => 
-          doc.docType.toLowerCase().includes(filters.docType!.toLowerCase())
-        );
-      }
-
-      // Simulate pagination
-      const startIndex = (page - 1) * pageSize;
-      const endIndex = startIndex + pageSize;
-      const paginatedResults = filteredResults.slice(startIndex, endIndex);
-
-      return {
-        data: paginatedResults,
-        totalCount: filteredResults.length,
-        page,
-        pageSize,
-        totalPages: Math.ceil(filteredResults.length / pageSize)
-      };
   }
 
   // Get document metadata for editing with custom fields support
   public async getDocumentMetadata(documentId: string): Promise<DocumentMetadata> {
     try {
-      // Check if demo mode is enabled
-      if (config.get('enableDemoMode')) {
-        return this.getMockDocumentMetadata(documentId);
-      }
-
-      // Use real API when not in demo mode
+      // Use real API only - no demo mode
       const response = await apiService.get<DocumentMetadata>(`${this.basePath}/${documentId}/metadata`);
       return response.data || response;
     } catch (error) {
       console.error('Failed to fetch document metadata:', error);
-      
-      // In demo mode or if API fails, return mock data
-      if (config.get('enableDemoMode')) {
-        return this.getMockDocumentMetadata(documentId);
-      }
-      
-      // In live mode, throw the error
       throw error;
     }
   }
@@ -607,120 +429,19 @@ export class DocumentService {
     }
   }
 
-  private async getMockDocumentMetadata(documentId: string): Promise<DocumentMetadata> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-      
-      const mockMetadata: DocumentMetadata = {
-        id: documentId,
-        customFieldValues: {
-          'CustomerName': 'ABC Company Inc.',
-          'InvoiceNumber': 'INV-2024-001',
-          'InvoiceDate': '2024-01-15',
-          'DocType': 'Invoice',
-          'Status': 'Processed',
-          'Notes': 'Payment terms: Net 30 days'
-        },
-        customerName: 'ABC Company Inc.',
-        invoiceNumber: 'INV-2024-001',
-        invoiceDate: '2024-01-15',
-        docType: 'Invoice',
-        status: 'Processed',
-        notes: 'Payment terms: Net 30 days',
-        customFields: [
-          {
-            fieldId: '1',
-            fieldName: 'Customer Name',
-            fieldType: 'Text',
-            value: 'ABC Company Inc.',
-            isRequired: true
-          },
-          {
-            fieldId: '2',
-            fieldName: 'Invoice Number',
-            fieldType: 'Text',
-            value: 'INV-2024-001',
-            isRequired: true
-          },
-          {
-            fieldId: '3',
-            fieldName: 'Invoice Date',
-            fieldType: 'Date',
-            value: '2024-01-15',
-            isRequired: true
-          },
-          {
-            fieldId: '4',
-            fieldName: 'Document Type',
-            fieldType: 'UserList',
-            value: 'Invoice',
-            isRequired: true,
-            userListOptions: 'Invoice,Receipt,Purchase Order,Estimate'
-          },
-          {
-            fieldId: '5',
-            fieldName: 'Status',
-            fieldType: 'UserList',
-            value: 'Processed',
-            isRequired: false,
-            userListOptions: 'Draft,Pending Review,Processed,Approved,Rejected'
-          },
-          {
-            fieldId: '6',
-            fieldName: 'Amount',
-            fieldType: 'Currency',
-            value: '1250.00',
-            isRequired: false
-          }
-        ]
-      };
-      
-      return mockMetadata;
-  }
-
   // Update document metadata
   public async updateDocumentMetadata(documentId: string, metadata: Partial<DocumentMetadata>): Promise<DocumentMetadata> {
     try {
-      // Check if demo mode is enabled
-      if (config.get('enableDemoMode')) {
-        return this.getMockUpdatedMetadata(documentId, metadata);
-      }
-
-      // Use real API when not in demo mode
+      // Use real API only - no demo mode
       const response = await apiService.put<DocumentMetadata>(`${this.basePath}/${documentId}/metadata`, metadata);
       return response.data || response;
     } catch (error) {
       console.error('Failed to update document metadata:', error);
-      
-      // In demo mode or if API fails, return mock data
-      if (config.get('enableDemoMode')) {
-        return this.getMockUpdatedMetadata(documentId, metadata);
-      }
-      
-      // In live mode, throw the error
       throw error;
     }
   }
 
-  private async getMockUpdatedMetadata(documentId: string, metadata: Partial<DocumentMetadata>): Promise<DocumentMetadata> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-      
-    const currentMetadata = await this.getDocumentMetadata(documentId);
-    const updatedMetadata = { ...currentMetadata, ...metadata };
-    
-    return updatedMetadata;
-  }
 
-  // Get available document types for filtering
-  public getDocumentTypes(): string[] {
-    return ['Invoice', 'Receipt', 'Purchase Order', 'Estimate', 'Credit Note', 'Statement'];
-  }
-
-  // Get available status options
-  public getStatusOptions(): string[] {
-    return ['Draft', 'Pending Review', 'Processed', 'Approved', 'Rejected'];
-  }
 }
 
 export const documentService = new DocumentService();
