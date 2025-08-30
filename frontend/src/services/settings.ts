@@ -21,6 +21,32 @@ export interface DatabaseSettings {
   advanced: DatabaseAdvancedSettings;
 }
 
+export interface ImageStorageSettings {
+  provider: string; // local, aws, azure
+  local: LocalStorageSettings;
+  aws: AwsStorageSettings;
+  azure: AzureStorageSettings;
+}
+
+export interface LocalStorageSettings {
+  basePath: string;
+  createDirectoryIfNotExists: boolean;
+}
+
+export interface AwsStorageSettings {
+  bucketName: string;
+  region: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  basePath: string;
+}
+
+export interface AzureStorageSettings {
+  connectionString: string;
+  containerName: string;
+  basePath: string;
+}
+
 export interface AppSettings {
   // Database settings
   database: DatabaseSettings;
@@ -52,6 +78,9 @@ export interface AppSettings {
     requireNumbers: boolean;
     requireSpecialChars: boolean;
   };
+  
+  // Image storage settings
+  imageStorage: ImageStorageSettings;
   
   // UI settings
   theme: 'light' | 'dark' | 'auto';
@@ -146,6 +175,25 @@ export class SettingsService {
           requireLowercase: true,
           requireNumbers: true,
           requireSpecialChars: false
+        },
+        imageStorage: {
+          provider: 'local',
+          local: {
+            basePath: './uploads/images',
+            createDirectoryIfNotExists: true
+          },
+          aws: {
+            bucketName: '',
+            region: 'us-east-1',
+            accessKeyId: '',
+            secretAccessKey: '',
+            basePath: 'images/'
+          },
+          azure: {
+            connectionString: '',
+            containerName: 'images',
+            basePath: 'images/'
+          }
         },
         theme: 'light',
         defaultPageSize: 10,

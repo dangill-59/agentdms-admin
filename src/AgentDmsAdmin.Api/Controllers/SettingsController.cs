@@ -79,6 +79,29 @@ public class SettingsController : ControllerBase
                     RequireNumbers = true,
                     RequireSpecialChars = false
                 },
+                ImageStorage = new ImageStorageSettings
+                {
+                    Provider = "local",
+                    Local = new LocalStorageSettings
+                    {
+                        BasePath = "./uploads/images",
+                        CreateDirectoryIfNotExists = true
+                    },
+                    Aws = new AwsStorageSettings
+                    {
+                        BucketName = "",
+                        Region = "us-east-1",
+                        AccessKeyId = "",
+                        SecretAccessKey = "",
+                        BasePath = "images/"
+                    },
+                    Azure = new AzureStorageSettings
+                    {
+                        ConnectionString = "",
+                        ContainerName = "images",
+                        BasePath = "images/"
+                    }
+                },
                 Theme = "light",
                 DefaultPageSize = 10,
                 DateFormat = "MM/dd/yyyy",
@@ -154,6 +177,29 @@ public class SettingsController : ControllerBase
                     RequireNumbers = true,
                     RequireSpecialChars = false
                 },
+                ImageStorage = new ImageStorageSettings
+                {
+                    Provider = "local",
+                    Local = new LocalStorageSettings
+                    {
+                        BasePath = "./uploads/images",
+                        CreateDirectoryIfNotExists = true
+                    },
+                    Aws = new AwsStorageSettings
+                    {
+                        BucketName = "",
+                        Region = "us-east-1",
+                        AccessKeyId = "",
+                        SecretAccessKey = "",
+                        BasePath = "images/"
+                    },
+                    Azure = new AzureStorageSettings
+                    {
+                        ConnectionString = "",
+                        ContainerName = "images",
+                        BasePath = "images/"
+                    }
+                },
                 Theme = "light",
                 DefaultPageSize = 10,
                 DateFormat = "MM/dd/yyyy",
@@ -193,6 +239,9 @@ public class SettingsController : ControllerBase
             
             if (request.PasswordPolicy != null)
                 settings.PasswordPolicy = request.PasswordPolicy;
+            
+            if (request.ImageStorage != null)
+                settings.ImageStorage = request.ImageStorage;
             
             if (!string.IsNullOrEmpty(request.Theme))
                 settings.Theme = request.Theme;
