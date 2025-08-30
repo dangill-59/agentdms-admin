@@ -184,10 +184,10 @@ const DocumentSearchResults: React.FC<DocumentSearchResultsProps> = ({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   File Name
                 </th>
-                {/* Show first 3 non-default custom fields */}
+                {/* Show first 4 most useful custom fields (excluding default fields like dates) */}
                 {customFields
                   .filter(field => !field.isDefault)
-                  .slice(0, 3)
+                  .slice(0, 4)
                   .map(field => (
                     <th key={field.id} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       {field.name}
@@ -214,10 +214,10 @@ const DocumentSearchResults: React.FC<DocumentSearchResultsProps> = ({
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {document.fileName}
                   </td>
-                  {/* Show values for first 3 non-default custom fields */}
+                  {/* Show values for first 4 most useful custom fields */}
                   {customFields
                     .filter(field => !field.isDefault)
-                    .slice(0, 3)
+                    .slice(0, 4)
                     .map(field => (
                       <td key={field.id} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {document.customFieldValues[field.name] || '-'}

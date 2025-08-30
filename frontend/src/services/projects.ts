@@ -276,8 +276,118 @@ export class ProjectService {
 
   // Project custom fields
   public async getProjectCustomFields(projectId: string): Promise<CustomField[]> {
-    const response = await apiService.getDirect<CustomField[]>(`/projects/${projectId}/custom-fields`);
-    return response;
+    try {
+      const response = await apiService.getDirect<CustomField[]>(`/projects/${projectId}/custom-fields`);
+      return response;
+    } catch (error) {
+      console.warn('Failed to fetch custom fields from backend:', error);
+      
+      // Only fall back to demo data if demo mode is enabled
+      if (!config.get('enableDemoMode')) {
+        throw error;
+      }
+      
+      // Fallback to demo data for development - only system fields + minimal custom fields
+      await new Promise(resolve => setTimeout(resolve, 300)); // Simulate API delay
+      
+      const mockCustomFields: CustomField[] = [
+        // Default system fields that every project has
+        {
+          id: 'default-1',
+          projectId: projectId,
+          name: 'Filename',
+          description: 'Original filename of the document',
+          fieldType: 'Text',
+          isRequired: true,
+          isDefault: true,
+          order: 1,
+          roleVisibility: 'all',
+          isRemovable: false,
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z'
+        },
+        {
+          id: 'default-2',
+          projectId: projectId,
+          name: 'Date Created',
+          description: 'Date when the document was created',
+          fieldType: 'Date',
+          isRequired: true,
+          isDefault: true,
+          order: 2,
+          roleVisibility: 'all',
+          isRemovable: false,
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z'
+        },
+        {
+          id: 'default-3',
+          projectId: projectId,
+          name: 'Date Modified',
+          description: 'Date when the document was last modified',
+          fieldType: 'Date',
+          isRequired: true,
+          isDefault: true,
+          order: 3,
+          roleVisibility: 'all',
+          isRemovable: false,
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z'
+        }
+      ];
+
+      // Add minimal demo custom fields - just a few examples to test field types
+      if (projectId === '1') {
+        // Sample Project gets a few demo custom fields for testing different field types
+        mockCustomFields.push(
+          {
+            id: 'demo-1',
+            projectId: projectId,
+            name: 'Category',
+            description: 'Document category',
+            fieldType: 'Text',
+            isRequired: false,
+            isDefault: false,
+            order: 10,
+            roleVisibility: 'all',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          },
+          {
+            id: 'demo-2',
+            projectId: projectId,
+            name: 'Document Type',
+            description: 'Type of document',
+            fieldType: 'UserList',
+            isRequired: false,
+            isDefault: false,
+            order: 11,
+            roleVisibility: 'all',
+            userListOptions: 'Invoice,Receipt,Contract,Report',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          },
+          {
+            id: 'demo-3',
+            projectId: projectId,
+            name: 'Is Archived',
+            description: 'Whether the document is archived',
+            fieldType: 'Boolean',
+            isRequired: false,
+            isDefault: false,
+            order: 12,
+            roleVisibility: 'all',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          }
+        );
+      }
+
+      return mockCustomFields;
+    }
   }
 
   public async createCustomField(projectId: string, request: CreateCustomFieldRequest): Promise<CustomField> {
