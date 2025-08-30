@@ -78,7 +78,7 @@ export class SettingsService {
   public async getAppSettings(): Promise<AppSettings> {
     try {
       const response = await apiService.get<AppSettings>(`${this.basePath}/app`);
-      return response.data;
+      return response.data || response;
     } catch (error) {
       console.error('Failed to fetch app settings:', error);
       // Return default settings for development
@@ -116,14 +116,14 @@ export class SettingsService {
 
   public async updateAppSettings(settings: Partial<AppSettings>): Promise<AppSettings> {
     const response = await apiService.put<AppSettings>(`${this.basePath}/app`, settings);
-    return response.data;
+    return response.data || response;
   }
 
   // System information
   public async getSystemInfo(): Promise<SystemInfo> {
     try {
       const response = await apiService.get<SystemInfo>(`${this.basePath}/system`);
-      return response.data;
+      return response.data || response;
     } catch (error) {
       console.error('Failed to fetch system info:', error);
       // Return mock system info for development
@@ -147,7 +147,7 @@ export class SettingsService {
   public async getNotificationPreferences(): Promise<NotificationPreferences> {
     try {
       const response = await apiService.get<NotificationPreferences>(`${this.basePath}/notifications`);
-      return response.data;
+      return response.data || response;
     } catch (error) {
       console.error('Failed to fetch notification preferences:', error);
       // Return default preferences for development
@@ -175,7 +175,7 @@ export class SettingsService {
 
   public async updateNotificationPreferences(preferences: Partial<NotificationPreferences>): Promise<NotificationPreferences> {
     const response = await apiService.put<NotificationPreferences>(`${this.basePath}/notifications`, preferences);
-    return response.data;
+    return response.data || response;
   }
 
   // Security settings
@@ -276,7 +276,7 @@ export class SettingsService {
   public async getFeatureFlags(): Promise<Record<string, boolean>> {
     try {
       const response = await apiService.get<Record<string, boolean>>(`${this.basePath}/features`);
-      return response.data;
+      return response.data || response;
     } catch (error) {
       console.error('Failed to fetch feature flags:', error);
       return {};
