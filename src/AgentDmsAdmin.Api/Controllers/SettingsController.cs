@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using AgentDmsAdmin.Api.Models;
+using AgentDmsAdmin.Data.Models;
 using System.Reflection;
 
 namespace AgentDmsAdmin.Api.Controllers;
@@ -28,6 +29,26 @@ public class SettingsController : ControllerBase
             // In a real application, these would be loaded from database or configuration
             var settings = new AppSettingsDto
             {
+                Database = new DatabaseSettings
+                {
+                    Type = "sqlite",
+                    Host = "",
+                    Port = 0,
+                    DatabaseName = "agentdms",
+                    Username = "",
+                    Password = "",
+                    ConnectionString = "Data Source=agentdms.db",
+                    Advanced = new DatabaseAdvancedSettings
+                    {
+                        EnableSsl = false,
+                        ConnectionTimeout = 30,
+                        CommandTimeout = 30,
+                        MaxPoolSize = 100,
+                        MinPoolSize = 0,
+                        EnableConnectionPooling = true,
+                        AdditionalOptions = ""
+                    }
+                },
                 MaxFileSize = 104857600, // 100MB
                 AllowedFileTypes = new List<string> 
                 { 
@@ -83,6 +104,26 @@ public class SettingsController : ControllerBase
             // Get current settings (this would normally come from database)
             var settings = new AppSettingsDto
             {
+                Database = new DatabaseSettings
+                {
+                    Type = "sqlite",
+                    Host = "",
+                    Port = 0,
+                    DatabaseName = "agentdms",
+                    Username = "",
+                    Password = "",
+                    ConnectionString = "Data Source=agentdms.db",
+                    Advanced = new DatabaseAdvancedSettings
+                    {
+                        EnableSsl = false,
+                        ConnectionTimeout = 30,
+                        CommandTimeout = 30,
+                        MaxPoolSize = 100,
+                        MinPoolSize = 0,
+                        EnableConnectionPooling = true,
+                        AdditionalOptions = ""
+                    }
+                },
                 MaxFileSize = 104857600,
                 AllowedFileTypes = new List<string> 
                 { 
@@ -120,6 +161,9 @@ public class SettingsController : ControllerBase
             };
 
             // Apply updates from request
+            if (request.Database != null)
+                settings.Database = request.Database;
+            
             if (request.MaxFileSize.HasValue)
                 settings.MaxFileSize = request.MaxFileSize.Value;
             

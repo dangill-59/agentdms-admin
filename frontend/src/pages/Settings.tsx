@@ -31,6 +31,24 @@ const Settings: React.FC = () => {
 
   // App settings state
   const [appSettings, setAppSettings] = useState<AppSettings>({
+    database: {
+      type: 'sqlite',
+      host: '',
+      port: 0,
+      databaseName: 'agentdms',
+      username: '',
+      password: '',
+      connectionString: 'Data Source=agentdms.db',
+      advanced: {
+        enableSsl: false,
+        connectionTimeout: 30,
+        commandTimeout: 30,
+        maxPoolSize: 100,
+        minPoolSize: 0,
+        enableConnectionPooling: true,
+        additionalOptions: ''
+      }
+    },
     maxFileSize: 100 * 1024 * 1024, // 100MB in bytes
     allowedFileTypes: ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tif', '.tiff', '.pdf', '.webp'],
     autoProcessUploads: true,
@@ -63,6 +81,7 @@ const Settings: React.FC = () => {
   const tabs = [
     { id: 'profile', name: 'Profile', icon: 'user' },
     { id: 'app', name: 'Application', icon: 'cog' },
+    { id: 'database', name: 'Database', icon: 'database' },
     { id: 'security', name: 'Security', icon: 'shield' },
     { id: 'notifications', name: 'Notifications', icon: 'bell' }
   ];
@@ -137,6 +156,23 @@ const Settings: React.FC = () => {
     }
   };
 
+  const handleDatabaseSettingsUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    try {
+      setIsLoading(true);
+      const updatedSettings = await settingsService.updateAppSettings(appSettings);
+      setAppSettings(updatedSettings);
+      setSuccess('Database settings updated successfully');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update database settings');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getTabIcon = (iconType: string) => {
     switch (iconType) {
       case 'user':
@@ -150,6 +186,12 @@ const Settings: React.FC = () => {
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        );
+      case 'database':
+        return (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
           </svg>
         );
       case 'shield':
@@ -450,6 +492,308 @@ const Settings: React.FC = () => {
                             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
                           >
                             {isLoading ? 'Updating...' : 'Update Settings'}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
+
+                  {/* Database Settings Tab */}
+                  {activeTab === 'database' && (
+                    <div>
+                      <div className="mb-6">
+                        <h2 className="text-lg leading-6 font-medium text-gray-900">Database Settings</h2>
+                        <p className="mt-1 text-sm text-gray-500">
+                          Configure database connection and performance options.
+                        </p>
+                      </div>
+
+                      <form onSubmit={handleDatabaseSettingsUpdate} className="space-y-6">
+                        {/* Database Type */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Database Type
+                          </label>
+                          <select
+                            value={appSettings.database.type}
+                            onChange={(e) => setAppSettings({
+                              ...appSettings,
+                              database: { ...appSettings.database, type: e.target.value }
+                            })}
+                            className="mt-1 block w-full md:w-48 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value="sqlite">SQLite</option>
+                            <option value="postgresql">PostgreSQL</option>
+                            <option value="mysql">MySQL</option>
+                            <option value="sqlserver">SQL Server</option>
+                            <option value="mongodb">MongoDB</option>
+                          </select>
+                          <p className="mt-1 text-sm text-gray-500">Select the database provider to use</p>
+                        </div>
+
+                        {/* Connection String for SQLite */}
+                        {appSettings.database.type === 'sqlite' && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Database File Path
+                            </label>
+                            <input
+                              type="text"
+                              value={appSettings.database.connectionString}
+                              onChange={(e) => setAppSettings({
+                                ...appSettings,
+                                database: { ...appSettings.database, connectionString: e.target.value }
+                              })}
+                              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Data Source=agentdms.db"
+                            />
+                            <p className="mt-1 text-sm text-gray-500">Path to the SQLite database file</p>
+                          </div>
+                        )}
+
+                        {/* Host and Port for other databases */}
+                        {appSettings.database.type !== 'sqlite' && (
+                          <>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Host
+                                </label>
+                                <input
+                                  type="text"
+                                  value={appSettings.database.host}
+                                  onChange={(e) => setAppSettings({
+                                    ...appSettings,
+                                    database: { ...appSettings.database, host: e.target.value }
+                                  })}
+                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="localhost"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Port
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="65535"
+                                  value={appSettings.database.port || ''}
+                                  onChange={(e) => setAppSettings({
+                                    ...appSettings,
+                                    database: { ...appSettings.database, port: parseInt(e.target.value) || 0 }
+                                  })}
+                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="5432"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Database Name
+                              </label>
+                              <input
+                                type="text"
+                                value={appSettings.database.databaseName}
+                                onChange={(e) => setAppSettings({
+                                  ...appSettings,
+                                  database: { ...appSettings.database, databaseName: e.target.value }
+                                })}
+                                className="mt-1 block w-full md:w-64 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="agentdms"
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Username
+                                </label>
+                                <input
+                                  type="text"
+                                  value={appSettings.database.username}
+                                  onChange={(e) => setAppSettings({
+                                    ...appSettings,
+                                    database: { ...appSettings.database, username: e.target.value }
+                                  })}
+                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="username"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Password
+                                </label>
+                                <input
+                                  type="password"
+                                  value={appSettings.database.password}
+                                  onChange={(e) => setAppSettings({
+                                    ...appSettings,
+                                    database: { ...appSettings.database, password: e.target.value }
+                                  })}
+                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="password"
+                                />
+                              </div>
+                            </div>
+                          </>
+                        )}
+
+                        {/* Advanced Settings */}
+                        <div className="border-t pt-6">
+                          <h3 className="text-md font-medium text-gray-900 mb-4">Advanced Settings</h3>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Connection Timeout (seconds)
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                max="300"
+                                value={appSettings.database.advanced.connectionTimeout}
+                                onChange={(e) => setAppSettings({
+                                  ...appSettings,
+                                  database: {
+                                    ...appSettings.database,
+                                    advanced: { ...appSettings.database.advanced, connectionTimeout: parseInt(e.target.value) || 30 }
+                                  }
+                                })}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Command Timeout (seconds)
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                max="600"
+                                value={appSettings.database.advanced.commandTimeout}
+                                onChange={(e) => setAppSettings({
+                                  ...appSettings,
+                                  database: {
+                                    ...appSettings.database,
+                                    advanced: { ...appSettings.database.advanced, commandTimeout: parseInt(e.target.value) || 30 }
+                                  }
+                                })}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Max Pool Size
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                max="1000"
+                                value={appSettings.database.advanced.maxPoolSize}
+                                onChange={(e) => setAppSettings({
+                                  ...appSettings,
+                                  database: {
+                                    ...appSettings.database,
+                                    advanced: { ...appSettings.database.advanced, maxPoolSize: parseInt(e.target.value) || 100 }
+                                  }
+                                })}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Min Pool Size
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={appSettings.database.advanced.minPoolSize}
+                                onChange={(e) => setAppSettings({
+                                  ...appSettings,
+                                  database: {
+                                    ...appSettings.database,
+                                    advanced: { ...appSettings.database.advanced, minPoolSize: parseInt(e.target.value) || 0 }
+                                  }
+                                })}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="mt-4">
+                            <div className="flex items-center">
+                              <input
+                                type="checkbox"
+                                checked={appSettings.database.advanced.enableConnectionPooling}
+                                onChange={(e) => setAppSettings({
+                                  ...appSettings,
+                                  database: {
+                                    ...appSettings.database,
+                                    advanced: { ...appSettings.database.advanced, enableConnectionPooling: e.target.checked }
+                                  }
+                                })}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              />
+                              <label className="ml-2 block text-sm text-gray-900">
+                                Enable Connection Pooling
+                              </label>
+                            </div>
+                          </div>
+
+                          <div className="mt-4">
+                            <div className="flex items-center">
+                              <input
+                                type="checkbox"
+                                checked={appSettings.database.advanced.enableSsl}
+                                onChange={(e) => setAppSettings({
+                                  ...appSettings,
+                                  database: {
+                                    ...appSettings.database,
+                                    advanced: { ...appSettings.database.advanced, enableSsl: e.target.checked }
+                                  }
+                                })}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              />
+                              <label className="ml-2 block text-sm text-gray-900">
+                                Enable SSL
+                              </label>
+                            </div>
+                          </div>
+
+                          <div className="mt-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Additional Options
+                            </label>
+                            <textarea
+                              rows={3}
+                              value={appSettings.database.advanced.additionalOptions}
+                              onChange={(e) => setAppSettings({
+                                ...appSettings,
+                                database: {
+                                  ...appSettings.database,
+                                  advanced: { ...appSettings.database.advanced, additionalOptions: e.target.value }
+                                }
+                              })}
+                              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Additional connection string parameters"
+                            />
+                            <p className="mt-1 text-sm text-gray-500">Additional connection string options (key=value pairs)</p>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end">
+                          <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+                          >
+                            {isLoading ? 'Updating...' : 'Update Database Settings'}
                           </button>
                         </div>
                       </form>

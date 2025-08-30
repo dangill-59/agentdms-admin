@@ -1,6 +1,29 @@
 import { apiService } from './api';
 
+export interface DatabaseAdvancedSettings {
+  enableSsl: boolean;
+  connectionTimeout: number; // seconds
+  commandTimeout: number; // seconds
+  maxPoolSize: number;
+  minPoolSize: number;
+  enableConnectionPooling: boolean;
+  additionalOptions: string;
+}
+
+export interface DatabaseSettings {
+  type: string; // sqlite, postgresql, mysql, sqlserver, mongodb
+  host: string;
+  port: number;
+  databaseName: string;
+  username: string;
+  password: string;
+  connectionString: string;
+  advanced: DatabaseAdvancedSettings;
+}
+
 export interface AppSettings {
+  // Database settings
+  database: DatabaseSettings;
   // File processing settings
   maxFileSize: number; // in bytes
   allowedFileTypes: string[];
@@ -83,6 +106,24 @@ export class SettingsService {
       console.error('Failed to fetch app settings:', error);
       // Return default settings for development
       return {
+        database: {
+          type: 'sqlite',
+          host: '',
+          port: 0,
+          databaseName: 'agentdms',
+          username: '',
+          password: '',
+          connectionString: 'Data Source=agentdms.db',
+          advanced: {
+            enableSsl: false,
+            connectionTimeout: 30,
+            commandTimeout: 30,
+            maxPoolSize: 100,
+            minPoolSize: 0,
+            enableConnectionPooling: true,
+            additionalOptions: ''
+          }
+        },
         maxFileSize: 100 * 1024 * 1024, // 100MB
         allowedFileTypes: ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tif', '.tiff', '.pdf', '.webp'],
         autoProcessUploads: true,
