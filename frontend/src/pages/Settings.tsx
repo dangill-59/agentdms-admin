@@ -72,6 +72,25 @@ const Settings: React.FC = () => {
       requireNumbers: true,
       requireSpecialChars: false
     },
+    imageStorage: {
+      provider: 'local',
+      local: {
+        basePath: './uploads/images',
+        createDirectoryIfNotExists: true
+      },
+      aws: {
+        bucketName: '',
+        region: 'us-east-1',
+        accessKeyId: '',
+        secretAccessKey: '',
+        basePath: 'images/'
+      },
+      azure: {
+        connectionString: '',
+        containerName: 'images',
+        basePath: 'images/'
+      }
+    },
     theme: 'light',
     defaultPageSize: 10,
     dateFormat: 'MM/dd/yyyy',
@@ -82,6 +101,7 @@ const Settings: React.FC = () => {
     { id: 'profile', name: 'Profile', icon: 'user' },
     { id: 'app', name: 'Application', icon: 'cog' },
     { id: 'database', name: 'Database', icon: 'database' },
+    { id: 'storage', name: 'Storage', icon: 'server' },
     { id: 'security', name: 'Security', icon: 'shield' },
     { id: 'notifications', name: 'Notifications', icon: 'bell' }
   ];
@@ -794,6 +814,269 @@ const Settings: React.FC = () => {
                             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
                           >
                             {isLoading ? 'Updating...' : 'Update Database Settings'}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
+
+                  {/* Storage Settings Tab */}
+                  {activeTab === 'storage' && (
+                    <div>
+                      <div className="mb-6">
+                        <h2 className="text-lg leading-6 font-medium text-gray-900">Image Storage Settings</h2>
+                        <p className="mt-1 text-sm text-gray-500">
+                          Configure image storage provider and connection settings.
+                        </p>
+                      </div>
+
+                      <form onSubmit={handleAppSettingsUpdate} className="space-y-6">
+                        {/* Storage Provider */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Storage Provider
+                          </label>
+                          <select
+                            value={appSettings.imageStorage.provider}
+                            onChange={(e) => setAppSettings({
+                              ...appSettings,
+                              imageStorage: { ...appSettings.imageStorage, provider: e.target.value }
+                            })}
+                            className="mt-1 block w-full md:w-48 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value="local">Local Storage</option>
+                            <option value="aws">Amazon S3</option>
+                            <option value="azure">Azure Blob Storage</option>
+                          </select>
+                          <p className="mt-1 text-sm text-gray-500">Select where images will be stored</p>
+                        </div>
+
+                        {/* Local Storage Settings */}
+                        {appSettings.imageStorage.provider === 'local' && (
+                          <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                            <h3 className="text-sm font-medium text-gray-900">Local Storage Configuration</h3>
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Base Path
+                              </label>
+                              <input
+                                type="text"
+                                value={appSettings.imageStorage.local.basePath}
+                                onChange={(e) => setAppSettings({
+                                  ...appSettings,
+                                  imageStorage: {
+                                    ...appSettings.imageStorage,
+                                    local: { ...appSettings.imageStorage.local, basePath: e.target.value }
+                                  }
+                                })}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="./uploads/images"
+                              />
+                              <p className="mt-1 text-sm text-gray-500">Local directory path for storing images</p>
+                            </div>
+
+                            <div className="flex items-center">
+                              <input
+                                id="create-directory"
+                                type="checkbox"
+                                checked={appSettings.imageStorage.local.createDirectoryIfNotExists}
+                                onChange={(e) => setAppSettings({
+                                  ...appSettings,
+                                  imageStorage: {
+                                    ...appSettings.imageStorage,
+                                    local: { ...appSettings.imageStorage.local, createDirectoryIfNotExists: e.target.checked }
+                                  }
+                                })}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              />
+                              <label htmlFor="create-directory" className="ml-2 block text-sm text-gray-900">
+                                Create directory if it doesn't exist
+                              </label>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* AWS S3 Settings */}
+                        {appSettings.imageStorage.provider === 'aws' && (
+                          <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                            <h3 className="text-sm font-medium text-gray-900">Amazon S3 Configuration</h3>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Bucket Name
+                                </label>
+                                <input
+                                  type="text"
+                                  value={appSettings.imageStorage.aws.bucketName}
+                                  onChange={(e) => setAppSettings({
+                                    ...appSettings,
+                                    imageStorage: {
+                                      ...appSettings.imageStorage,
+                                      aws: { ...appSettings.imageStorage.aws, bucketName: e.target.value }
+                                    }
+                                  })}
+                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="my-bucket-name"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Region
+                                </label>
+                                <input
+                                  type="text"
+                                  value={appSettings.imageStorage.aws.region}
+                                  onChange={(e) => setAppSettings({
+                                    ...appSettings,
+                                    imageStorage: {
+                                      ...appSettings.imageStorage,
+                                      aws: { ...appSettings.imageStorage.aws, region: e.target.value }
+                                    }
+                                  })}
+                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="us-east-1"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Access Key ID
+                                </label>
+                                <input
+                                  type="text"
+                                  value={appSettings.imageStorage.aws.accessKeyId}
+                                  onChange={(e) => setAppSettings({
+                                    ...appSettings,
+                                    imageStorage: {
+                                      ...appSettings.imageStorage,
+                                      aws: { ...appSettings.imageStorage.aws, accessKeyId: e.target.value }
+                                    }
+                                  })}
+                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="AKIAIOSFODNN7EXAMPLE"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Secret Access Key
+                                </label>
+                                <input
+                                  type="password"
+                                  value={appSettings.imageStorage.aws.secretAccessKey}
+                                  onChange={(e) => setAppSettings({
+                                    ...appSettings,
+                                    imageStorage: {
+                                      ...appSettings.imageStorage,
+                                      aws: { ...appSettings.imageStorage.aws, secretAccessKey: e.target.value }
+                                    }
+                                  })}
+                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Base Path
+                              </label>
+                              <input
+                                type="text"
+                                value={appSettings.imageStorage.aws.basePath}
+                                onChange={(e) => setAppSettings({
+                                  ...appSettings,
+                                  imageStorage: {
+                                    ...appSettings.imageStorage,
+                                    aws: { ...appSettings.imageStorage.aws, basePath: e.target.value }
+                                  }
+                                })}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="images/"
+                              />
+                              <p className="mt-1 text-sm text-gray-500">Path prefix for storing images in the bucket</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Azure Blob Storage Settings */}
+                        {appSettings.imageStorage.provider === 'azure' && (
+                          <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                            <h3 className="text-sm font-medium text-gray-900">Azure Blob Storage Configuration</h3>
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Connection String
+                              </label>
+                              <textarea
+                                value={appSettings.imageStorage.azure.connectionString}
+                                onChange={(e) => setAppSettings({
+                                  ...appSettings,
+                                  imageStorage: {
+                                    ...appSettings.imageStorage,
+                                    azure: { ...appSettings.imageStorage.azure, connectionString: e.target.value }
+                                  }
+                                })}
+                                rows={3}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey;EndpointSuffix=core.windows.net"
+                              />
+                              <p className="mt-1 text-sm text-gray-500">Azure Storage account connection string</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Container Name
+                                </label>
+                                <input
+                                  type="text"
+                                  value={appSettings.imageStorage.azure.containerName}
+                                  onChange={(e) => setAppSettings({
+                                    ...appSettings,
+                                    imageStorage: {
+                                      ...appSettings.imageStorage,
+                                      azure: { ...appSettings.imageStorage.azure, containerName: e.target.value }
+                                    }
+                                  })}
+                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="images"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Base Path
+                                </label>
+                                <input
+                                  type="text"
+                                  value={appSettings.imageStorage.azure.basePath}
+                                  onChange={(e) => setAppSettings({
+                                    ...appSettings,
+                                    imageStorage: {
+                                      ...appSettings.imageStorage,
+                                      azure: { ...appSettings.imageStorage.azure, basePath: e.target.value }
+                                    }
+                                  })}
+                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="images/"
+                                />
+                                <p className="mt-1 text-sm text-gray-500">Path prefix for storing images in the container</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex justify-end">
+                          <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+                          >
+                            {isLoading ? 'Updating...' : 'Update Settings'}
                           </button>
                         </div>
                       </form>

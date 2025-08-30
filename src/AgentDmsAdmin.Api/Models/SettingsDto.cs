@@ -23,6 +23,9 @@ public class AppSettingsDto
     public int SessionTimeout { get; set; } = 120; // in minutes
     public PasswordPolicySettings PasswordPolicy { get; set; } = new();
 
+    // Image storage settings
+    public ImageStorageSettings ImageStorage { get; set; } = new();
+
     // UI settings
     public string Theme { get; set; } = "light";
     public int DefaultPageSize { get; set; } = 10;
@@ -100,6 +103,36 @@ public class InAppNotificationPreferences
     public bool ErrorAlerts { get; set; } = true;
 }
 
+public class ImageStorageSettings
+{
+    public string Provider { get; set; } = "local"; // local, aws, azure
+    public LocalStorageSettings Local { get; set; } = new();
+    public AwsStorageSettings Aws { get; set; } = new();
+    public AzureStorageSettings Azure { get; set; } = new();
+}
+
+public class LocalStorageSettings
+{
+    public string BasePath { get; set; } = "./uploads/images";
+    public bool CreateDirectoryIfNotExists { get; set; } = true;
+}
+
+public class AwsStorageSettings
+{
+    public string BucketName { get; set; } = string.Empty;
+    public string Region { get; set; } = "us-east-1";
+    public string AccessKeyId { get; set; } = string.Empty;
+    public string SecretAccessKey { get; set; } = string.Empty;
+    public string BasePath { get; set; } = "images/";
+}
+
+public class AzureStorageSettings
+{
+    public string ConnectionString { get; set; } = string.Empty;
+    public string ContainerName { get; set; } = "images";
+    public string BasePath { get; set; } = "images/";
+}
+
 public class UpdateAppSettingsRequest
 {
     public DatabaseSettings? Database { get; set; }
@@ -113,6 +146,7 @@ public class UpdateAppSettingsRequest
     public PushNotificationSettings? PushNotifications { get; set; }
     public int? SessionTimeout { get; set; }
     public PasswordPolicySettings? PasswordPolicy { get; set; }
+    public ImageStorageSettings? ImageStorage { get; set; }
     public string? Theme { get; set; }
     public int? DefaultPageSize { get; set; }
     public string? DateFormat { get; set; }
