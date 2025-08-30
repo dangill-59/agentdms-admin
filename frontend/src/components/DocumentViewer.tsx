@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { DocumentSearchResult, DocumentMetadata, DocumentCustomFieldValue, CustomField } from '../types/api';
 import { documentService } from '../services/documents';
+import FullScreenDocumentViewer from './FullScreenDocumentViewer';
 
 interface DocumentViewerProps {
   document: DocumentSearchResult;
@@ -22,6 +23,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const [editedMetadata, setEditedMetadata] = useState<DocumentMetadata | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [isLoadingPreview, setIsLoadingPreview] = useState(true);
+  const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -434,7 +436,18 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             </div>
 
             {/* Document Preview */}
-            <div className="border-2 border-gray-200 rounded-lg overflow-hidden bg-white">
+            <div className="border-2 border-gray-200 rounded-lg overflow-hidden bg-white relative">
+              {/* Full Screen Button */}
+              <button
+                onClick={() => setIsFullScreenOpen(true)}
+                className="absolute top-2 right-2 z-10 bg-black bg-opacity-50 text-white p-2 rounded-lg hover:bg-opacity-70 transition-all"
+                title="Open in Full Screen Viewer"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+              </button>
+              
               {isPreviewableDocument(document.mimeType, document.fileName) ? (
                 <div className="relative">
                   {isLoadingPreview ? (
@@ -620,6 +633,14 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Full Screen Document Viewer */}
+      <FullScreenDocumentViewer
+        document={document}
+        isOpen={isFullScreenOpen}
+        onClose={() => setIsFullScreenOpen(false)}
+        initialMode="preview"
+      />
     </div>
   );
 };
