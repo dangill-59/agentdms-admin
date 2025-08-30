@@ -28,16 +28,6 @@ const DocumentSearchResults: React.FC<DocumentSearchResultsProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-
 
   const renderPagination = () => {
     const totalPages = results.totalPages;
@@ -184,18 +174,13 @@ const DocumentSearchResults: React.FC<DocumentSearchResultsProps> = ({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   File Name
                 </th>
-                {/* Show first 3 non-default custom fields */}
+                {/* Show all custom fields from database */}
                 {customFields
-                  .filter(field => !field.isDefault)
-                  .slice(0, 3)
                   .map(field => (
                     <th key={field.id} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       {field.name}
                     </th>
                   ))}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created
-                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   File Size
                 </th>
@@ -214,18 +199,13 @@ const DocumentSearchResults: React.FC<DocumentSearchResultsProps> = ({
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {document.fileName}
                   </td>
-                  {/* Show values for first 3 non-default custom fields */}
+                  {/* Show values for all custom fields from database */}
                   {customFields
-                    .filter(field => !field.isDefault)
-                    .slice(0, 3)
                     .map(field => (
                       <td key={field.id} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {document.customFieldValues[field.name] || '-'}
                       </td>
                     ))}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(document.createdAt)}
-                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatFileSize(document.fileSize)}
                   </td>

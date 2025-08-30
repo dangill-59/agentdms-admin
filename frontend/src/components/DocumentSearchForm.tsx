@@ -262,33 +262,6 @@ const DocumentSearchForm: React.FC<DocumentSearchFormProps> = ({
               </div>
             ))}
 
-          {/* System Date Range Filters */}
-          <div>
-            <label htmlFor="dateFrom" className="block text-sm font-medium text-gray-700 mb-2">
-              Date From
-            </label>
-            <input
-              type="date"
-              id="dateFrom"
-              value={filters.dateFrom || ''}
-              onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="dateTo" className="block text-sm font-medium text-gray-700 mb-2">
-              Date To
-            </label>
-            <input
-              type="date"
-              id="dateTo"
-              value={filters.dateTo || ''}
-              onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
           {/* Loading State for Custom Fields */}
           {isLoadingFields && filters.projectId && (
             <div className="col-span-full text-center py-4">
