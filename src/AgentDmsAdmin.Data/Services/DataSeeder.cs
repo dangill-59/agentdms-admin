@@ -572,18 +572,163 @@ public class DataSeeder
             await CreateDefaultFieldsForProjectAsync(sampleProject.Id);
             await CreateDefaultFieldsForProjectAsync(apProject.Id);
 
-            // Add a custom field to sample project
-            var customField = new CustomField
+            // Add multiple custom fields to sample project for better search testing
+            var sampleProjectCustomFields = new List<CustomField>
             {
-                Name = "Category",
-                Description = "Document category",
-                FieldType = CustomFieldType.Text,
-                IsRequired = false,
-                IsDefault = false,
-                ProjectId = sampleProject.Id
+                new CustomField
+                {
+                    Name = "Category",
+                    Description = "Document category",
+                    FieldType = CustomFieldType.Text,
+                    IsRequired = false,
+                    IsDefault = false,
+                    Order = 10,
+                    ProjectId = sampleProject.Id
+                },
+                new CustomField
+                {
+                    Name = "Customer Name",
+                    Description = "Name of the customer or client",
+                    FieldType = CustomFieldType.Text,
+                    IsRequired = false,
+                    IsDefault = false,
+                    Order = 11,
+                    ProjectId = sampleProject.Id
+                },
+                new CustomField
+                {
+                    Name = "Invoice Number",
+                    Description = "Invoice or document reference number",
+                    FieldType = CustomFieldType.Text,
+                    IsRequired = false,
+                    IsDefault = false,
+                    Order = 12,
+                    ProjectId = sampleProject.Id
+                },
+                new CustomField
+                {
+                    Name = "Document Type",
+                    Description = "Type of document",
+                    FieldType = CustomFieldType.UserList,
+                    IsRequired = false,
+                    IsDefault = false,
+                    Order = 13,
+                    UserListOptions = "Invoice,Receipt,Purchase Order,Contract,Report,Letter",
+                    ProjectId = sampleProject.Id
+                },
+                new CustomField
+                {
+                    Name = "Status",
+                    Description = "Processing status of the document",
+                    FieldType = CustomFieldType.UserList,
+                    IsRequired = false,
+                    IsDefault = false,
+                    Order = 14,
+                    UserListOptions = "Draft,Under Review,Approved,Rejected,Processed",
+                    ProjectId = sampleProject.Id
+                },
+                new CustomField
+                {
+                    Name = "Amount",
+                    Description = "Document amount or value",
+                    FieldType = CustomFieldType.Currency,
+                    IsRequired = false,
+                    IsDefault = false,
+                    Order = 15,
+                    ProjectId = sampleProject.Id
+                },
+                new CustomField
+                {
+                    Name = "Priority",
+                    Description = "Priority level",
+                    FieldType = CustomFieldType.UserList,
+                    IsRequired = false,
+                    IsDefault = false,
+                    Order = 16,
+                    UserListOptions = "Low,Medium,High,Urgent",
+                    ProjectId = sampleProject.Id
+                }
             };
 
-            _context.CustomFields.Add(customField);
+            // Add multiple custom fields to AP project as well
+            var apProjectCustomFields = new List<CustomField>
+            {
+                new CustomField
+                {
+                    Name = "Vendor Name",
+                    Description = "Name of the vendor or supplier",
+                    FieldType = CustomFieldType.Text,
+                    IsRequired = false,
+                    IsDefault = false,
+                    Order = 10,
+                    ProjectId = apProject.Id
+                },
+                new CustomField
+                {
+                    Name = "Invoice Number",
+                    Description = "Vendor invoice number",
+                    FieldType = CustomFieldType.Text,
+                    IsRequired = false,
+                    IsDefault = false,
+                    Order = 11,
+                    ProjectId = apProject.Id
+                },
+                new CustomField
+                {
+                    Name = "Invoice Date",
+                    Description = "Date on the invoice",
+                    FieldType = CustomFieldType.Date,
+                    IsRequired = false,
+                    IsDefault = false,
+                    Order = 12,
+                    ProjectId = apProject.Id
+                },
+                new CustomField
+                {
+                    Name = "Payment Status",
+                    Description = "Current payment status",
+                    FieldType = CustomFieldType.UserList,
+                    IsRequired = false,
+                    IsDefault = false,
+                    Order = 13,
+                    UserListOptions = "Pending,Approved,Paid,Rejected,On Hold",
+                    ProjectId = apProject.Id
+                },
+                new CustomField
+                {
+                    Name = "GL Code",
+                    Description = "General Ledger account code",
+                    FieldType = CustomFieldType.Text,
+                    IsRequired = false,
+                    IsDefault = false,
+                    Order = 14,
+                    ProjectId = apProject.Id
+                },
+                new CustomField
+                {
+                    Name = "Invoice Amount",
+                    Description = "Total invoice amount",
+                    FieldType = CustomFieldType.Currency,
+                    IsRequired = false,
+                    IsDefault = false,
+                    Order = 15,
+                    ProjectId = apProject.Id
+                },
+                new CustomField
+                {
+                    Name = "Department",
+                    Description = "Requesting department",
+                    FieldType = CustomFieldType.UserList,
+                    IsRequired = false,
+                    IsDefault = false,
+                    Order = 16,
+                    UserListOptions = "Finance,HR,IT,Operations,Sales,Marketing",
+                    ProjectId = apProject.Id
+                }
+            };
+
+            _context.CustomFields.AddRange(sampleProjectCustomFields);
+            _context.CustomFields.AddRange(apProjectCustomFields);
             await _context.SaveChangesAsync();
         }
     }

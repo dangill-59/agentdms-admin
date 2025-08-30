@@ -136,9 +136,12 @@ const DocumentSearchForm: React.FC<DocumentSearchFormProps> = ({
 
         {/* Search Filters Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Dynamic Custom Fields */}
+          {/* Dynamic Custom Fields - Show all custom fields and useful default fields */}
           {customFields
-            .filter(field => !field.isDefault) // Skip default fields like filename, dates
+            .filter(field => 
+              !field.isDefault || // Show all custom fields
+              field.name === 'Filename' // Also show filename default field as it's useful for search
+            )
             .map((field) => (
               <div key={field.id}>
                 <label htmlFor={`field-${field.id}`} className="block text-sm font-medium text-gray-700 mb-2">
@@ -171,6 +174,31 @@ const DocumentSearchForm: React.FC<DocumentSearchFormProps> = ({
                     onChange={(e) => handleCustomFieldFilterChange(field.name, e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
+                ) : field.fieldType === 'UserList' && field.userListOptions ? (
+                  <select
+                    id={`field-${field.id}`}
+                    value={filters.customFieldFilters[field.name] || ''}
+                    onChange={(e) => handleCustomFieldFilterChange(field.name, e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select {field.name.toLowerCase()}...</option>
+                    {field.userListOptions.split(',').map((option) => (
+                      <option key={option.trim()} value={option.trim()}>
+                        {option.trim()}
+                      </option>
+                    ))}
+                  </select>
+                ) : field.fieldType === 'Boolean' ? (
+                  <select
+                    id={`field-${field.id}`}
+                    value={filters.customFieldFilters[field.name] || ''}
+                    onChange={(e) => handleCustomFieldFilterChange(field.name, e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select value...</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
                 ) : (
                   <input
                     type="text"
@@ -228,7 +256,7 @@ const DocumentSearchForm: React.FC<DocumentSearchFormProps> = ({
           )}
 
           {/* No Fields Message */}
-          {!isLoadingFields && filters.projectId && customFields.filter(f => !f.isDefault).length === 0 && (
+          {!isLoadingFields && filters.projectId && customFields.filter(f => !f.isDefault || f.name === 'Filename').length === 0 && (
             <div className="col-span-full text-center py-4">
               <p className="text-gray-500">No custom fields available for this project.</p>
             </div>
