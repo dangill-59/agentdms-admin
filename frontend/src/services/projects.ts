@@ -276,8 +276,313 @@ export class ProjectService {
 
   // Project custom fields
   public async getProjectCustomFields(projectId: string): Promise<CustomField[]> {
-    const response = await apiService.getDirect<CustomField[]>(`/projects/${projectId}/custom-fields`);
-    return response;
+    try {
+      const response = await apiService.getDirect<CustomField[]>(`/projects/${projectId}/custom-fields`);
+      return response;
+    } catch (error) {
+      console.warn('Failed to fetch custom fields from backend:', error);
+      
+      // Only fall back to demo data if demo mode is enabled
+      if (!config.get('enableDemoMode')) {
+        throw error;
+      }
+      
+      // Fallback to demo data for development
+      await new Promise(resolve => setTimeout(resolve, 300)); // Simulate API delay
+      
+      const mockCustomFields: CustomField[] = [
+        // Default fields that every project has
+        {
+          id: 'default-1',
+          projectId: projectId,
+          name: 'Filename',
+          description: 'Original filename of the document',
+          fieldType: 'Text',
+          isRequired: true,
+          isDefault: true,
+          order: 1,
+          roleVisibility: 'all',
+          isRemovable: false,
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z'
+        },
+        {
+          id: 'default-2',
+          projectId: projectId,
+          name: 'Date Created',
+          description: 'Date when the document was created',
+          fieldType: 'Date',
+          isRequired: true,
+          isDefault: true,
+          order: 2,
+          roleVisibility: 'all',
+          isRemovable: false,
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z'
+        },
+        {
+          id: 'default-3',
+          projectId: projectId,
+          name: 'Date Modified',
+          description: 'Date when the document was last modified',
+          fieldType: 'Date',
+          isRequired: true,
+          isDefault: true,
+          order: 3,
+          roleVisibility: 'all',
+          isRemovable: false,
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z'
+        }
+      ];
+
+      // Add project-specific custom fields based on project ID/name
+      if (projectId === '1') {
+        // Sample Project custom fields
+        mockCustomFields.push(
+          {
+            id: 'custom-1',
+            projectId: projectId,
+            name: 'Category',
+            description: 'Document category',
+            fieldType: 'Text',
+            isRequired: false,
+            isDefault: false,
+            order: 10,
+            roleVisibility: 'all',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          },
+          {
+            id: 'custom-2',
+            projectId: projectId,
+            name: 'Customer Name',
+            description: 'Name of the customer or client',
+            fieldType: 'Text',
+            isRequired: false,
+            isDefault: false,
+            order: 11,
+            roleVisibility: 'all',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          },
+          {
+            id: 'custom-3',
+            projectId: projectId,
+            name: 'Invoice Number',
+            description: 'Invoice or document reference number',
+            fieldType: 'Text',
+            isRequired: false,
+            isDefault: false,
+            order: 12,
+            roleVisibility: 'all',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          },
+          {
+            id: 'custom-4',
+            projectId: projectId,
+            name: 'Document Type',
+            description: 'Type of document',
+            fieldType: 'UserList',
+            isRequired: false,
+            isDefault: false,
+            order: 13,
+            roleVisibility: 'all',
+            userListOptions: 'Invoice,Receipt,Purchase Order,Contract,Report,Letter',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          },
+          {
+            id: 'custom-5',
+            projectId: projectId,
+            name: 'Status',
+            description: 'Processing status of the document',
+            fieldType: 'UserList',
+            isRequired: false,
+            isDefault: false,
+            order: 14,
+            roleVisibility: 'all',
+            userListOptions: 'Draft,Under Review,Approved,Rejected,Processed',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          },
+          {
+            id: 'custom-6',
+            projectId: projectId,
+            name: 'Amount',
+            description: 'Document amount or value',
+            fieldType: 'Currency',
+            isRequired: false,
+            isDefault: false,
+            order: 15,
+            roleVisibility: 'all',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          },
+          {
+            id: 'custom-7',
+            projectId: projectId,
+            name: 'Priority',
+            description: 'Priority level',
+            fieldType: 'UserList',
+            isRequired: false,
+            isDefault: false,
+            order: 16,
+            roleVisibility: 'all',
+            userListOptions: 'Low,Medium,High,Urgent',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          }
+        );
+      } else if (projectId === '3') {
+        // AP Project custom fields
+        mockCustomFields.push(
+          {
+            id: 'ap-custom-1',
+            projectId: projectId,
+            name: 'Vendor Name',
+            description: 'Name of the vendor or supplier',
+            fieldType: 'Text',
+            isRequired: false,
+            isDefault: false,
+            order: 10,
+            roleVisibility: 'all',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          },
+          {
+            id: 'ap-custom-2',
+            projectId: projectId,
+            name: 'Invoice Number',
+            description: 'Vendor invoice number',
+            fieldType: 'Text',
+            isRequired: false,
+            isDefault: false,
+            order: 11,
+            roleVisibility: 'all',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          },
+          {
+            id: 'ap-custom-3',
+            projectId: projectId,
+            name: 'Invoice Date',
+            description: 'Date on the invoice',
+            fieldType: 'Date',
+            isRequired: false,
+            isDefault: false,
+            order: 12,
+            roleVisibility: 'all',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          },
+          {
+            id: 'ap-custom-4',
+            projectId: projectId,
+            name: 'Payment Status',
+            description: 'Current payment status',
+            fieldType: 'UserList',
+            isRequired: false,
+            isDefault: false,
+            order: 13,
+            roleVisibility: 'all',
+            userListOptions: 'Pending,Approved,Paid,Rejected,On Hold',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          },
+          {
+            id: 'ap-custom-5',
+            projectId: projectId,
+            name: 'GL Code',
+            description: 'General Ledger account code',
+            fieldType: 'Text',
+            isRequired: false,
+            isDefault: false,
+            order: 14,
+            roleVisibility: 'all',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          },
+          {
+            id: 'ap-custom-6',
+            projectId: projectId,
+            name: 'Invoice Amount',
+            description: 'Total invoice amount',
+            fieldType: 'Currency',
+            isRequired: false,
+            isDefault: false,
+            order: 15,
+            roleVisibility: 'all',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          },
+          {
+            id: 'ap-custom-7',
+            projectId: projectId,
+            name: 'Department',
+            description: 'Requesting department',
+            fieldType: 'UserList',
+            isRequired: false,
+            isDefault: false,
+            order: 16,
+            roleVisibility: 'all',
+            userListOptions: 'Finance,HR,IT,Operations,Sales,Marketing',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          }
+        );
+      } else {
+        // Other projects get basic custom fields
+        mockCustomFields.push(
+          {
+            id: 'basic-custom-1',
+            projectId: projectId,
+            name: 'Category',
+            description: 'Document category',
+            fieldType: 'Text',
+            isRequired: false,
+            isDefault: false,
+            order: 10,
+            roleVisibility: 'all',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          },
+          {
+            id: 'basic-custom-2',
+            projectId: projectId,
+            name: 'Status',
+            description: 'Document status',
+            fieldType: 'UserList',
+            isRequired: false,
+            isDefault: false,
+            order: 11,
+            roleVisibility: 'all',
+            userListOptions: 'Draft,Active,Archived',
+            isRemovable: true,
+            createdAt: '2024-01-01T00:00:00Z',
+            modifiedAt: '2024-01-01T00:00:00Z'
+          }
+        );
+      }
+
+      return mockCustomFields;
+    }
   }
 
   public async createCustomField(projectId: string, request: CreateCustomFieldRequest): Promise<CustomField> {
