@@ -21,6 +21,7 @@ const DocumentSearchForm: React.FC<DocumentSearchFormProps> = ({
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [isLoadingFields, setIsLoadingFields] = useState(false);
+  const [fieldSuggestions, setFieldSuggestions] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -61,6 +62,56 @@ const DocumentSearchForm: React.FC<DocumentSearchFormProps> = ({
     fetchCustomFields();
   }, [filters.projectId]);
 
+  // Load field suggestions from localStorage
+  useEffect(() => {
+    const loadFieldSuggestions = () => {
+      const suggestions: Record<string, string[]> = {};
+      customFields.forEach(field => {
+        const storageKey = `fieldSuggestions_${field.projectId}_${field.name}`;
+        const savedSuggestions = localStorage.getItem(storageKey);
+        if (savedSuggestions) {
+          try {
+            suggestions[field.name] = JSON.parse(savedSuggestions);
+          } catch {
+            suggestions[field.name] = [];
+          }
+        } else {
+          suggestions[field.name] = [];
+        }
+      });
+      setFieldSuggestions(suggestions);
+    };
+
+    if (customFields.length > 0) {
+      loadFieldSuggestions();
+    }
+  }, [customFields]);
+
+  // Save field value to suggestions
+  const saveFieldSuggestion = (fieldName: string, projectId: string, value: string) => {
+    if (!value.trim()) return;
+    
+    const storageKey = `fieldSuggestions_${projectId}_${fieldName}`;
+    const existingSuggestions = fieldSuggestions[fieldName] || [];
+    
+    // Add new value if not already present (case-insensitive)
+    const normalizedValue = value.trim();
+    const normalizedSuggestions = existingSuggestions.map(s => s.toLowerCase());
+    
+    if (!normalizedSuggestions.includes(normalizedValue.toLowerCase())) {
+      const updatedSuggestions = [normalizedValue, ...existingSuggestions].slice(0, 10); // Keep only 10 most recent
+      
+      // Update state
+      setFieldSuggestions(prev => ({
+        ...prev,
+        [fieldName]: updatedSuggestions
+      }));
+      
+      // Save to localStorage
+      localStorage.setItem(storageKey, JSON.stringify(updatedSuggestions));
+    }
+  };
+
   const handleFilterChange = (key: keyof DocumentSearchFilters, value: string) => {
     if (key === 'projectId') {
       // Clear custom field filters when project changes
@@ -93,6 +144,15 @@ const DocumentSearchForm: React.FC<DocumentSearchFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Save current filter values as suggestions for future use
+    customFields.forEach(field => {
+      const value = filters.customFieldFilters[field.name];
+      if (value && (field.fieldType === 'Text' || field.fieldType === 'LongText')) {
+        saveFieldSuggestion(field.name, field.projectId, value);
+      }
+    });
+    
     onSearch();
   };
 
@@ -136,9 +196,8 @@ const DocumentSearchForm: React.FC<DocumentSearchFormProps> = ({
 
         {/* Search Filters Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Dynamic Custom Fields */}
+          {/* All Project Fields */}
           {customFields
-            .filter(field => !field.isDefault) // Skip default fields like filename, dates
             .map((field) => (
               <div key={field.id}>
                 <label htmlFor={`field-${field.id}`} className="block text-sm font-medium text-gray-700 mb-2">
@@ -146,14 +205,22 @@ const DocumentSearchForm: React.FC<DocumentSearchFormProps> = ({
                   {field.isRequired && <span className="text-red-500 ml-1">*</span>}
                 </label>
                 {field.fieldType === 'Text' || field.fieldType === 'LongText' ? (
-                  <input
-                    type="text"
-                    id={`field-${field.id}`}
-                    value={filters.customFieldFilters[field.name] || ''}
-                    onChange={(e) => handleCustomFieldFilterChange(field.name, e.target.value)}
-                    placeholder={`Enter ${field.name.toLowerCase()}...`}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+                  <>
+                    <input
+                      type="text"
+                      id={`field-${field.id}`}
+                      list={`suggestions-${field.id}`}
+                      value={filters.customFieldFilters[field.name] || ''}
+                      onChange={(e) => handleCustomFieldFilterChange(field.name, e.target.value)}
+                      placeholder={`Enter ${field.name.toLowerCase()}...`}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <datalist id={`suggestions-${field.id}`}>
+                      {(fieldSuggestions[field.name] || []).map((suggestion, index) => (
+                        <option key={index} value={suggestion} />
+                      ))}
+                    </datalist>
+                  </>
                 ) : field.fieldType === 'Number' || field.fieldType === 'Currency' ? (
                   <input
                     type="number"
@@ -172,14 +239,22 @@ const DocumentSearchForm: React.FC<DocumentSearchFormProps> = ({
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 ) : (
-                  <input
-                    type="text"
-                    id={`field-${field.id}`}
-                    value={filters.customFieldFilters[field.name] || ''}
-                    onChange={(e) => handleCustomFieldFilterChange(field.name, e.target.value)}
-                    placeholder={`Enter ${field.name.toLowerCase()}...`}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+                  <>
+                    <input
+                      type="text"
+                      id={`field-${field.id}`}
+                      list={`suggestions-${field.id}`}
+                      value={filters.customFieldFilters[field.name] || ''}
+                      onChange={(e) => handleCustomFieldFilterChange(field.name, e.target.value)}
+                      placeholder={`Enter ${field.name.toLowerCase()}...`}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <datalist id={`suggestions-${field.id}`}>
+                      {(fieldSuggestions[field.name] || []).map((suggestion, index) => (
+                        <option key={index} value={suggestion} />
+                      ))}
+                    </datalist>
+                  </>
                 )}
                 {field.description && (
                   <p className="mt-1 text-xs text-gray-500">{field.description}</p>
@@ -228,9 +303,9 @@ const DocumentSearchForm: React.FC<DocumentSearchFormProps> = ({
           )}
 
           {/* No Fields Message */}
-          {!isLoadingFields && filters.projectId && customFields.filter(f => !f.isDefault).length === 0 && (
+          {!isLoadingFields && filters.projectId && customFields.length === 0 && (
             <div className="col-span-full text-center py-4">
-              <p className="text-gray-500">No custom fields available for this project.</p>
+              <p className="text-gray-500">No search fields available for this project.</p>
             </div>
           )}
         </div>
