@@ -8,10 +8,15 @@ using AgentDmsAdmin.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add database configuration service
+builder.Services.AddSingleton<IDatabaseConfigurationService, DatabaseConfigurationService>();
+
 // Add services to the container.
-builder.Services.AddDbContext<AgentDmsContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") 
-        ?? "Data Source=agentdms.db"));
+builder.Services.AddDbContext<AgentDmsContext>((serviceProvider, options) =>
+{
+    var dbConfigService = serviceProvider.GetRequiredService<IDatabaseConfigurationService>();
+    dbConfigService.ConfigureDbContext(options);
+});
 
 builder.Services.AddScoped<DataSeeder>();
 

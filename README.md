@@ -199,27 +199,129 @@ The React frontend includes:
 
 ## Database Configuration
 
-This project uses **SQLite** for local development and testing. The database file (`agentdms.db`) is created automatically when migrations are applied.
+This project supports multiple database types for flexibility across different environments. The database configuration is now part of the application settings and supports **SQLite**, **PostgreSQL**, **MySQL**, and **SQL Server**.
 
-### Connection String
-The default connection string in `appsettings.json` and `appsettings.Development.json`:
+### Database Settings Structure
+
+The database configuration is defined in the `Database` section of `appsettings.json`:
+
 ```json
 {
-  "ConnectionStrings": {
-    "DefaultConnection": "Data Source=agentdms.db"
+  "Database": {
+    "Type": "sqlite",
+    "Host": "",
+    "Port": 0,
+    "DatabaseName": "agentdms",
+    "Username": "",
+    "Password": "",
+    "ConnectionString": "Data Source=agentdms.db",
+    "Advanced": {
+      "EnableSsl": false,
+      "ConnectionTimeout": 30,
+      "CommandTimeout": 30,
+      "MaxPoolSize": 100,
+      "MinPoolSize": 0,
+      "EnableConnectionPooling": true,
+      "AdditionalOptions": ""
+    }
   }
 }
 ```
 
+### Supported Database Types
+
+#### SQLite (Default)
+Perfect for local development and testing:
+```json
+{
+  "Database": {
+    "Type": "sqlite",
+    "ConnectionString": "Data Source=agentdms.db"
+  }
+}
+```
+
+#### PostgreSQL
+For production environments requiring robust ACID compliance:
+```json
+{
+  "Database": {
+    "Type": "postgresql",
+    "Host": "localhost",
+    "Port": 5432,
+    "DatabaseName": "agentdms",
+    "Username": "your_username",
+    "Password": "your_password",
+    "Advanced": {
+      "EnableSsl": true,
+      "ConnectionTimeout": 30,
+      "MaxPoolSize": 100
+    }
+  }
+}
+```
+
+#### MySQL
+For environments preferring MySQL:
+```json
+{
+  "Database": {
+    "Type": "mysql",
+    "Host": "localhost",
+    "Port": 3306,
+    "DatabaseName": "agentdms",
+    "Username": "your_username",
+    "Password": "your_password",
+    "Advanced": {
+      "EnableSsl": false,
+      "ConnectionTimeout": 30,
+      "MaxPoolSize": 100
+    }
+  }
+}
+```
+
+#### SQL Server
+For enterprise environments using SQL Server:
+```json
+{
+  "Database": {
+    "Type": "sqlserver",
+    "Host": "localhost",
+    "Port": 1433,
+    "DatabaseName": "agentdms",
+    "Username": "your_username",
+    "Password": "your_password",
+    "Advanced": {
+      "EnableSsl": true,
+      "ConnectionTimeout": 30,
+      "MaxPoolSize": 100
+    }
+  }
+}
+```
+
+### Environment-Specific Configuration
+
+You can override database settings in environment-specific configuration files:
+
+- `appsettings.Development.json` - for local development (uses SQLite by default)
+- `appsettings.Production.json` - for production deployment
+- Environment variables can also be used: `Database__Type`, `Database__Host`, etc.
+
+### Legacy Connection String Support
+
+The application maintains backward compatibility with the legacy `ConnectionStrings:DefaultConnection` setting. If the `Database` section is not configured, it will fall back to using the connection string from the `ConnectionStrings` section.
+
 ### Development Features
 - **Enhanced Logging**: `appsettings.Development.json` includes EF Core command logging for debugging
 - **Automatic Data Seeding**: Sample data is automatically created in development environment
-- **File-based Database**: Easy to reset by simply deleting the `agentdms.db` file
+- **Multiple Database Support**: Easy switching between database types for testing
 
 ## Database Management
 
 ### Important: Migration Database Targeting
-Entity Framework migrations will automatically target the correct SQLite database file (`agentdms.db` in the API directory) based on the configuration in `appsettings.json`. The design-time factory reads the same connection string as the running application to ensure consistency.
+Entity Framework migrations will automatically target the database configured in the `Database` section of `appsettings.json`. The design-time factory reads the same database configuration as the running application to ensure consistency across all database types.
 
 ### Creating New Migrations
 When you modify entity models, create a new migration:
@@ -235,7 +337,7 @@ cd src/AgentDmsAdmin.Api
 dotnet ef database update --project ../AgentDmsAdmin.Data
 ```
 
-This will apply migrations to the `agentdms.db` file in the API directory, which is the same database used by the running application.
+This will apply migrations to the configured database (SQLite, PostgreSQL, MySQL, or SQL Server) based on your `Database` settings.
 
 ### Rollback Migrations
 ```bash
@@ -246,8 +348,22 @@ dotnet ef database update <PreviousMigrationName> --project ../AgentDmsAdmin.Dat
 ### Verifying Migration Target
 To verify that migrations are targeting the correct database:
 1. Run the migration commands from the `src/AgentDmsAdmin.Api` directory
-2. Check that the `agentdms.db` file is created/updated in that directory
-3. The API application should run without schema errors
+2. Check your database configuration in `appsettings.json`
+3. For SQLite: Check that the `.db` file is created/updated in the API directory
+4. For other databases: Verify the connection to your database server
+5. The API application should run without schema errors
+
+### Database-Specific Notes
+
+#### SQLite
+- Database file is created automatically in the API directory
+- Easy to reset by deleting the `.db` file
+- Perfect for development and testing
+
+#### PostgreSQL/MySQL/SQL Server
+- Ensure the target database exists before running migrations
+- The application will create tables but not the database itself
+- Use appropriate connection permissions for migrations
 
 **Note**: Always run EF commands from the API project directory to ensure the design-time factory can locate the correct configuration files.
 
