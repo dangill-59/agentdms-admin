@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import type { DocumentSearchResult, DocumentMetadata, DocumentCustomFieldValue, CustomField } from '../types/api';
 import { documentService } from '../services/documents';
+import Lightbox from "yet-another-react-lightbox";
+import "yet-another-react-lightbox/styles.css";
 
 interface DocumentViewerProps {
   document: DocumentSearchResult;
@@ -22,6 +24,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const [editedMetadata, setEditedMetadata] = useState<DocumentMetadata | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [isLoadingPreview, setIsLoadingPreview] = useState(true);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -78,6 +81,26 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     ];
     
     return fileExtension ? supportedExtensions.includes(fileExtension) : false;
+  };
+
+  // Check if document is an image that should be displayed in lightbox
+  const isImageDocument = (mimeType: string | null, fileName: string): boolean => {
+    // Image MIME types
+    const imageMimeTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/bmp', 'image/x-ms-bmp',
+      'image/gif', 'image/tiff', 'image/tif', 'image/webp', 'image/svg+xml'
+    ];
+    
+    // Check MIME type first
+    if (mimeType && imageMimeTypes.includes(mimeType.toLowerCase())) {
+      return true;
+    }
+    
+    // Fallback to file extension
+    const fileExtension = fileName.toLowerCase().split('.').pop();
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'bmp', 'gif', 'tif', 'tiff', 'webp', 'svg'];
+    
+    return fileExtension ? imageExtensions.includes(fileExtension) : false;
   };
 
   // Load preview for all supported document types with authentication
@@ -334,6 +357,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   };
 
   return (
+    <>
     <div className="bg-white rounded-lg shadow-lg">
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200">
@@ -491,30 +515,46 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                         }}
                       />
                     ) : (
-                      <img
-                        src={previewUrl}
-                        alt={document.fileName}
-                        className="w-full h-auto max-h-96 object-contain"
-                        onError={(e) => {
-                          // Fallback to placeholder if image fails to load
-                          console.log('Image failed to load:', e);
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          const fallback = target.nextElementSibling as HTMLElement;
-                          if (fallback) {
-                            fallback.classList.remove('hidden');
-                          }
-                        }}
-                        onLoad={(e) => {
-                          // Log successful load for debugging
-                          const target = e.target as HTMLImageElement;
-                          console.log('Image loaded successfully:', {
-                            src: target.src,
-                            naturalWidth: target.naturalWidth,
-                            naturalHeight: target.naturalHeight
-                          });
-                        }}
-                      />
+                      <div>
+                        <img
+                          src={previewUrl}
+                          alt={document.fileName}
+                          className={`w-full h-auto max-h-96 object-contain ${
+                            isImageDocument(document.mimeType, document.fileName) 
+                              ? 'cursor-pointer hover:opacity-80 transition-opacity' 
+                              : ''
+                          }`}
+                          onClick={() => {
+                            if (isImageDocument(document.mimeType, document.fileName)) {
+                              setLightboxOpen(true);
+                            }
+                          }}
+                          onError={(e) => {
+                            // Fallback to placeholder if image fails to load
+                            console.log('Image failed to load:', e);
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) {
+                              fallback.classList.remove('hidden');
+                            }
+                          }}
+                          onLoad={(e) => {
+                            // Log successful load for debugging
+                            const target = e.target as HTMLImageElement;
+                            console.log('Image loaded successfully:', {
+                              src: target.src,
+                              naturalWidth: target.naturalWidth,
+                              naturalHeight: target.naturalHeight
+                            });
+                          }}
+                        />
+                        {isImageDocument(document.mimeType, document.fileName) && (
+                          <p className="text-center text-sm text-gray-500 mt-2">
+                            Click image to view in full size
+                          </p>
+                        )}
+                      </div>
                     )
                   ) : null}
                   <div className="hidden border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
@@ -621,6 +661,21 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         </div>
       </div>
     </div>
+
+    {/* Image Lightbox - only for image documents */}
+    {lightboxOpen && isImageDocument(document.mimeType, document.fileName) && (
+      <Lightbox
+        open={lightboxOpen}
+        close={() => setLightboxOpen(false)}
+        slides={[
+          {
+            src: previewUrl,
+            alt: document.fileName,
+          },
+        ]}
+      />
+    )}
+    </>
   );
 };
 
