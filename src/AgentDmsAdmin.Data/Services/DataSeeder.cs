@@ -487,7 +487,7 @@ public class DataSeeder
                     ProjectId = project.Id,
                     RoleId = userRole.Id,
                     CanView = true,
-                    CanEdit = project.Name == "AP Project", // Can edit AP Project but not Sample Project
+                    CanEdit = false, // User role should only have view privileges
                     CanDelete = false // Dan cannot delete anything
                 };
 
