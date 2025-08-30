@@ -1,7 +1,12 @@
+using AgentDmsAdmin.Data.Models;
+
 namespace AgentDmsAdmin.Api.Models;
 
 public class AppSettingsDto
 {
+    // Database settings
+    public DatabaseSettings Database { get; set; } = new();
+
     // File processing settings
     public long MaxFileSize { get; set; } = 104857600; // 100MB in bytes
     public List<string> AllowedFileTypes { get; set; } = new();
@@ -97,6 +102,7 @@ public class InAppNotificationPreferences
 
 public class UpdateAppSettingsRequest
 {
+    public DatabaseSettings? Database { get; set; }
     public long? MaxFileSize { get; set; }
     public List<string>? AllowedFileTypes { get; set; }
     public bool? AutoProcessUploads { get; set; }

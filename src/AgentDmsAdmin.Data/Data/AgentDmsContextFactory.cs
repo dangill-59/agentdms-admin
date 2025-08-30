@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using AgentDmsAdmin.Data.Services;
 using System.IO;
 
 namespace AgentDmsAdmin.Data.Data;
@@ -20,18 +22,22 @@ public class AgentDmsContextFactory : IDesignTimeDbContextFactory<AgentDmsContex
             .AddJsonFile("appsettings.Development.json", optional: true)
             .Build();
 
-        // Use the same connection string logic as Program.cs
-        var connectionString = configuration.GetConnectionString("DefaultConnection") 
-            ?? "Data Source=agentdms.db";
-            
-        // Ensure the database path is relative to the API project directory
-        if (connectionString.StartsWith("Data Source=") && !Path.IsPathRooted(connectionString.Substring(12)))
+        // Use database configuration service to get the proper configuration
+        var dbConfigService = new DatabaseConfigurationService(configuration);
+        var databaseSettings = dbConfigService.GetDatabaseSettings();
+        
+        // For SQLite, ensure the database path is relative to the API project directory
+        if (databaseSettings.Type.Equals("sqlite", StringComparison.OrdinalIgnoreCase))
         {
-            var dbFileName = connectionString.Substring(12);
-            connectionString = $"Data Source={Path.Combine(basePath, dbFileName)}";
+            var connectionString = databaseSettings.ConnectionString;
+            if (connectionString.StartsWith("Data Source=") && !Path.IsPathRooted(connectionString.Substring(12)))
+            {
+                var dbFileName = connectionString.Substring(12);
+                databaseSettings.ConnectionString = $"Data Source={Path.Combine(basePath, dbFileName)}";
+            }
         }
-            
-        optionsBuilder.UseSqlite(connectionString);
+
+        dbConfigService.ConfigureDbContext(optionsBuilder, databaseSettings);
 
         return new AgentDmsContext(optionsBuilder.Options);
     }
