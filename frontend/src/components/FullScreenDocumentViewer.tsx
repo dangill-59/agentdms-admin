@@ -401,30 +401,17 @@ const FullScreenDocumentViewer: React.FC<FullScreenDocumentViewerProps> = ({
 
           {/* Center Controls */}
           <div className="flex items-center space-x-2">
-            <div className="flex items-center bg-gray-800 rounded-lg p-1">
-              <button
-                onClick={toggleViewerMode}
-                className={`px-3 py-2 rounded text-sm font-medium transition-all ${
-                  viewerState.mode === 'preview' 
-                    ? 'bg-blue-600 text-white shadow-lg' 
-                    : 'text-gray-400 hover:text-gray-200'
-                }`}
-                title="Switch to Preview Mode (V)"
-              >
-                Preview
-              </button>
-              <button
-                onClick={toggleViewerMode}
-                className={`px-3 py-2 rounded text-sm font-medium transition-all ${
-                  viewerState.mode === 'fullviewer' 
-                    ? 'bg-blue-600 text-white shadow-lg' 
-                    : 'text-gray-400 hover:text-gray-200'
-                }`}
-                title="Switch to Full Viewer Mode (V)"
-              >
-                Full Viewer
-              </button>
-            </div>
+            <button
+              onClick={toggleViewerMode}
+              className={`px-3 py-1 rounded text-sm ${
+                viewerState.mode === 'preview' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+              title="Toggle View Mode (V)"
+            >
+              {viewerState.mode === 'preview' ? 'Preview' : 'Full Viewer'}
+            </button>
           </div>
 
           {/* Right Controls */}
