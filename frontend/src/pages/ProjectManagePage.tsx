@@ -17,6 +17,13 @@ const ProjectManagePage: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'overview' | 'roles' | 'actions'>('overview');
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Inline editing state
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [editedDescription, setEditedDescription] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const isAdmin = userHasPermission(user, 'workspace.admin');
 
@@ -49,14 +56,72 @@ const ProjectManagePage: React.FC = () => {
     }
   };
 
+  // Inline editing handlers
+  const handleEditName = () => {
+    if (project) {
+      setEditedName(project.name);
+      setIsEditingName(true);
+    }
+  };
+
+  const handleCancelNameEdit = () => {
+    setIsEditingName(false);
+    setEditedName('');
+  };
+
+  const handleSaveName = async () => {
+    if (!project || !editedName.trim()) return;
+    
+    try {
+      setIsSaving(true);
+      setError('');
+      const updatedProject = await projectService.updateProject(project.id, {
+        name: editedName.trim()
+      });
+      setProject(updatedProject);
+      setIsEditingName(false);
+      setEditedName('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update project name');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEditDescription = () => {
+    if (project) {
+      setEditedDescription(project.description || '');
+      setIsEditingDescription(true);
+    }
+  };
+
+  const handleCancelDescriptionEdit = () => {
+    setIsEditingDescription(false);
+    setEditedDescription('');
+  };
+
+  const handleSaveDescription = async () => {
+    if (!project) return;
+    
+    try {
+      setIsSaving(true);
+      setError('');
+      const updatedProject = await projectService.updateProject(project.id, {
+        description: editedDescription.trim() || undefined
+      });
+      setProject(updatedProject);
+      setIsEditingDescription(false);
+      setEditedDescription('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update project description');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
 
   const handleManageFields = () => {
     navigate(`/projects/${project?.id}/fields`);
-  };
-
-  const handleEditProject = () => {
-    // Navigate back to projects page with edit modal
-    navigate('/projects', { state: { editProject: project } });
   };
 
   const handleCloneProject = async () => {
@@ -284,11 +349,133 @@ const ProjectManagePage: React.FC = () => {
                 <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Name</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{project.name}</dd>
+                    <dd className="mt-1 flex items-center">
+                      {isEditingName ? (
+                        <div className="flex items-center space-x-2 w-full">
+                          <input
+                            type="text"
+                            value={editedName}
+                            onChange={(e) => setEditedName(e.target.value)}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            disabled={isSaving}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveName();
+                              if (e.key === 'Escape') handleCancelNameEdit();
+                            }}
+                            autoFocus
+                          />
+                          <button
+                            onClick={handleSaveName}
+                            disabled={isSaving || !editedName.trim()}
+                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                          >
+                            {isSaving ? (
+                              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </button>
+                          <button
+                            onClick={handleCancelNameEdit}
+                            disabled={isSaving}
+                            className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center group">
+                          <span className="text-sm text-gray-900 mr-2">{project.name}</span>
+                          {!project.isArchived && (
+                            <button
+                              onClick={handleEditName}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-gray-600"
+                              title="Edit project name"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </dd>
                   </div>
-                  <div>
+                  <div className="sm:col-span-2">
                     <dt className="text-sm font-medium text-gray-500">Description</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{project.description || 'No description provided'}</dd>
+                    <dd className="mt-1">
+                      {isEditingDescription ? (
+                        <div className="space-y-2">
+                          <textarea
+                            value={editedDescription}
+                            onChange={(e) => setEditedDescription(e.target.value)}
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            disabled={isSaving}
+                            placeholder="Enter project description"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Escape') handleCancelDescriptionEdit();
+                            }}
+                            autoFocus
+                          />
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={handleSaveDescription}
+                              disabled={isSaving}
+                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                            >
+                              {isSaving ? (
+                                <>
+                                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Saving...
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  Save
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={handleCancelDescriptionEdit}
+                              disabled={isSaving}
+                              className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-start group">
+                          <span className="text-sm text-gray-900 mr-2">
+                            {project.description || 'No description provided'}
+                          </span>
+                          {!project.isArchived && (
+                            <button
+                              onClick={handleEditDescription}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-gray-600 mt-0"
+                              title="Edit project description"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Status</dt>
@@ -323,12 +510,6 @@ const ProjectManagePage: React.FC = () => {
                     <dt className="text-sm font-medium text-gray-500">Modified By</dt>
                     <dd className="mt-1 text-sm text-gray-900">{project.modifiedBy || 'Unknown'}</dd>
                   </div>
-                  {project.description && (
-                    <div className="sm:col-span-2">
-                      <dt className="text-sm font-medium text-gray-500">Description</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{project.description}</dd>
-                    </div>
-                  )}
                 </dl>
               </div>
 
@@ -336,17 +517,6 @@ const ProjectManagePage: React.FC = () => {
               <div className="mt-6">
                 <h4 className="text-md font-medium text-gray-900 mb-3">Quick Actions</h4>
                 <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={handleEditProject}
-                    disabled={project.isArchived}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                      project.isArchived
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-blue-600 hover:bg-blue-700 text-white'
-                    }`}
-                  >
-                    Edit Project Information
-                  </button>
                   <button
                     onClick={handleManageFields}
                     disabled={project.isArchived}
