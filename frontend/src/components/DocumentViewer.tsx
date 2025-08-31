@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import type { DocumentSearchResult, DocumentMetadata, DocumentCustomFieldValue, CustomField } from '../types/api';
 import { documentService } from '../services/documents';
+import { useAuth } from '../hooks/useAuth';
+import { canEditDocuments } from '../utils/userHelpers';
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 
@@ -15,6 +17,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   onBack,
   onSave
 }) => {
+  const { user } = useAuth();
+  const canEdit = canEditDocuments(user);
+  
   const [metadata, setMetadata] = useState<DocumentMetadata | null>(null);
   const [projectFields, setProjectFields] = useState<CustomField[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -376,7 +381,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             <h2 className="text-xl font-semibold text-gray-900">Document Viewer</h2>
           </div>
           <div className="flex items-center space-x-2">
-            {!isEditing ? (
+            {!isEditing && canEdit ? (
               <button
                 onClick={handleEdit}
                 disabled={isLoading}
@@ -387,7 +392,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 </svg>
                 Edit Details
               </button>
-            ) : (
+            ) : isEditing ? (
               <div className="flex items-center space-x-2">
                 <button
                   onClick={handleCancel}
@@ -410,7 +415,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   Save Changes
                 </button>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

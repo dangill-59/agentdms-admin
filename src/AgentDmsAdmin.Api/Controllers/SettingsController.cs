@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using AgentDmsAdmin.Api.Models;
 using AgentDmsAdmin.Data.Models;
+using AgentDmsAdmin.Api.Attributes;
 using System.Reflection;
 
 namespace AgentDmsAdmin.Api.Controllers;
@@ -118,6 +119,7 @@ public class SettingsController : ControllerBase
     }
 
     [HttpPut("app")]
+    [RequirePermission("workspace.admin")]
     public ActionResult<AppSettingsDto> UpdateAppSettings([FromBody] UpdateAppSettingsRequest request)
     {
         try
@@ -344,6 +346,7 @@ public class SettingsController : ControllerBase
     }
 
     [HttpPut("notifications")]
+    [RequirePermission("workspace.admin")]
     public ActionResult<NotificationPreferencesDto> UpdateNotificationPreferences([FromBody] NotificationPreferencesDto preferences)
     {
         try

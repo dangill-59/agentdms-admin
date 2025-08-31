@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { settingsService } from '../services/settings';
 import type { AppSettings } from '../services/settings';
 import Header from '../components/Header';
-import { getUserDisplayName } from '../utils/userHelpers';
+import { getUserDisplayName, canAccessSettings } from '../utils/userHelpers';
 
 interface UserProfile {
   username: string;
@@ -15,6 +15,7 @@ interface UserProfile {
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
+  const canAccessAdminSettings = canAccessSettings(user);
   const [activeTab, setActiveTab] = useState('profile');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
@@ -99,11 +100,13 @@ const Settings: React.FC = () => {
 
   const tabs = [
     { id: 'profile', name: 'Profile', icon: 'user' },
-    { id: 'app', name: 'Application', icon: 'cog' },
-    { id: 'database', name: 'Database', icon: 'database' },
-    { id: 'storage', name: 'Storage', icon: 'server' },
-    { id: 'security', name: 'Security', icon: 'shield' },
-    { id: 'notifications', name: 'Notifications', icon: 'bell' }
+    ...(canAccessAdminSettings ? [
+      { id: 'app', name: 'Application', icon: 'cog' },
+      { id: 'database', name: 'Database', icon: 'database' },
+      { id: 'storage', name: 'Storage', icon: 'server' },
+      { id: 'security', name: 'Security', icon: 'shield' },
+      { id: 'notifications', name: 'Notifications', icon: 'bell' }
+    ] : [])
   ];
 
   useEffect(() => {
@@ -399,7 +402,7 @@ const Settings: React.FC = () => {
                   )}
 
                   {/* Application Settings Tab */}
-                  {activeTab === 'app' && (
+                  {activeTab === 'app' && canAccessAdminSettings && (
                     <div>
                       <div className="mb-6">
                         <h2 className="text-lg leading-6 font-medium text-gray-900">Application Settings</h2>
@@ -519,7 +522,7 @@ const Settings: React.FC = () => {
                   )}
 
                   {/* Database Settings Tab */}
-                  {activeTab === 'database' && (
+                  {activeTab === 'database' && canAccessAdminSettings && (
                     <div>
                       <div className="mb-6">
                         <h2 className="text-lg leading-6 font-medium text-gray-900">Database Settings</h2>
@@ -821,7 +824,7 @@ const Settings: React.FC = () => {
                   )}
 
                   {/* Storage Settings Tab */}
-                  {activeTab === 'storage' && (
+                  {activeTab === 'storage' && canAccessAdminSettings && (
                     <div>
                       <div className="mb-6">
                         <h2 className="text-lg leading-6 font-medium text-gray-900">Image Storage Settings</h2>
@@ -1084,7 +1087,7 @@ const Settings: React.FC = () => {
                   )}
 
                   {/* Security Tab */}
-                  {activeTab === 'security' && (
+                  {activeTab === 'security' && canAccessAdminSettings && (
                     <div>
                       <div className="mb-6">
                         <h2 className="text-lg leading-6 font-medium text-gray-900">Security Settings</h2>
@@ -1128,7 +1131,7 @@ const Settings: React.FC = () => {
                   )}
 
                   {/* Notifications Tab */}
-                  {activeTab === 'notifications' && (
+                  {activeTab === 'notifications' && canAccessAdminSettings && (
                     <div>
                       <div className="mb-6">
                         <h2 className="text-lg leading-6 font-medium text-gray-900">Notification Preferences</h2>
