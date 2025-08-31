@@ -42,28 +42,69 @@ export class RoleService {
     } catch (error) {
       console.warn('Failed to fetch roles from backend, using demo data:', error);
       
-      // Fallback to demo data for development
+      // Fallback to demo data for development - includes the missing "ap users" role
       const mockRoles: Role[] = [
         {
           id: '1',
           name: 'Admin',
           description: 'Full system access',
           createdAt: '2024-01-01T00:00:00Z',
-          modifiedAt: '2024-01-01T00:00:00Z'
+          modifiedAt: '2024-01-01T00:00:00Z',
+          permissions: includePermissions ? [
+            { id: '1', name: 'workspace.admin', description: 'Full workspace administration', createdAt: '2024-01-01T00:00:00Z', modifiedAt: '2024-01-01T00:00:00Z' },
+            { id: '2', name: 'project.create', description: 'Create new projects', createdAt: '2024-01-01T00:00:00Z', modifiedAt: '2024-01-01T00:00:00Z' },
+            { id: '3', name: 'project.edit', description: 'Edit existing projects', createdAt: '2024-01-01T00:00:00Z', modifiedAt: '2024-01-01T00:00:00Z' },
+            { id: '4', name: 'project.delete', description: 'Delete projects', createdAt: '2024-01-01T00:00:00Z', modifiedAt: '2024-01-01T00:00:00Z' },
+            { id: '5', name: 'user.create', description: 'Create new users', createdAt: '2024-01-01T00:00:00Z', modifiedAt: '2024-01-01T00:00:00Z' },
+            { id: '6', name: 'user.edit', description: 'Edit existing users', createdAt: '2024-01-01T00:00:00Z', modifiedAt: '2024-01-01T00:00:00Z' }
+          ] : undefined
         },
         {
           id: '2', 
           name: 'Manager',
           description: 'Project management access',
           createdAt: '2024-01-01T00:00:00Z',
-          modifiedAt: '2024-01-01T00:00:00Z'
+          modifiedAt: '2024-01-01T00:00:00Z',
+          permissions: includePermissions ? [
+            { id: '2', name: 'project.create', description: 'Create new projects', createdAt: '2024-01-01T00:00:00Z', modifiedAt: '2024-01-01T00:00:00Z' },
+            { id: '3', name: 'project.edit', description: 'Edit existing projects', createdAt: '2024-01-01T00:00:00Z', modifiedAt: '2024-01-01T00:00:00Z' },
+            { id: '7', name: 'document.upload', description: 'Upload documents', createdAt: '2024-01-01T00:00:00Z', modifiedAt: '2024-01-01T00:00:00Z' }
+          ] : undefined
         },
         {
           id: '3',
           name: 'User',
           description: 'Basic user access',
           createdAt: '2024-01-01T00:00:00Z',
-          modifiedAt: '2024-01-01T00:00:00Z'
+          modifiedAt: '2024-01-01T00:00:00Z',
+          permissions: includePermissions ? [
+            { id: '8', name: 'document.view', description: 'View documents', createdAt: '2024-01-01T00:00:00Z', modifiedAt: '2024-01-01T00:00:00Z' },
+            { id: '9', name: 'project.view', description: 'View projects', createdAt: '2024-01-01T00:00:00Z', modifiedAt: '2024-01-01T00:00:00Z' }
+          ] : undefined
+        },
+        {
+          id: '4',
+          name: 'ap users',
+          description: 'Accounts payable users role',
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z',
+          permissions: includePermissions ? [
+            { id: '8', name: 'document.view', description: 'View documents', createdAt: '2024-01-01T00:00:00Z', modifiedAt: '2024-01-01T00:00:00Z' },
+            { id: '9', name: 'project.view', description: 'View projects', createdAt: '2024-01-01T00:00:00Z', modifiedAt: '2024-01-01T00:00:00Z' },
+            { id: '10', name: 'invoice.process', description: 'Process invoices', createdAt: '2024-01-01T00:00:00Z', modifiedAt: '2024-01-01T00:00:00Z' },
+            { id: '11', name: 'payment.approve', description: 'Approve payments', createdAt: '2024-01-01T00:00:00Z', modifiedAt: '2024-01-01T00:00:00Z' }
+          ] : undefined
+        },
+        {
+          id: '5',
+          name: 'Viewer',
+          description: 'Read-only access to projects and documents',
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z',
+          permissions: includePermissions ? [
+            { id: '8', name: 'document.view', description: 'View documents', createdAt: '2024-01-01T00:00:00Z', modifiedAt: '2024-01-01T00:00:00Z' },
+            { id: '9', name: 'project.view', description: 'View projects', createdAt: '2024-01-01T00:00:00Z', modifiedAt: '2024-01-01T00:00:00Z' }
+          ] : undefined
         }
       ];
 
