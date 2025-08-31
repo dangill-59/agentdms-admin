@@ -74,12 +74,8 @@ public class AuthorizationService : IAuthorizationService
             return true;
         }
 
-        // Special handling for demo users
-        if (userId == 3) // Demo admin user
-        {
-            // Admin user has all permissions including workspace.admin
-            return true;
-        }
+        // Note: Removed hardcoded special case for user ID 3 as it was incorrectly granting 
+        // all permissions to gill.dan2 user who should have limited permissions
 
         var hasPermission = await _context.Users
             .Where(u => u.Id == userId)
@@ -134,5 +130,70 @@ public class AuthorizationService : IAuthorizationService
             .AnyAsync(ur => ur.Role.Name == roleName);
 
         return hasRole;
+    }
+
+    /// <summary>
+    /// Gets project-specific permissions for a user using proper role-based intersection logic.
+    /// User permissions = permissions of roles that are BOTH assigned to the user AND assigned to the project.
+    /// </summary>
+    public async Task<ProjectPermissions> GetUserProjectPermissionsAsync(int userId, int projectId)
+    {
+        // Special case for superadmin user (ID 0) - grant all permissions
+        if (userId == 0)
+        {
+            return new ProjectPermissions { CanView = true, CanEdit = true, CanDelete = true };
+        }
+
+        // Get user's roles
+        var userRoleIds = await _context.UserRoles
+            .Where(ur => ur.UserId == userId)
+            .Select(ur => ur.RoleId)
+            .ToListAsync();
+
+        if (!userRoleIds.Any())
+        {
+            // User has no roles, no permissions
+            return new ProjectPermissions { CanView = false, CanEdit = false, CanDelete = false };
+        }
+
+        // Get project's roles
+        var projectRoleIds = await _context.ProjectRoles
+            .Where(pr => pr.ProjectId == projectId)
+            .Select(pr => pr.RoleId)
+            .ToListAsync();
+
+        if (!projectRoleIds.Any())
+        {
+            // No roles assigned to this project
+            return new ProjectPermissions { CanView = false, CanEdit = false, CanDelete = false };
+        }
+
+        // Get intersection of user roles and project roles
+        var effectiveRoleIds = userRoleIds.Intersect(projectRoleIds).ToList();
+
+        if (!effectiveRoleIds.Any())
+        {
+            // User has no roles that are assigned to this project
+            return new ProjectPermissions { CanView = false, CanEdit = false, CanDelete = false };
+        }
+
+        // Get permissions for the effective roles
+        var permissions = await _context.RolePermissions
+            .Where(rp => effectiveRoleIds.Contains(rp.RoleId))
+            .Select(rp => rp.Permission.Name)
+            .Distinct()
+            .ToListAsync();
+
+        // Map permissions to project capabilities
+        var canView = permissions.Contains("document.view");
+        var canEdit = permissions.Contains("document.edit");
+        var canDelete = permissions.Contains("document.delete");
+
+        return new ProjectPermissions 
+        { 
+            CanView = canView, 
+            CanEdit = canEdit, 
+            CanDelete = canDelete 
+        };
     }
 }
