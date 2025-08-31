@@ -67,6 +67,12 @@ public class JwtService : IJwtService
     /// </summary>
     public UserDto? ValidateToken(string token)
     {
+        // Handle demo tokens for development/testing
+        if (token.StartsWith("demo-jwt-token-"))
+        {
+            return HandleDemoToken(token);
+        }
+
         try
         {
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -113,5 +119,53 @@ public class JwtService : IJwtService
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Handles demo tokens for development/testing purposes
+    /// </summary>
+    private UserDto? HandleDemoToken(string token)
+    {
+        if (token.StartsWith("demo-jwt-token-admin-"))
+        {
+            return new UserDto
+            {
+                Id = "3",
+                Username = "admin",
+                Email = "admin@agentdms.com",
+                Roles = new List<UserRoleDto>
+                {
+                    new UserRoleDto { RoleName = "Administrator" }
+                }
+            };
+        }
+        else if (token.StartsWith("demo-jwt-token-dan-"))
+        {
+            return new UserDto
+            {
+                Id = "2",
+                Username = "gill.dan2",
+                Email = "gill.dan2@gmail.com",
+                Roles = new List<UserRoleDto>
+                {
+                    new UserRoleDto { RoleName = "User" }
+                }
+            };
+        }
+        else if (token.StartsWith("demo-jwt-token-"))
+        {
+            return new UserDto
+            {
+                Id = "1",
+                Username = "demo",
+                Email = "demo@agentdms.com",
+                Roles = new List<UserRoleDto>
+                {
+                    new UserRoleDto { RoleName = "User" }
+                }
+            };
+        }
+
+        return null;
     }
 }
