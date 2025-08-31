@@ -487,7 +487,7 @@ public class DataSeeder
                     ProjectId = project.Id,
                     RoleId = userRole.Id,
                     CanView = true,
-                    CanEdit = false, // User role should only have view privileges
+                    CanEdit = false, // User role should only have view privileges  
                     CanDelete = false // Dan cannot delete anything
                 };
 
