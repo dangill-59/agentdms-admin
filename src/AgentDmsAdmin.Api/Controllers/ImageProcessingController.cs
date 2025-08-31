@@ -5,6 +5,7 @@ using AgentDmsAdmin.Data.Models;
 using AgentDmsAdmin.Data.Services;
 using Microsoft.EntityFrameworkCore;
 using AgentDmsAdmin.Api.Attributes;
+using ImageMagick;
 
 namespace AgentDmsAdmin.Api.Controllers;
 
@@ -75,29 +76,24 @@ public class ImageProcessingController : ControllerBase
                 await file.CopyToAsync(stream);
             }
 
+            // Process the image using Magick.NET to get dimensions and create thumbnail
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var processedImage = await ProcessImageWithMagickNet(filePath, fileName, file.Length, fileExtension, file.ContentType, uploadsPath);
+            stopwatch.Stop();
+
             // Create processing job
             var job = new ProcessingJob
             {
                 JobId = jobId,
-                Status = "Completed", // For simplicity, mark as completed immediately
+                Status = "Completed",
                 FileName = file.FileName,
                 CreatedAt = DateTime.UtcNow,
                 Result = new ProcessingResult
                 {
                     Success = true,
                     JobId = jobId,
-                    ProcessedImage = new ProcessedImage
-                    {
-                        FileName = fileName,
-                        StoragePath = filePath,
-                        FileSize = file.Length,
-                        OriginalFormat = fileExtension,
-                        MimeType = file.ContentType,
-                        IsMultiPage = false, // Simplified - would need actual image processing to detect
-                        Width = 0, // Would need image processing library to get actual dimensions
-                        Height = 0
-                    },
-                    ProcessingTime = "0.1s",
+                    ProcessedImage = processedImage,
+                    ProcessingTime = $"{stopwatch.ElapsedMilliseconds}ms",
                     Message = "File uploaded and processed successfully"
                 }
             };
@@ -253,5 +249,105 @@ public class ImageProcessingController : ControllerBase
         };
 
         return Ok(supportedFormats);
+    }
+
+    private async Task<ProcessedImage> ProcessImageWithMagickNet(string filePath, string fileName, long fileSize, string originalFormat, string mimeType, string uploadsPath)
+    {
+        try
+        {
+            using var image = new MagickImage(filePath);
+            
+            // Get image dimensions
+            var width = image.Width;
+            var height = image.Height;
+            
+            // Check if it's a multi-page format (like PDF or TIFF)
+            var isMultiPage = false;
+            int? pageCount = null;
+            
+            if (originalFormat.ToLowerInvariant() == ".pdf" || originalFormat.ToLowerInvariant() == ".tif" || originalFormat.ToLowerInvariant() == ".tiff")
+            {
+                try
+                {
+                    using var imageCollection = new MagickImageCollection(filePath);
+                    pageCount = imageCollection.Count;
+                    isMultiPage = pageCount > 1;
+                }
+                catch
+                {
+                    // If we can't read as collection, treat as single page
+                    isMultiPage = false;
+                    pageCount = 1;
+                }
+            }
+            
+            // Create thumbnail (max 200x200)
+            string? thumbnailPath = null;
+            try
+            {
+                var thumbnailFileName = $"thumb_{fileName}";
+                thumbnailPath = Path.Combine(uploadsPath, thumbnailFileName);
+                
+                using var thumbnail = image.Clone();
+                thumbnail.Resize(200, 200);
+                thumbnail.Format = MagickFormat.Jpeg;
+                await Task.Run(() => thumbnail.Write(thumbnailPath));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to create thumbnail for {FileName}", fileName);
+            }
+            
+            // Create PNG conversion for better web compatibility if needed
+            string? convertedPngPath = null;
+            if (originalFormat.ToLowerInvariant() != ".png" && originalFormat.ToLowerInvariant() != ".jpg" && originalFormat.ToLowerInvariant() != ".jpeg")
+            {
+                try
+                {
+                    var pngFileName = Path.ChangeExtension(fileName, ".png");
+                    convertedPngPath = Path.Combine(uploadsPath, pngFileName);
+                    
+                    using var pngImage = image.Clone();
+                    pngImage.Format = MagickFormat.Png;
+                    await Task.Run(() => pngImage.Write(convertedPngPath));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to create PNG conversion for {FileName}", fileName);
+                }
+            }
+            
+            return new ProcessedImage
+            {
+                FileName = fileName,
+                StoragePath = filePath,
+                ConvertedPngPath = convertedPngPath,
+                ThumbnailPath = thumbnailPath,
+                Width = (int)width,
+                Height = (int)height,
+                FileSize = fileSize,
+                OriginalFormat = originalFormat,
+                MimeType = mimeType,
+                IsMultiPage = isMultiPage,
+                PageCount = pageCount
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing image {FileName} with Magick.NET", fileName);
+            
+            // Return basic info if image processing fails
+            return new ProcessedImage
+            {
+                FileName = fileName,
+                StoragePath = filePath,
+                FileSize = fileSize,
+                OriginalFormat = originalFormat,
+                MimeType = mimeType,
+                Width = 0,
+                Height = 0,
+                IsMultiPage = false
+            };
+        }
     }
 }
