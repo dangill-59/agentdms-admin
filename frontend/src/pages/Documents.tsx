@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import type { Document, DocumentSearchFilters, DocumentSearchResult, PaginatedResponse, Project, CustomField } from '../types/api';
 import { documentService } from '../services/documents';
 import { projectService } from '../services/projects';
+import { useAuth } from '../hooks/useAuth';
+import { canDeleteDocuments } from '../utils/userHelpers';
 import config from '../utils/config';
 import Header from '../components/Header';
 import DocumentSearchForm from '../components/DocumentSearchForm';
@@ -21,6 +23,8 @@ type ViewMode = 'search' | 'results' | 'viewer' | 'upload';
 
 const Documents: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+  const canDelete = canDeleteDocuments(user);
   
   // State for different views
   const [viewMode, setViewMode] = useState<ViewMode>('search');
@@ -737,9 +741,11 @@ const Documents: React.FC = () => {
                           <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                             Download
                           </button>
-                          <button className="text-red-600 hover:text-red-800 text-sm font-medium">
-                            Delete
-                          </button>
+                          {canDelete && (
+                            <button className="text-red-600 hover:text-red-800 text-sm font-medium">
+                              Delete
+                            </button>
+                          )}
                         </div>
                       </div>
                     </li>

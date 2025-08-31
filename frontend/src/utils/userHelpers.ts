@@ -115,3 +115,31 @@ export function canAccessFeature(user: User | null, requiredPermissions: string[
   
   return userHasAnyPermission(user, requiredPermissions);
 }
+
+/**
+ * Check if user can edit documents
+ */
+export function canEditDocuments(user: User | null): boolean {
+  return userHasPermission(user, 'document.edit');
+}
+
+/**
+ * Check if user can delete documents
+ */
+export function canDeleteDocuments(user: User | null): boolean {
+  return userHasPermission(user, 'document.delete');
+}
+
+/**
+ * Check if user can manage projects (requires admin permission)
+ */
+export function canManageProjects(user: User | null): boolean {
+  return userHasPermission(user, 'workspace.admin');
+}
+
+/**
+ * Check if user can access settings (requires admin permission)
+ */
+export function canAccessSettings(user: User | null): boolean {
+  return userHasPermission(user, 'workspace.admin');
+}
