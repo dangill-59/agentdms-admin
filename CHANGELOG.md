@@ -14,9 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Issue and Pull Request templates for standardizing contributions
 - Security guidelines for handling secrets and dependency vulnerabilities
 - This changelog file
+- Magick.NET-Q16-AnyCPU 14.8.1 for safe image processing functionality
+- Enhanced ImageProcessingController with actual image dimension detection and thumbnail generation
 
 ### Changed
 - Documentation improvements in README (project hygiene, security, contribution)
 
 ### Fixed
-- (To be filled in future releases)
+- Security vulnerability in Magick.NET by upgrading to version 14.8.1 (resolves GHSA-mxvv-97wh-cfmm)
