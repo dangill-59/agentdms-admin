@@ -15,7 +15,7 @@ const ProjectManagePage: React.FC = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'edit' | 'fields' | 'roles' | 'actions'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'roles' | 'actions'>('overview');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const isAdmin = userHasPermission(user, 'workspace.admin');
@@ -49,9 +49,6 @@ const ProjectManagePage: React.FC = () => {
     }
   };
 
-  const handleViewDocuments = () => {
-    navigate(`/documents?projectId=${project?.id}`);
-  };
 
   const handleManageFields = () => {
     navigate(`/projects/${project?.id}/fields`);
@@ -235,26 +232,7 @@ const ProjectManagePage: React.FC = () => {
                 >
                   Overview
                 </button>
-                <button
-                  onClick={() => setActiveTab('edit')}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === 'edit'
-                      ? 'border-indigo-500 text-indigo-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  Edit Project
-                </button>
-                <button
-                  onClick={() => setActiveTab('fields')}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === 'fields'
-                      ? 'border-indigo-500 text-indigo-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  Manage Fields
-                </button>
+
                 <button
                   onClick={() => setActiveTab('roles')}
                   className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -309,8 +287,8 @@ const ProjectManagePage: React.FC = () => {
                     <dd className="mt-1 text-sm text-gray-900">{project.name}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">File Name</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{project.fileName}</dd>
+                    <dt className="text-sm font-medium text-gray-500">Description</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{project.description || 'No description provided'}</dd>
                   </div>
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Status</dt>
@@ -359,7 +337,7 @@ const ProjectManagePage: React.FC = () => {
                 <h4 className="text-md font-medium text-gray-900 mb-3">Quick Actions</h4>
                 <div className="flex flex-wrap gap-3">
                   <button
-                    onClick={handleViewDocuments}
+                    onClick={handleEditProject}
                     disabled={project.isArchived}
                     className={`px-4 py-2 text-sm font-medium transition-colors ${
                       project.isArchived
@@ -367,7 +345,7 @@ const ProjectManagePage: React.FC = () => {
                         : 'bg-blue-600 hover:bg-blue-700 text-white'
                     }`}
                   >
-                    View Documents
+                    Edit Project Information
                   </button>
                   <button
                     onClick={handleManageFields}
@@ -385,53 +363,6 @@ const ProjectManagePage: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'edit' && (
-            <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Edit Project</h3>
-              <div className="text-center py-12">
-                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">Edit Project</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Use the button below to edit this project's details.
-                </p>
-                <div className="mt-6">
-                  <button
-                    onClick={handleEditProject}
-                    disabled={isProcessing}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 text-sm font-medium transition-colors"
-                  >
-                    Edit Project Details
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'fields' && (
-            <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Manage Fields</h3>
-              <div className="text-center py-12">
-                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">Manage Fields</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Configure custom fields for this project.
-                </p>
-                <div className="mt-6">
-                  <button
-                    onClick={handleManageFields}
-                    disabled={isProcessing}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 text-sm font-medium transition-colors"
-                  >
-                    Manage Project Fields
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {activeTab === 'roles' && (
             <div className="px-4 py-5 sm:p-6">
