@@ -43,8 +43,8 @@ const Login: React.FC = () => {
 
     try {
       await login(credentials);
-      // Redirect to the page user was trying to access, or dashboard
-      const from = location.state?.from?.pathname || '/dashboard';
+      // Redirect to the page user was trying to access, or documents
+      const from = location.state?.from?.pathname || '/documents';
       navigate(from, { replace: true });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';

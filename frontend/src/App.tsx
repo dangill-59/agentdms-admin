@@ -6,7 +6,6 @@ import './App.css';
 
 // Lazy load page components for code splitting
 const Login = lazy(() => import('./pages/Login'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Projects = lazy(() => import('./pages/Projects'));
 const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'));
 const ProjectManagePage = lazy(() => import('./pages/ProjectManagePage'));
@@ -44,11 +43,7 @@ function App() {
               {/* Protected routes */}
               <Route 
                 path="/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } 
+                element={<Navigate to="/documents" replace />} 
               />
 
               <Route 
@@ -124,7 +119,7 @@ function App() {
               />
               
               {/* Default redirect */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/" element={<Navigate to="/documents" replace />} />
               
               {/* 404 page */}
               <Route path="*" element={<NotFound />} />

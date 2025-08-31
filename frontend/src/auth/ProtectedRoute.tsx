@@ -31,8 +31,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // If route requires NO authentication (like login page) and user IS authenticated
   if (!requireAuth && isAuthenticated) {
-    // Redirect to dashboard or return URL
-    const from = location.state?.from?.pathname || '/dashboard';
+    // Redirect to documents or return URL
+    const from = location.state?.from?.pathname || '/documents';
     return <Navigate to={from} replace />;
   }
 
