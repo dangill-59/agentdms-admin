@@ -4,6 +4,7 @@ using AgentDmsAdmin.Api.Models;
 using AgentDmsAdmin.Data.Data;
 using AgentDmsAdmin.Data.Models;
 using AgentDmsAdmin.Api.Attributes;
+using AgentDmsAdmin.Api.Services;
 
 namespace AgentDmsAdmin.Api.Controllers;
 
@@ -13,11 +14,13 @@ public class DocumentsController : ControllerBase
 {
     private readonly AgentDmsContext _context;
     private readonly ILogger<DocumentsController> _logger;
+    private readonly IAuthorizationService _authorizationService;
 
-    public DocumentsController(AgentDmsContext context, ILogger<DocumentsController> logger)
+    public DocumentsController(AgentDmsContext context, ILogger<DocumentsController> logger, IAuthorizationService authorizationService)
     {
         _context = context;
         _logger = logger;
+        _authorizationService = authorizationService;
     }
 
     [HttpGet]
@@ -31,7 +34,37 @@ public class DocumentsController : ControllerBase
         {
             var query = _context.Documents.AsQueryable();
             
-            // Filter by project if specified
+            // Get current user and filter documents by project permissions
+            var currentUser = _authorizationService.GetCurrentUser();
+            if (currentUser != null && int.TryParse(currentUser.Id, out var userId))
+            {
+                // Check if user has workspace.admin permission (admins can see all documents)
+                var isWorkspaceAdmin = await _authorizationService.UserHasPermissionAsync(userId, "workspace.admin");
+                
+                if (!isWorkspaceAdmin)
+                {
+                    // Non-admin users can only see documents from projects they have view access to
+                    // Get user's roles
+                    var userRoleIds = await _context.UserRoles
+                        .Where(ur => ur.UserId == userId)
+                        .Select(ur => ur.RoleId)
+                        .ToListAsync();
+                    
+                    // Get projects where user has roles assigned AND those roles have document.view permission
+                    var accessibleProjectIds = await _context.ProjectRoles
+                        .Where(pr => userRoleIds.Contains(pr.RoleId))
+                        .Where(pr => _context.RolePermissions
+                            .Any(rp => rp.RoleId == pr.RoleId && 
+                                      rp.Permission.Name == "document.view"))
+                        .Select(pr => pr.ProjectId)
+                        .Distinct()
+                        .ToListAsync();
+                    
+                    query = query.Where(d => accessibleProjectIds.Contains(d.ProjectId));
+                }
+            }
+            
+            // Filter by specific project if specified
             if (!string.IsNullOrEmpty(projectId) && int.TryParse(projectId, out var projectIdInt))
             {
                 query = query.Where(d => d.ProjectId == projectIdInt);
@@ -124,6 +157,17 @@ public class DocumentsController : ControllerBase
             if (document == null)
             {
                 return NotFound($"Document with ID {id} not found.");
+            }
+
+            // Check project-specific delete permissions using correct role-based logic
+            var currentUser = _authorizationService.GetCurrentUser();
+            if (currentUser != null && int.TryParse(currentUser.Id, out var userId))
+            {
+                var projectPermissions = await _authorizationService.GetUserProjectPermissionsAsync(userId, document.ProjectId);
+                if (!projectPermissions.CanDelete)
+                {
+                    return StatusCode(403, "User does not have delete permission for this project.");
+                }
             }
 
             _context.Documents.Remove(document);
@@ -223,6 +267,17 @@ public class DocumentsController : ControllerBase
             if (document == null)
             {
                 return NotFound($"Document with ID {id} not found.");
+            }
+
+            // Check project-specific edit permissions using correct role-based logic
+            var currentUser = _authorizationService.GetCurrentUser();
+            if (currentUser != null && int.TryParse(currentUser.Id, out var userId))
+            {
+                var projectPermissions = await _authorizationService.GetUserProjectPermissionsAsync(userId, document.ProjectId);
+                if (!projectPermissions.CanEdit)
+                {
+                    return StatusCode(403, "User does not have edit permission for this project.");
+                }
             }
 
             // Update custom field values
