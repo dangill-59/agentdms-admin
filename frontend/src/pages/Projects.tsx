@@ -78,77 +78,6 @@ const Projects: React.FC = () => {
     setShowCreateModal(true);
   };
 
-  const handleEditProject = (project: Project) => {
-    setEditingProject(project);
-    setFormData({
-      name: project.name,
-      description: project.description || '',
-      fileName: project.fileName,
-      roleAssignments: []
-    });
-    
-    // Initialize selected roles from existing project roles
-    const initialSelectedRoles: {[roleId: string]: CreateProjectRoleAssignment} = {};
-    project.projectRoles.forEach(pr => {
-      initialSelectedRoles[pr.roleId] = {
-        roleId: pr.roleId,
-        canView: pr.canView,
-        canEdit: pr.canEdit,
-        canDelete: pr.canDelete
-      };
-    });
-    setSelectedRoles(initialSelectedRoles);
-    setShowEditModal(true);
-  };
-
-  const handleCloneProject = async (projectId: string) => {
-    try {
-      setIsLoading(true);
-      await projectService.cloneProject(projectId);
-      await fetchProjects();
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to clone project');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteProject = async (projectId: string, hardDelete = false) => {
-    const action = hardDelete ? 'permanently delete' : 'archive';
-    if (!confirm(`Are you sure you want to ${action} this project? ${hardDelete ? 'This action cannot be undone.' : 'You can restore it later.'}`)) {
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      if (hardDelete) {
-        await projectService.deleteProject(projectId, true);
-      } else {
-        await projectService.archiveProject(projectId, true);
-      }
-      await fetchProjects();
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : `Failed to ${action} project`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRestoreProject = async (projectId: string) => {
-    try {
-      setIsLoading(true);
-      await projectService.archiveProject(projectId, false);
-      await fetchProjects();
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to restore project');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleSubmitCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
@@ -347,10 +276,6 @@ const Projects: React.FC = () => {
               <ProjectCard 
                 key={project.id} 
                 project={project} 
-                onEdit={userHasPermission(user, 'workspace.admin') ? handleEditProject : undefined}
-                onClone={userHasPermission(user, 'workspace.admin') ? handleCloneProject : undefined}
-                onDelete={userHasPermission(user, 'workspace.admin') ? handleDeleteProject : undefined}
-                onRestore={userHasPermission(user, 'workspace.admin') ? handleRestoreProject : undefined}
               />
             ))
           ) : (

@@ -9,6 +9,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Projects = lazy(() => import('./pages/Projects'));
 const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'));
+const ProjectManagePage = lazy(() => import('./pages/ProjectManagePage'));
 const ProjectFieldsPage = lazy(() => import('./pages/ProjectFieldsPage'));
 const Documents = lazy(() => import('./pages/Documents'));
 const Users = lazy(() => import('./pages/Users'));
@@ -64,6 +65,15 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ProjectDetailPage />
+                  </ProtectedRoute>
+                } 
+              />
+
+              <Route 
+                path="/projects/:projectId/manage" 
+                element={
+                  <ProtectedRoute>
+                    <ProjectManagePage />
                   </ProtectedRoute>
                 } 
               />
