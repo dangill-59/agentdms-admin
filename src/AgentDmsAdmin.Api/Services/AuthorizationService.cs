@@ -74,12 +74,8 @@ public class AuthorizationService : IAuthorizationService
             return true;
         }
 
-        // Special handling for demo users
-        if (userId == 3) // Demo admin user
-        {
-            // Admin user has all permissions including workspace.admin
-            return true;
-        }
+        // Note: Removed hardcoded special case for user ID 3 as it was incorrectly granting 
+        // all permissions to gill.dan2 user who should have limited permissions
 
         var hasPermission = await _context.Users
             .Where(u => u.Id == userId)
@@ -88,6 +84,54 @@ public class AuthorizationService : IAuthorizationService
             .AnyAsync(rp => rp.Permission.Name == permissionName);
 
         return hasPermission;
+    }
+
+    /// <summary>
+    /// Checks if a user has the specified project permissions using intersection logic.
+    /// User must have the permission through ALL their roles assigned to the project.
+    /// </summary>
+    public async Task<ProjectPermissions> GetUserProjectPermissionsAsync(int userId, int projectId)
+    {
+        // Special case for superadmin user (ID 0) - grant all permissions
+        if (userId == 0)
+        {
+            return new ProjectPermissions { CanView = true, CanEdit = true, CanDelete = true };
+        }
+
+        // Get user's roles
+        var userRoleIds = await _context.UserRoles
+            .Where(ur => ur.UserId == userId)
+            .Select(ur => ur.RoleId)
+            .ToListAsync();
+
+        if (!userRoleIds.Any())
+        {
+            // User has no roles, no permissions
+            return new ProjectPermissions { CanView = false, CanEdit = false, CanDelete = false };
+        }
+
+        // Get project roles for this user's roles
+        var projectRoles = await _context.ProjectRoles
+            .Where(pr => pr.ProjectId == projectId && userRoleIds.Contains(pr.RoleId))
+            .ToListAsync();
+
+        if (!projectRoles.Any())
+        {
+            // No roles assigned to this project for this user
+            return new ProjectPermissions { CanView = false, CanEdit = false, CanDelete = false };
+        }
+
+        // Use intersection logic: user can only do what ALL their assigned roles allow
+        var canView = projectRoles.All(pr => pr.CanView);
+        var canEdit = projectRoles.All(pr => pr.CanEdit);  
+        var canDelete = projectRoles.All(pr => pr.CanDelete);
+
+        return new ProjectPermissions 
+        { 
+            CanView = canView, 
+            CanEdit = canEdit, 
+            CanDelete = canDelete 
+        };
     }
 
     /// <summary>

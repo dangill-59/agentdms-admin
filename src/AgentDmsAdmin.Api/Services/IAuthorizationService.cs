@@ -34,4 +34,12 @@ public interface IAuthorizationService
     /// <param name="roleName">Name of the role to check</param>
     /// <returns>True if user has role, false otherwise</returns>
     Task<bool> HasRoleAsync(string roleName);
+    
+    /// <summary>
+    /// Gets project-specific permissions for a user using intersection logic
+    /// </summary>
+    /// <param name="userId">ID of the user</param>
+    /// <param name="projectId">ID of the project</param>
+    /// <returns>Project permissions for the user</returns>
+    Task<ProjectPermissions> GetUserProjectPermissionsAsync(int userId, int projectId);
 }
