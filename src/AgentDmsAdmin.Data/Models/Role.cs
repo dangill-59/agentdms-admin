@@ -15,4 +15,5 @@ public class Role : BaseEntity
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public ICollection<ProjectRole> ProjectRoles { get; set; } = new List<ProjectRole>();
     public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
+    public ICollection<RoleFieldValueRestriction> FieldValueRestrictions { get; set; } = new List<RoleFieldValueRestriction>();
 }

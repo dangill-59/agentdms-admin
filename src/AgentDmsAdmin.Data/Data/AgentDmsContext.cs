@@ -20,6 +20,7 @@ public class AgentDmsContext : DbContext
     public DbSet<ProjectRole> ProjectRoles { get; set; }
     public DbSet<Permission> Permissions { get; set; }
     public DbSet<RolePermission> RolePermissions { get; set; }
+    public DbSet<RoleFieldValueRestriction> RoleFieldValueRestrictions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -138,6 +139,23 @@ public class AgentDmsContext : DbContext
 
         modelBuilder.Entity<RolePermission>()
             .HasIndex(rp => new { rp.RoleId, rp.PermissionId })
+            .IsUnique();
+
+        // Configure RoleFieldValueRestriction relationships
+        modelBuilder.Entity<RoleFieldValueRestriction>()
+            .HasOne(rfvr => rfvr.Role)
+            .WithMany(r => r.FieldValueRestrictions)
+            .HasForeignKey(rfvr => rfvr.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<RoleFieldValueRestriction>()
+            .HasOne(rfvr => rfvr.CustomField)
+            .WithMany(cf => cf.RoleFieldValueRestrictions)
+            .HasForeignKey(rfvr => rfvr.CustomFieldId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<RoleFieldValueRestriction>()
+            .HasIndex(rfvr => new { rfvr.RoleId, rfvr.CustomFieldId })
             .IsUnique();
 
         // Configure BaseEntity properties
