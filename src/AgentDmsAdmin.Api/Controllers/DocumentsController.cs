@@ -15,12 +15,14 @@ public class DocumentsController : ControllerBase
     private readonly AgentDmsContext _context;
     private readonly ILogger<DocumentsController> _logger;
     private readonly IAuthorizationService _authorizationService;
+    private readonly IFieldValueValidationService _fieldValueValidationService;
 
-    public DocumentsController(AgentDmsContext context, ILogger<DocumentsController> logger, IAuthorizationService authorizationService)
+    public DocumentsController(AgentDmsContext context, ILogger<DocumentsController> logger, IAuthorizationService authorizationService, IFieldValueValidationService fieldValueValidationService)
     {
         _context = context;
         _logger = logger;
         _authorizationService = authorizationService;
+        _fieldValueValidationService = fieldValueValidationService;
     }
 
     [HttpGet]
@@ -271,7 +273,8 @@ public class DocumentsController : ControllerBase
 
             // Check project-specific edit permissions using correct role-based logic
             var currentUser = _authorizationService.GetCurrentUser();
-            if (currentUser != null && int.TryParse(currentUser.Id, out var userId))
+            int userId = 0;
+            if (currentUser != null && int.TryParse(currentUser.Id, out userId))
             {
                 var projectPermissions = await _authorizationService.GetUserProjectPermissionsAsync(userId, document.ProjectId);
                 if (!projectPermissions.CanEdit)
@@ -279,26 +282,63 @@ public class DocumentsController : ControllerBase
                     return StatusCode(403, "User does not have edit permission for this project.");
                 }
             }
+            else
+            {
+                return Unauthorized("User information is required for field validation.");
+            }
 
-            // Update custom field values
+            var validationErrors = new List<string>();
+
+            // Update custom field values with validation
             foreach (var customFieldUpdate in request.CustomFieldValues)
             {
-                await UpdateOrCreateFieldValue(document, customFieldUpdate.Key, customFieldUpdate.Value);
+                var result = await UpdateOrCreateFieldValue(document, customFieldUpdate.Key, customFieldUpdate.Value, userId);
+                if (!result.Success)
+                {
+                    validationErrors.Add($"Field '{customFieldUpdate.Key}': {result.ErrorMessage}");
+                }
             }
             
-            // Update legacy field values for backward compatibility
+            // Update legacy field values for backward compatibility with validation
             if (request.CustomerName != null)
-                await UpdateOrCreateFieldValue(document, "CustomerName", request.CustomerName);
+            {
+                var result = await UpdateOrCreateFieldValue(document, "CustomerName", request.CustomerName, userId);
+                if (!result.Success) validationErrors.Add($"CustomerName: {result.ErrorMessage}");
+            }
             if (request.InvoiceNumber != null)
-                await UpdateOrCreateFieldValue(document, "InvoiceNumber", request.InvoiceNumber);
+            {
+                var result = await UpdateOrCreateFieldValue(document, "InvoiceNumber", request.InvoiceNumber, userId);
+                if (!result.Success) validationErrors.Add($"InvoiceNumber: {result.ErrorMessage}");
+            }
             if (request.InvoiceDate != null)
-                await UpdateOrCreateFieldValue(document, "InvoiceDate", request.InvoiceDate);
+            {
+                var result = await UpdateOrCreateFieldValue(document, "InvoiceDate", request.InvoiceDate, userId);
+                if (!result.Success) validationErrors.Add($"InvoiceDate: {result.ErrorMessage}");
+            }
             if (request.DocType != null)
-                await UpdateOrCreateFieldValue(document, "DocType", request.DocType);
+            {
+                var result = await UpdateOrCreateFieldValue(document, "DocType", request.DocType, userId);
+                if (!result.Success) validationErrors.Add($"DocType: {result.ErrorMessage}");
+            }
             if (request.Status != null)
-                await UpdateOrCreateFieldValue(document, "Status", request.Status);
+            {
+                var result = await UpdateOrCreateFieldValue(document, "Status", request.Status, userId);
+                if (!result.Success) validationErrors.Add($"Status: {result.ErrorMessage}");
+            }
             if (request.Notes != null)
-                await UpdateOrCreateFieldValue(document, "Notes", request.Notes);
+            {
+                var result = await UpdateOrCreateFieldValue(document, "Notes", request.Notes, userId);
+                if (!result.Success) validationErrors.Add($"Notes: {result.ErrorMessage}");
+            }
+
+            // If there are validation errors, return them
+            if (validationErrors.Any())
+            {
+                return BadRequest(new { 
+                    message = "Field validation failed", 
+                    errors = validationErrors 
+                });
+            }
 
             await _context.SaveChangesAsync();
 
@@ -545,9 +585,25 @@ public class DocumentsController : ControllerBase
         }
     }
 
-    private async Task UpdateOrCreateFieldValue(Document document, string fieldName, string? value)
+    private async Task<(bool Success, string? ErrorMessage)> UpdateOrCreateFieldValue(Document document, string fieldName, string? value, int userId)
     {
-        if (value == null) return;
+        if (value == null) return (true, null);
+
+        // Find the custom field for this document's project
+        var customField = await _context.CustomFields
+            .FirstOrDefaultAsync(cf => cf.ProjectId == document.ProjectId && cf.Name == fieldName);
+            
+        if (customField == null)
+        {
+            return (false, $"Custom field '{fieldName}' not found for this project.");
+        }
+
+        // Validate field value restrictions
+        var validationResult = await _fieldValueValidationService.ValidateFieldValueAsync(userId, customField.Id, value);
+        if (!validationResult.IsValid)
+        {
+            return (false, validationResult.ErrorMessage);
+        }
 
         var fieldValue = document.DocumentFieldValues.FirstOrDefault(fv => fv.CustomField.Name == fieldName);
         if (fieldValue != null)
@@ -556,24 +612,19 @@ public class DocumentsController : ControllerBase
         }
         else
         {
-            // Find the custom field for this document's project
-            var customField = await _context.CustomFields
-                .FirstOrDefaultAsync(cf => cf.ProjectId == document.ProjectId && cf.Name == fieldName);
-                
-            if (customField != null)
+            // Create new field value
+            var newFieldValue = new DocumentFieldValue
             {
-                // Create new field value
-                var newFieldValue = new DocumentFieldValue
-                {
-                    DocumentId = document.Id,
-                    CustomFieldId = customField.Id,
-                    Value = value
-                };
-                
-                _context.DocumentFieldValues.Add(newFieldValue);
-                document.DocumentFieldValues.Add(newFieldValue);
-            }
+                DocumentId = document.Id,
+                CustomFieldId = customField.Id,
+                Value = value
+            };
+            
+            _context.DocumentFieldValues.Add(newFieldValue);
+            document.DocumentFieldValues.Add(newFieldValue);
         }
+
+        return (true, null);
     }
 
     private void UpdateFieldValue(Document document, string fieldName, string? value)
@@ -708,5 +759,30 @@ public class DocumentsController : ControllerBase
             return "." + storagePath; // Convert "/uploads/file.pdf" to "./uploads/file.pdf"
         }
         return storagePath;
+    }
+
+    /// <summary>
+    /// Get allowed values for a specific field based on current user's role restrictions
+    /// </summary>
+    [HttpGet("fields/{customFieldId}/allowed-values")]
+    [RequirePermission("document.view")]
+    public async Task<ActionResult<List<string>>> GetAllowedFieldValues(int customFieldId)
+    {
+        try
+        {
+            var currentUser = _authorizationService.GetCurrentUser();
+            if (currentUser == null || !int.TryParse(currentUser.Id, out var userId))
+            {
+                return Unauthorized("User information is required.");
+            }
+
+            var allowedValues = await _fieldValueValidationService.GetAllowedValuesAsync(userId, customFieldId);
+            return Ok(allowedValues);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting allowed values for field {CustomFieldId}", customFieldId);
+            return StatusCode(500, "An error occurred while fetching allowed field values");
+        }
     }
 }
