@@ -831,4 +831,46 @@ public class ProjectsController : ControllerBase
             return StatusCode(500, $"Error deleting custom field: {ex.Message}");
         }
     }
+
+    /// <summary>
+    /// Gets the current user's permissions for a specific project
+    /// </summary>
+    /// <param name="projectId">The project ID to check permissions for</param>
+    /// <returns>ProjectPermissions indicating what the user can do in this project</returns>
+    [HttpGet("{projectId}/permissions")]
+    [Authorize] // Require authentication for this endpoint
+    public async Task<ActionResult<ProjectPermissions>> GetUserProjectPermissions(int projectId)
+    {
+        try
+        {
+            // Get current user from authorization service
+            var currentUser = _authorizationService.GetCurrentUser();
+            if (currentUser == null)
+            {
+                return Unauthorized("User not authenticated");
+            }
+
+            if (!int.TryParse(currentUser.Id, out var userId))
+            {
+                return BadRequest("Invalid user ID");
+            }
+
+            // Check if project exists
+            var project = await _context.Projects.FindAsync(projectId);
+            if (project == null)
+            {
+                return NotFound($"Project with ID {projectId} not found.");
+            }
+
+            // Get project-specific permissions using the authorization service
+            var permissions = await _authorizationService.GetUserProjectPermissionsAsync(userId, projectId);
+
+            return Ok(permissions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting user permissions for project {ProjectId}", projectId);
+            return StatusCode(500, $"Error getting user permissions: {ex.Message}");
+        }
+    }
 }
