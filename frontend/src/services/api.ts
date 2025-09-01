@@ -48,6 +48,8 @@ class ApiService {
           this.removeToken();
           window.location.href = '/login';
         }
+        // Note: 403 errors are handled at the component level with enhanced error messages
+        // We don't want to intercept them globally since they need context-specific handling
         return Promise.reject(error);
       }
     );

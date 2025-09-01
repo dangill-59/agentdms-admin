@@ -3,6 +3,7 @@ import type { DocumentSearchResult, DocumentMetadata, DocumentCustomFieldValue, 
 import { documentService } from '../services/documents';
 import { useAuth } from '../hooks/useAuth';
 import { canEditDocuments } from '../utils/userHelpers';
+import { enhanceErrorMessage, logError } from '../utils/errorHandling';
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 
@@ -47,7 +48,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         setProjectFields(customFields);
         setEditedMetadata(docMetadata);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load document data');
+        const enhancedError = enhanceErrorMessage(err, 'load document data');
+        logError(enhancedError, 'DocumentViewer');
+        setError(enhancedError.message);
       } finally {
         setIsLoading(false);
       }
@@ -163,7 +166,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         onSave(updatedMetadata);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save document metadata');
+      const enhancedError = enhanceErrorMessage(err, 'save document changes');
+      logError(enhancedError, 'DocumentViewer');
+      setError(enhancedError.message);
     } finally {
       setIsSaving(false);
     }

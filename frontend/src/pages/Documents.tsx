@@ -5,6 +5,7 @@ import { documentService } from '../services/documents';
 import { projectService } from '../services/projects';
 import { useAuth } from '../hooks/useAuth';
 import { canDeleteDocuments } from '../utils/userHelpers';
+import { enhanceErrorMessage, logError } from '../utils/errorHandling';
 import config from '../utils/config';
 import Header from '../components/Header';
 import DocumentSearchForm from '../components/DocumentSearchForm';
@@ -137,7 +138,9 @@ const Documents: React.FC = () => {
       setCurrentPage(1);
       setViewMode('results');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to search documents');
+      const enhancedError = enhanceErrorMessage(err, 'search documents');
+      logError(enhancedError, 'Documents');
+      setError(enhancedError.message);
     } finally {
       setIsSearching(false);
     }
@@ -196,7 +199,9 @@ const Documents: React.FC = () => {
       const response = await documentService.getDocuments();
       setDocuments(response.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load documents');
+      const enhancedError = enhanceErrorMessage(err, 'load documents');
+      logError(enhancedError, 'Documents');
+      setError(enhancedError.message);
     } finally {
       setIsLoading(false);
     }
