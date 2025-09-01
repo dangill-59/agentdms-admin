@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import type { Project, CustomField, CreateCustomFieldRequest, UpdateCustomFieldRequest } from '../types/api';
 import { projectService } from '../services/projects';
 import Header from '../components/Header';
+import FieldValueRestrictions from '../components/FieldValueRestrictions';
 
 const ProjectFieldsPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -16,6 +17,7 @@ const ProjectFieldsPage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingField, setEditingField] = useState<CustomField | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [expandedField, setExpandedField] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -448,6 +450,13 @@ const ProjectFieldsPage: React.FC = () => {
 
                     {/* Actions */}
                     <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setExpandedField(expandedField === field.id ? null : field.id)}
+                        className="text-gray-600 hover:text-gray-900 text-sm font-medium"
+                        title="Manage field restrictions"
+                      >
+                        {expandedField === field.id ? 'Hide Restrictions' : 'Restrictions'}
+                      </button>
                       {field.isRemovable && (
                         <button
                           onClick={() => handleEditField(field)}
@@ -468,6 +477,18 @@ const ProjectFieldsPage: React.FC = () => {
                       )}
                     </div>
                   </div>
+                  
+                  {/* Expanded Restrictions Section */}
+                  {expandedField === field.id && (
+                    <div className="mt-4 border-t pt-4">
+                      <FieldValueRestrictions
+                        customField={field}
+                        onRestrictionsChange={() => {
+                          // Could refresh field data here if needed
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
