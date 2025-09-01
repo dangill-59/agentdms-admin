@@ -242,3 +242,44 @@ export interface AssignRolePermissionRequest {
   roleId: string;
   permissionId: string;
 }
+
+// Role Field Value Restriction types
+export interface RoleFieldValueRestriction {
+  id: string;
+  roleId: string;
+  roleName: string;
+  customFieldId: string;
+  customFieldName: string;
+  values: string[];
+  isAllowList: boolean;
+  createdAt: string;
+  modifiedAt: string;
+}
+
+export interface CreateRoleFieldValueRestrictionRequest {
+  roleId: number;
+  customFieldId: number;
+  values: string[];
+  isAllowList: boolean;
+}
+
+export interface UpdateRoleFieldValueRestrictionRequest {
+  values?: string[];
+  isAllowList?: boolean;
+}
+
+export interface FieldValueRestrictionsForRole {
+  roleId: string;
+  roleName: string;
+  fieldRestrictions: FieldRestriction[];
+}
+
+export interface FieldRestriction {
+  customFieldId: string;
+  customFieldName: string;
+  customFieldType: string;
+  allowedValues: string[];
+  restrictedValues: string[];
+  hasRestrictions: boolean;
+  isAllowList: boolean;
+}
