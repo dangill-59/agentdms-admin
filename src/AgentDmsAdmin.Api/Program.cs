@@ -27,6 +27,9 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
 
+// Add field value validation service
+builder.Services.AddScoped<IFieldValueValidationService, FieldValueValidationService>();
+
 // Configure JWT Authentication
 var jwtKey = builder.Configuration.GetValue<string>("Jwt:SecretKey") ?? "your-very-long-secret-key-that-is-at-least-32-characters-long";
 var jwtIssuer = builder.Configuration.GetValue<string>("Jwt:Issuer") ?? "AgentDmsAdmin";
