@@ -628,4 +628,253 @@ public class RolesController : ControllerBase
             return StatusCode(500, "An error occurred while fetching role permissions");
         }
     }
+
+    #region Role Field Value Restrictions
+
+    [HttpGet("{roleId}/field-restrictions")]
+    public async Task<ActionResult<FieldValueRestrictionsForRoleDto>> GetRoleFieldRestrictions(int roleId)
+    {
+        try
+        {
+            var role = await _context.Roles
+                .Include(r => r.FieldValueRestrictions)
+                .ThenInclude(fvr => fvr.CustomField)
+                .FirstOrDefaultAsync(r => r.Id == roleId);
+
+            if (role == null)
+            {
+                return NotFound($"Role with ID {roleId} not found.");
+            }
+
+            var result = new FieldValueRestrictionsForRoleDto
+            {
+                RoleId = role.Id.ToString(),
+                RoleName = role.Name,
+                FieldRestrictions = role.FieldValueRestrictions.Select(fvr => new FieldRestrictionDto
+                {
+                    CustomFieldId = fvr.CustomFieldId.ToString(),
+                    CustomFieldName = fvr.CustomField.Name,
+                    CustomFieldType = fvr.CustomField.FieldType.ToString(),
+                    AllowedValues = fvr.IsAllowList ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(fvr.Values) ?? new List<string>() : new List<string>(),
+                    RestrictedValues = !fvr.IsAllowList ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(fvr.Values) ?? new List<string>() : new List<string>(),
+                    HasRestrictions = true,
+                    IsAllowList = fvr.IsAllowList
+                }).ToList()
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting field restrictions for role {RoleId}", roleId);
+            return StatusCode(500, "An error occurred while fetching role field restrictions");
+        }
+    }
+
+    [HttpPost("field-restrictions")]
+    public async Task<ActionResult<RoleFieldValueRestrictionDto>> CreateFieldRestriction([FromBody] CreateRoleFieldValueRestrictionRequest request)
+    {
+        try
+        {
+            // Validate role exists
+            var role = await _context.Roles.FindAsync(request.RoleId);
+            if (role == null)
+            {
+                return NotFound($"Role with ID {request.RoleId} not found.");
+            }
+
+            // Validate custom field exists
+            var customField = await _context.CustomFields.FindAsync(request.CustomFieldId);
+            if (customField == null)
+            {
+                return NotFound($"Custom field with ID {request.CustomFieldId} not found.");
+            }
+
+            // Check if restriction already exists
+            var existingRestriction = await _context.RoleFieldValueRestrictions
+                .FirstOrDefaultAsync(r => r.RoleId == request.RoleId && r.CustomFieldId == request.CustomFieldId);
+
+            if (existingRestriction != null)
+            {
+                return BadRequest("A restriction for this role and field combination already exists. Use the update endpoint to modify it.");
+            }
+
+            var restriction = new RoleFieldValueRestriction
+            {
+                RoleId = request.RoleId,
+                CustomFieldId = request.CustomFieldId,
+                Values = System.Text.Json.JsonSerializer.Serialize(request.Values),
+                IsAllowList = request.IsAllowList
+            };
+
+            _context.RoleFieldValueRestrictions.Add(restriction);
+            await _context.SaveChangesAsync();
+
+            var dto = new RoleFieldValueRestrictionDto
+            {
+                Id = restriction.Id.ToString(),
+                RoleId = restriction.RoleId.ToString(),
+                RoleName = role.Name,
+                CustomFieldId = restriction.CustomFieldId.ToString(),
+                CustomFieldName = customField.Name,
+                Values = request.Values,
+                IsAllowList = restriction.IsAllowList,
+                CreatedAt = restriction.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ModifiedAt = restriction.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            };
+
+            return CreatedAtAction(nameof(GetFieldRestriction), new { id = restriction.Id }, dto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating field restriction");
+            return StatusCode(500, "An error occurred while creating the field restriction");
+        }
+    }
+
+    [HttpGet("field-restrictions/{id}")]
+    public async Task<ActionResult<RoleFieldValueRestrictionDto>> GetFieldRestriction(int id)
+    {
+        try
+        {
+            var restriction = await _context.RoleFieldValueRestrictions
+                .Include(r => r.Role)
+                .Include(r => r.CustomField)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (restriction == null)
+            {
+                return NotFound($"Field restriction with ID {id} not found.");
+            }
+
+            var dto = new RoleFieldValueRestrictionDto
+            {
+                Id = restriction.Id.ToString(),
+                RoleId = restriction.RoleId.ToString(),
+                RoleName = restriction.Role.Name,
+                CustomFieldId = restriction.CustomFieldId.ToString(),
+                CustomFieldName = restriction.CustomField.Name,
+                Values = System.Text.Json.JsonSerializer.Deserialize<List<string>>(restriction.Values) ?? new List<string>(),
+                IsAllowList = restriction.IsAllowList,
+                CreatedAt = restriction.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ModifiedAt = restriction.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            };
+
+            return Ok(dto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting field restriction {Id}", id);
+            return StatusCode(500, "An error occurred while fetching the field restriction");
+        }
+    }
+
+    [HttpPut("field-restrictions/{id}")]
+    public async Task<ActionResult<RoleFieldValueRestrictionDto>> UpdateFieldRestriction(int id, [FromBody] UpdateRoleFieldValueRestrictionRequest request)
+    {
+        try
+        {
+            var restriction = await _context.RoleFieldValueRestrictions
+                .Include(r => r.Role)
+                .Include(r => r.CustomField)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (restriction == null)
+            {
+                return NotFound($"Field restriction with ID {id} not found.");
+            }
+
+            if (request.Values != null)
+            {
+                restriction.Values = System.Text.Json.JsonSerializer.Serialize(request.Values);
+            }
+
+            if (request.IsAllowList.HasValue)
+            {
+                restriction.IsAllowList = request.IsAllowList.Value;
+            }
+
+            await _context.SaveChangesAsync();
+
+            var dto = new RoleFieldValueRestrictionDto
+            {
+                Id = restriction.Id.ToString(),
+                RoleId = restriction.RoleId.ToString(),
+                RoleName = restriction.Role.Name,
+                CustomFieldId = restriction.CustomFieldId.ToString(),
+                CustomFieldName = restriction.CustomField.Name,
+                Values = System.Text.Json.JsonSerializer.Deserialize<List<string>>(restriction.Values) ?? new List<string>(),
+                IsAllowList = restriction.IsAllowList,
+                CreatedAt = restriction.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ModifiedAt = restriction.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            };
+
+            return Ok(dto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating field restriction {Id}", id);
+            return StatusCode(500, "An error occurred while updating the field restriction");
+        }
+    }
+
+    [HttpDelete("field-restrictions/{id}")]
+    public async Task<ActionResult> DeleteFieldRestriction(int id)
+    {
+        try
+        {
+            var restriction = await _context.RoleFieldValueRestrictions.FindAsync(id);
+
+            if (restriction == null)
+            {
+                return NotFound($"Field restriction with ID {id} not found.");
+            }
+
+            _context.RoleFieldValueRestrictions.Remove(restriction);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting field restriction {Id}", id);
+            return StatusCode(500, "An error occurred while deleting the field restriction");
+        }
+    }
+
+    [HttpGet("field-restrictions/field/{customFieldId}")]
+    public async Task<ActionResult<List<RoleFieldValueRestrictionDto>>> GetFieldRestrictionsByField(int customFieldId)
+    {
+        try
+        {
+            var restrictions = await _context.RoleFieldValueRestrictions
+                .Include(r => r.Role)
+                .Include(r => r.CustomField)
+                .Where(r => r.CustomFieldId == customFieldId)
+                .OrderBy(r => r.Role.Name)
+                .ToListAsync();
+
+            var dtos = restrictions.Select(restriction => new RoleFieldValueRestrictionDto
+            {
+                Id = restriction.Id.ToString(),
+                RoleId = restriction.RoleId.ToString(),
+                RoleName = restriction.Role.Name,
+                CustomFieldId = restriction.CustomFieldId.ToString(),
+                CustomFieldName = restriction.CustomField.Name,
+                Values = System.Text.Json.JsonSerializer.Deserialize<List<string>>(restriction.Values) ?? new List<string>(),
+                IsAllowList = restriction.IsAllowList,
+                CreatedAt = restriction.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ModifiedAt = restriction.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            }).ToList();
+
+            return Ok(dtos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting field restrictions for field {CustomFieldId}", customFieldId);
+            return StatusCode(500, "An error occurred while fetching field restrictions");
+        }
+    }
+
+    #endregion
 }

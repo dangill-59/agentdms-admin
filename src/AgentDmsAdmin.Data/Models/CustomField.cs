@@ -53,4 +53,5 @@ public class CustomField : BaseEntity
     // Navigation property
     public Project Project { get; set; } = null!;
     public ICollection<DocumentFieldValue> DocumentFieldValues { get; set; } = new List<DocumentFieldValue>();
+    public ICollection<RoleFieldValueRestriction> RoleFieldValueRestrictions { get; set; } = new List<RoleFieldValueRestriction>();
 }
