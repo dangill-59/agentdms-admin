@@ -441,6 +441,17 @@ export class DocumentService {
     }
   }
 
+  // Get allowed field values for current user
+  public async getAllowedFieldValues(customFieldId: string): Promise<string[]> {
+    try {
+      const response = await apiService.get<string[]>(`${this.basePath}/fields/${customFieldId}/allowed-values`);
+      return response.data || response;
+    } catch (error) {
+      console.warn('Failed to fetch allowed field values, returning empty array:', error);
+      return [];
+    }
+  }
+
 
 }
 
