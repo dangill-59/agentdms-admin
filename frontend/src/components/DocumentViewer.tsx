@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import type { DocumentSearchResult, DocumentMetadata, DocumentCustomFieldValue, CustomField } from '../types/api';
+import type { DocumentSearchResult, DocumentMetadata, DocumentCustomFieldValue, CustomField, ProjectPermissions } from '../types/api';
 import { documentService } from '../services/documents';
-import { useAuth } from '../hooks/useAuth';
-import { canEditDocuments } from '../utils/userHelpers';
+import { projectService } from '../services/projects';
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 
@@ -17,11 +16,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   onBack,
   onSave
 }) => {
-  const { user } = useAuth();
-  const canEdit = canEditDocuments(user);
-  
   const [metadata, setMetadata] = useState<DocumentMetadata | null>(null);
   const [projectFields, setProjectFields] = useState<CustomField[]>([]);
+  const [projectPermissions, setProjectPermissions] = useState<ProjectPermissions | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string>('');
@@ -37,14 +34,16 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         setIsLoading(true);
         setError('');
         
-        // Fetch both document metadata and project custom fields in parallel
-        const [docMetadata, customFields] = await Promise.all([
+        // Fetch document metadata, project custom fields, and project permissions in parallel
+        const [docMetadata, customFields, permissions] = await Promise.all([
           documentService.getDocumentMetadata(document.id),
-          documentService.getProjectCustomFields(document.projectId)
+          documentService.getProjectCustomFields(document.projectId),
+          projectService.getUserProjectPermissions(document.projectId)
         ]);
         
         setMetadata(docMetadata);
         setProjectFields(customFields);
+        setProjectPermissions(permissions);
         setEditedMetadata(docMetadata);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load document data');
@@ -381,7 +380,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             <h2 className="text-xl font-semibold text-gray-900">Document Viewer</h2>
           </div>
           <div className="flex items-center space-x-2">
-            {!isEditing && canEdit ? (
+            {!isEditing && projectPermissions?.canEdit ? (
               <button
                 onClick={handleEdit}
                 disabled={isLoading}

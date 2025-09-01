@@ -74,6 +74,12 @@ export interface Project {
   projectRoles: ProjectRole[];
 }
 
+export interface ProjectPermissions {
+  canView: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+}
+
 export interface CustomField {
   id: string;
   projectId: string;

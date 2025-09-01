@@ -6,7 +6,8 @@ import type {
   CreateProjectRequest,
   UpdateProjectRequest,
   CreateCustomFieldRequest,
-  UpdateCustomFieldRequest 
+  UpdateCustomFieldRequest,
+  ProjectPermissions
 } from '../types/api';
 import config from '../utils/config';
 import { apiService } from './api';
@@ -292,6 +293,12 @@ export class ProjectService {
 
   public async deleteCustomField(projectId: string, fieldId: string): Promise<void> {
     await apiService.deleteDirect(`/projects/${projectId}/custom-fields/${fieldId}`);
+  }
+
+  // Project permissions
+  public async getUserProjectPermissions(projectId: string): Promise<ProjectPermissions> {
+    const response = await apiService.getDirect<ProjectPermissions>(`/projects/${projectId}/permissions`);
+    return response;
   }
 }
 
