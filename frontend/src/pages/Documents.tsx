@@ -189,6 +189,27 @@ const Documents: React.FC = () => {
     setError(''); // Clear any errors when switching modes
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleDocumentDelete = async (_documentId: string) => {
+    // Note: documentId parameter is available for future use but currently not needed
+    // since we refresh the entire search results
+    try {
+      // Refresh the search results to reflect the deleted document
+      const results = await documentService.searchDocuments(searchFilters, currentPage, 10);
+      setSearchResults(results);
+      
+      // If current page is now empty and we're not on page 1, go to previous page
+      if (results.data.length === 0 && currentPage > 1) {
+        const previousPage = currentPage - 1;
+        const previousResults = await documentService.searchDocuments(searchFilters, previousPage, 10);
+        setSearchResults(previousResults);
+        setCurrentPage(previousPage);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to refresh search results after deletion');
+    }
+  };
+
   const fetchDocuments = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -512,6 +533,8 @@ const Documents: React.FC = () => {
             onUpdateSearch={handleUpdateSearch}
             isLoading={isSearching}
             customFields={customFields}
+            canDelete={canDelete}
+            onDocumentDelete={handleDocumentDelete}
           />
         )}
 
