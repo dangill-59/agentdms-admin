@@ -676,6 +676,17 @@ public class RolesController : ControllerBase
     {
         try
         {
+            // Validate input
+            if (request == null)
+            {
+                return BadRequest("Invalid request data.");
+            }
+
+            if (request.Values == null || !request.Values.Any())
+            {
+                return BadRequest("At least one value must be specified for the restriction.");
+            }
+
             // Validate role exists
             var role = await _context.Roles.FindAsync(request.RoleId);
             if (role == null)
@@ -683,11 +694,25 @@ public class RolesController : ControllerBase
                 return NotFound($"Role with ID {request.RoleId} not found.");
             }
 
+            // Additional null check for role name
+            if (string.IsNullOrEmpty(role.Name))
+            {
+                _logger.LogWarning("Role with ID {RoleId} has null or empty name", request.RoleId);
+                return BadRequest($"Role with ID {request.RoleId} has invalid data.");
+            }
+
             // Validate custom field exists
             var customField = await _context.CustomFields.FindAsync(request.CustomFieldId);
             if (customField == null)
             {
                 return NotFound($"Custom field with ID {request.CustomFieldId} not found.");
+            }
+
+            // Additional null check for custom field name
+            if (string.IsNullOrEmpty(customField.Name))
+            {
+                _logger.LogWarning("Custom field with ID {CustomFieldId} has null or empty name", request.CustomFieldId);
+                return BadRequest($"Custom field with ID {request.CustomFieldId} has invalid data.");
             }
 
             // Check if restriction already exists
@@ -699,11 +724,23 @@ public class RolesController : ControllerBase
                 return BadRequest("A restriction for this role and field combination already exists. Use the update endpoint to modify it.");
             }
 
+            // Validate and serialize values
+            string serializedValues;
+            try
+            {
+                serializedValues = System.Text.Json.JsonSerializer.Serialize(request.Values);
+            }
+            catch (Exception serializationEx)
+            {
+                _logger.LogError(serializationEx, "Failed to serialize values for field restriction");
+                return BadRequest("Invalid values provided for restriction.");
+            }
+
             var restriction = new RoleFieldValueRestriction
             {
                 RoleId = request.RoleId,
                 CustomFieldId = request.CustomFieldId,
-                Values = System.Text.Json.JsonSerializer.Serialize(request.Values),
+                Values = serializedValues,
                 IsAllowList = request.IsAllowList
             };
 
@@ -727,7 +764,8 @@ public class RolesController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating field restriction");
+            _logger.LogError(ex, "Error creating field restriction for RoleId: {RoleId}, CustomFieldId: {CustomFieldId}", 
+                request?.RoleId, request?.CustomFieldId);
             return StatusCode(500, "An error occurred while creating the field restriction");
         }
     }
@@ -847,6 +885,13 @@ public class RolesController : ControllerBase
     {
         try
         {
+            // Validate custom field exists first
+            var customFieldExists = await _context.CustomFields.AnyAsync(c => c.Id == customFieldId);
+            if (!customFieldExists)
+            {
+                return NotFound($"Custom field with ID {customFieldId} not found.");
+            }
+
             var restrictions = await _context.RoleFieldValueRestrictions
                 .Include(r => r.Role)
                 .Include(r => r.CustomField)
@@ -854,18 +899,49 @@ public class RolesController : ControllerBase
                 .OrderBy(r => r.Role.Name)
                 .ToListAsync();
 
-            var dtos = restrictions.Select(restriction => new RoleFieldValueRestrictionDto
+            var dtos = new List<RoleFieldValueRestrictionDto>();
+            
+            foreach (var restriction in restrictions)
             {
-                Id = restriction.Id.ToString(),
-                RoleId = restriction.RoleId.ToString(),
-                RoleName = restriction.Role.Name,
-                CustomFieldId = restriction.CustomFieldId.ToString(),
-                CustomFieldName = restriction.CustomField.Name,
-                Values = System.Text.Json.JsonSerializer.Deserialize<List<string>>(restriction.Values) ?? new List<string>(),
-                IsAllowList = restriction.IsAllowList,
-                CreatedAt = restriction.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                ModifiedAt = restriction.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
-            }).ToList();
+                // Defensive programming - check for null navigation properties
+                if (restriction.Role == null)
+                {
+                    _logger.LogWarning("Field restriction {RestrictionId} has null Role navigation property", restriction.Id);
+                    continue;
+                }
+
+                if (restriction.CustomField == null)
+                {
+                    _logger.LogWarning("Field restriction {RestrictionId} has null CustomField navigation property", restriction.Id);
+                    continue;
+                }
+
+                List<string> values;
+                try
+                {
+                    values = System.Text.Json.JsonSerializer.Deserialize<List<string>>(restriction.Values) ?? new List<string>();
+                }
+                catch (Exception deserializationEx)
+                {
+                    _logger.LogError(deserializationEx, "Failed to deserialize values for field restriction {RestrictionId}", restriction.Id);
+                    values = new List<string>();
+                }
+
+                var dto = new RoleFieldValueRestrictionDto
+                {
+                    Id = restriction.Id.ToString(),
+                    RoleId = restriction.RoleId.ToString(),
+                    RoleName = restriction.Role.Name ?? "Unknown Role",
+                    CustomFieldId = restriction.CustomFieldId.ToString(),
+                    CustomFieldName = restriction.CustomField.Name ?? "Unknown Field",
+                    Values = values,
+                    IsAllowList = restriction.IsAllowList,
+                    CreatedAt = restriction.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    ModifiedAt = restriction.ModifiedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                };
+
+                dtos.Add(dto);
+            }
 
             return Ok(dtos);
         }
