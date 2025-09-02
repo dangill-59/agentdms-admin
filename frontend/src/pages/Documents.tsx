@@ -231,7 +231,7 @@ const Documents: React.FC = () => {
       setIsLoading(true);
       setError('');
       const response = await documentService.getDocuments();
-      setDocuments(response.data);
+      setDocuments(response.data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load documents');
     } finally {
@@ -259,7 +259,7 @@ const Documents: React.FC = () => {
         try {
           // Find the newly created document by filename and recent creation time
           const documents = await documentService.getDocuments();
-          const recentDocument = documents.data.find(doc => 
+          const recentDocument = (documents.data || []).find(doc => 
             doc.fileName === fileName && 
             doc.projectId === selectedProjectId &&
             // Document created within the last 5 minutes
