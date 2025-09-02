@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { DocumentSearchResult, PaginatedResponse, CustomField } from '../types/api';
+import { documentService } from '../services/documents';
 
 interface DocumentSearchResultsProps {
   results: PaginatedResponse<DocumentSearchResult>;
@@ -9,6 +10,8 @@ interface DocumentSearchResultsProps {
   onUpdateSearch: () => void;
   isLoading?: boolean;
   customFields?: CustomField[];
+  canDelete?: boolean;
+  onDocumentDelete?: (documentId: string) => void;
 }
 
 const DocumentSearchResults: React.FC<DocumentSearchResultsProps> = ({
@@ -18,14 +21,44 @@ const DocumentSearchResults: React.FC<DocumentSearchResultsProps> = ({
   onDocumentSelect,
   onUpdateSearch,
   isLoading = false,
-  customFields = []
+  customFields = [],
+  canDelete = false,
+  onDocumentDelete
 }) => {
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ documentId: string; fileName: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const handleDeleteClick = (document: DocumentSearchResult, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setDeleteConfirmation({ documentId: document.id, fileName: document.fileName });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmation || !onDocumentDelete) return;
+
+    try {
+      setIsDeleting(true);
+      await documentService.deleteDocument(deleteConfirmation.documentId);
+      onDocumentDelete(deleteConfirmation.documentId);
+      setDeleteConfirmation(null);
+    } catch (error) {
+      console.error('Failed to delete document:', error);
+      // Error will be handled by the parent component
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmation(null);
   };
 
 
@@ -210,15 +243,25 @@ const DocumentSearchResults: React.FC<DocumentSearchResultsProps> = ({
                     {formatFileSize(document.fileSize)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDocumentSelect(document);
-                      }}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      View
-                    </button>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDocumentSelect(document);
+                        }}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        View
+                      </button>
+                      {canDelete && (
+                        <button
+                          onClick={(e) => handleDeleteClick(document, e)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -242,6 +285,51 @@ const DocumentSearchResults: React.FC<DocumentSearchResultsProps> = ({
 
       {/* Pagination */}
       {!isLoading && results.data.length > 0 && renderPagination()}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmation && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3 text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mt-4">Delete Document</h3>
+              <div className="mt-2 px-7 py-3">
+                <p className="text-sm text-gray-500">
+                  Are you sure you want to delete <strong>{deleteConfirmation.fileName}</strong>? This action cannot be undone.
+                </p>
+              </div>
+              <div className="items-center px-4 py-3">
+                <div className="flex space-x-3 justify-center">
+                  <button
+                    onClick={handleDeleteCancel}
+                    disabled={isDeleting}
+                    className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-auto shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteConfirm}
+                    disabled={isDeleting}
+                    className="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-auto shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 flex items-center"
+                  >
+                    {isDeleting && (
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    )}
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
