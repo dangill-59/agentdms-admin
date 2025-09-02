@@ -7,6 +7,8 @@ interface DocumentSearchResultsProps {
   onPageChange: (page: number) => void;
   onDocumentSelect: (document: DocumentSearchResult) => void;
   onUpdateSearch: () => void;
+  onDeleteDocument?: (document: DocumentSearchResult) => void;
+  canDeleteDocument?: (document: DocumentSearchResult) => boolean;
   isLoading?: boolean;
   customFields?: CustomField[];
 }
@@ -17,6 +19,8 @@ const DocumentSearchResults: React.FC<DocumentSearchResultsProps> = ({
   onPageChange,
   onDocumentSelect,
   onUpdateSearch,
+  onDeleteDocument,
+  canDeleteDocument,
   isLoading = false,
   customFields = []
 }) => {
@@ -210,15 +214,28 @@ const DocumentSearchResults: React.FC<DocumentSearchResultsProps> = ({
                     {formatFileSize(document.fileSize)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDocumentSelect(document);
-                      }}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      View
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDocumentSelect(document);
+                        }}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        View
+                      </button>
+                      {canDeleteDocument && onDeleteDocument && canDeleteDocument(document) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteDocument(document);
+                          }}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

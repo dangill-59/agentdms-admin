@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { Document, DocumentSearchFilters, DocumentSearchResult, PaginatedResponse, Project, CustomField } from '../types/api';
+import type { Document, DocumentSearchFilters, DocumentSearchResult, PaginatedResponse, Project, CustomField, ProjectPermissions } from '../types/api';
 import { documentService } from '../services/documents';
 import { projectService } from '../services/projects';
 import { useAuth } from '../hooks/useAuth';
@@ -17,6 +17,11 @@ interface UploadProgress {
   status: 'uploading' | 'processing' | 'completed' | 'error';
   jobId?: string;
   error?: string;
+}
+
+interface SuccessState {
+  message: string;
+  show: boolean;
 }
 
 type ViewMode = 'search' | 'results' | 'viewer' | 'upload';
@@ -51,6 +56,7 @@ const Documents: React.FC = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<SuccessState>({ message: '', show: false });
   const [searchTerm, setSearchTerm] = useState('');
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
   const [dragActive, setDragActive] = useState(false);
@@ -62,6 +68,20 @@ const Documents: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+
+  // Project permissions state
+  const [projectPermissions, setProjectPermissions] = useState<ProjectPermissions | null>(null);
+
+  // Delete confirmation state
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    show: boolean;
+    document: Document | DocumentSearchResult | null;
+    isDeleting: boolean;
+  }>({
+    show: false,
+    document: null,
+    isDeleting: false
+  });
 
   // File configuration from config service
   const maxFileSize = config.get('maxFileSize');
@@ -101,6 +121,26 @@ const Documents: React.FC = () => {
       setIsLoadingProjects(false);
     }
   }, [searchParams, selectedProjectId]);
+
+  // Load project permissions when project changes
+  const loadProjectPermissions = useCallback(async (projectId: string) => {
+    try {
+      const permissions = await projectService.getUserProjectPermissions(projectId);
+      setProjectPermissions(permissions);
+    } catch (error) {
+      console.error('Failed to load project permissions:', error);
+      setProjectPermissions(null);
+    }
+  }, []);
+
+  // Effect to load permissions when selected project changes
+  useEffect(() => {
+    if (selectedProjectId) {
+      loadProjectPermissions(selectedProjectId);
+    } else {
+      setProjectPermissions(null);
+    }
+  }, [selectedProjectId, loadProjectPermissions]);
 
   // Load custom fields when project changes in search filters
   useEffect(() => {
@@ -401,6 +441,74 @@ const Documents: React.FC = () => {
     }
   };
 
+  // Delete functionality
+  const handleDeleteDocument = (document: Document | DocumentSearchResult) => {
+    setDeleteConfirmation({
+      show: true,
+      document,
+      isDeleting: false
+    });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmation.document) return;
+
+    try {
+      setDeleteConfirmation(prev => ({ ...prev, isDeleting: true }));
+      
+      await documentService.deleteDocument(deleteConfirmation.document.id);
+      
+      // Refresh the documents list or search results
+      if (viewMode === 'upload') {
+        fetchDocuments();
+      } else if (viewMode === 'results') {
+        // Re-run the search to refresh results
+        handleSearch();
+      }
+      
+      // Close confirmation dialog
+      setDeleteConfirmation({
+        show: false,
+        document: null,
+        isDeleting: false
+      });
+      
+      // Show success message
+      setError('');
+      setSuccess({ message: 'Document deleted successfully', show: true });
+      setTimeout(() => {
+        setSuccess({ message: '', show: false });
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Failed to delete document:', error);
+      setError(error instanceof Error ? error.message : 'Failed to delete document');
+      setDeleteConfirmation(prev => ({ ...prev, isDeleting: false }));
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmation({
+      show: false,
+      document: null,
+      isDeleting: false
+    });
+  };
+
+  // Check if user can delete a specific document (combines global and project permissions)
+  const canDeleteDocument = useCallback((document: Document | DocumentSearchResult): boolean => {
+    // First check global permission
+    if (!canDelete) return false;
+    
+    // Then check project-specific permission if available
+    if (projectPermissions && document.projectId === selectedProjectId) {
+      return projectPermissions.canDelete;
+    }
+    
+    // If no project permissions loaded yet, be conservative and don't allow delete
+    return false;
+  }, [canDelete, projectPermissions, selectedProjectId]);
+
   const filteredDocuments = (documents || []).filter(doc =>
     doc.fileName.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -492,6 +600,25 @@ const Documents: React.FC = () => {
           </div>
         )}
 
+        {success.show && (
+          <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-6">
+            <div className="flex">
+              <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <div className="ml-3">
+                <div className="text-green-800">{success.message}</div>
+                <button
+                  onClick={() => setSuccess({ message: '', show: false })}
+                  className="text-green-600 hover:text-green-800 text-sm font-medium mt-2"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Render different views based on viewMode */}
         {viewMode === 'search' && (
           <DocumentSearchForm
@@ -510,6 +637,8 @@ const Documents: React.FC = () => {
             onPageChange={handlePageChange}
             onDocumentSelect={handleDocumentSelect}
             onUpdateSearch={handleUpdateSearch}
+            onDeleteDocument={handleDeleteDocument}
+            canDeleteDocument={canDeleteDocument}
             isLoading={isSearching}
             customFields={customFields}
           />
@@ -741,8 +870,11 @@ const Documents: React.FC = () => {
                           <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                             Download
                           </button>
-                          {canDelete && (
-                            <button className="text-red-600 hover:text-red-800 text-sm font-medium">
+                          {canDeleteDocument(doc) && (
+                            <button 
+                              onClick={() => handleDeleteDocument(doc)}
+                              className="text-red-600 hover:text-red-800 text-sm font-medium"
+                            >
                               Delete
                             </button>
                           )}
@@ -756,6 +888,52 @@ const Documents: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmation.show && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3 text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mt-4">Delete Document</h3>
+              <div className="mt-2 px-7 py-3">
+                <p className="text-sm text-gray-500">
+                  Are you sure you want to delete "{deleteConfirmation.document?.fileName}"?
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  This action cannot be undone.
+                </p>
+              </div>
+              <div className="flex justify-center space-x-4 mt-4">
+                <button
+                  onClick={cancelDelete}
+                  disabled={deleteConfirmation.isDeleting}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={deleteConfirmation.isDeleting}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 flex items-center"
+                >
+                  {deleteConfirmation.isDeleting && (
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  {deleteConfirmation.isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
