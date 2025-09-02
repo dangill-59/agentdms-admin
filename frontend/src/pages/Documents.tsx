@@ -10,6 +10,7 @@ import Header from '../components/Header';
 import DocumentSearchForm from '../components/DocumentSearchForm';
 import DocumentSearchResults from '../components/DocumentSearchResults';
 import DocumentViewer from '../components/DocumentViewer';
+import DocumentUploadForm from '../components/DocumentUploadForm';
 
 interface UploadProgress {
   fileName: string;
@@ -63,6 +64,10 @@ const Documents: React.FC = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
 
+  // Upload custom fields state
+  const [uploadFieldValues, setUploadFieldValues] = useState<Record<string, string>>({});
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
   // File configuration from config service
   const maxFileSize = config.get('maxFileSize');
 
@@ -88,11 +93,13 @@ const Documents: React.FC = () => {
       if (projectIdFromUrl && response.data.some(p => p.id === projectIdFromUrl)) {
         // Set the project from URL parameter if it exists in the list
         setSelectedProjectId(projectIdFromUrl);
+        setSelectedProject(response.data.find(p => p.id === projectIdFromUrl) || null);
         // Also set it in search filters for search functionality
         setSearchFilters(prev => ({ ...prev, projectId: projectIdFromUrl }));
       } else if (response.data.length > 0 && !selectedProjectId) {
         // Auto-select first project if none selected and no URL parameter
         setSelectedProjectId(response.data[0].id);
+        setSelectedProject(response.data[0]);
       }
     } catch (error) {
       console.error('Failed to load projects:', error);
@@ -101,6 +108,15 @@ const Documents: React.FC = () => {
       setIsLoadingProjects(false);
     }
   }, [searchParams, selectedProjectId]);
+
+  // Handle project selection change
+  const handleProjectChange = (projectId: string) => {
+    setSelectedProjectId(projectId || null);
+    const project = projects.find(p => p.id === projectId);
+    setSelectedProject(project || null);
+    // Clear custom field values when project changes
+    setUploadFieldValues({});
+  };
 
   // Load custom fields when project changes in search filters
   useEffect(() => {
@@ -235,8 +251,32 @@ const Documents: React.FC = () => {
         )
       );
       
-      // Refresh documents list
-      fetchDocuments();
+      // Refresh documents list first
+      await fetchDocuments();
+      
+      // Save custom field metadata if we have any field values
+      if (Object.keys(uploadFieldValues).length > 0) {
+        try {
+          // Find the newly created document by filename and recent creation time
+          const documents = await documentService.getDocuments();
+          const recentDocument = documents.data.find(doc => 
+            doc.fileName === fileName && 
+            doc.projectId === selectedProjectId &&
+            // Document created within the last 5 minutes
+            new Date(doc.createdAt).getTime() > Date.now() - 5 * 60 * 1000
+          );
+          
+          if (recentDocument) {
+            await documentService.updateDocumentCustomFields(recentDocument.id, uploadFieldValues);
+            console.log('Custom field metadata saved for document:', recentDocument.id);
+          } else {
+            console.warn('Could not find newly uploaded document to save metadata');
+          }
+        } catch (metadataError) {
+          console.warn('Failed to save custom field metadata:', metadataError);
+          // Don't fail the upload for metadata errors, just log it
+        }
+      }
       
       // Remove from progress after a delay
       setTimeout(() => {
@@ -256,7 +296,7 @@ const Documents: React.FC = () => {
         )
       );
     }
-  }, [fetchDocuments]);
+  }, [fetchDocuments, uploadFieldValues, selectedProjectId]);
 
   const uploadFile = useCallback(async (file: File) => {
     // Check if projects are still loading
@@ -573,7 +613,7 @@ const Documents: React.FC = () => {
                       <select
                         id="project-select"
                         value={selectedProjectId || ''}
-                        onChange={(e) => setSelectedProjectId(e.target.value || null)}
+                        onChange={(e) => handleProjectChange(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value="">Select a project...</option>
@@ -617,6 +657,18 @@ const Documents: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Custom Fields Form */}
+            {selectedProjectId && (
+              <div className="mb-8">
+                <DocumentUploadForm
+                  selectedProject={selectedProject}
+                  onFieldValuesChange={setUploadFieldValues}
+                  fieldValues={uploadFieldValues}
+                  disabled={uploadProgress.length > 0}
+                />
+              </div>
+            )}
 
             {/* File Upload Section */}
             <div className="mb-8">

@@ -90,6 +90,18 @@ export class DocumentService {
     }
   }
 
+  // Update document metadata (including custom field values)
+  public async updateDocumentCustomFields(id: string, customFieldValues: Record<string, string>): Promise<void> {
+    try {
+      await apiService.putDirect(`${this.basePath}/${id}/metadata`, {
+        customFieldValues
+      });
+    } catch (error) {
+      console.error('Failed to update document metadata:', error);
+      throw error;
+    }
+  }
+
 
 
   // Health check before upload
