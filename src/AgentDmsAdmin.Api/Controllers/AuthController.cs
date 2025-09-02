@@ -33,7 +33,7 @@ public class AuthController : ControllerBase
     }
     /// <summary>
     /// Authenticates a user using email and password credentials.
-    /// Supports both database authentication and demo authentication for development.
+    /// Validates credentials against the database and returns JWT token on success.
     /// </summary>
     /// <param name="request">Login credentials containing email and password</param>
     /// <returns>Authentication response with JWT token and user information, or error response</returns>
@@ -87,77 +87,8 @@ public class AuthController : ControllerBase
                 {
                     _logger.LogWarning("Password verification failed for email: {Email}", request.Email);
                     
-                    // Check for hardcoded authentication even when user exists in database
-                    _logger.LogDebug("Attempting hardcoded authentication fallback for existing user: {Email}", request.Email);
-                    
-                    // Check for admin demo credentials
-                    if (_environment.IsDevelopment() && request.Email == "admin@agentdms.com" && request.Password == "admin123")
-                    {
-                        _logger.LogInformation("Demo authentication successful for existing user: {Email}", request.Email);
-                        
-                        var demoUser = CreateUserDtoWithPermissions(user);
-
-                        // Generate real JWT token for demo user too
-                        var demoToken = _jwtService.GenerateToken(demoUser);
-                        var demoExpiresAt = DateTime.UtcNow.AddHours(24).ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-
-                        var demoResponse = new AuthResponse
-                        {
-                            Token = demoToken,
-                            User = demoUser,
-                            ExpiresAt = demoExpiresAt
-                        };
-
-                        _logger.LogInformation("Demo JWT token generated successfully for existing user: {Email}", request.Email);
-                        return Ok(demoResponse);
-                    }
-                    // Check for dan demo credentials
-                    else if (_environment.IsDevelopment() && request.Email == "gill.dan2@gmail.com" && request.Password == "admin123")
-                    {
-                        _logger.LogInformation("Demo authentication successful for existing dan user: {Email}", request.Email);
-                        
-                        var danUser = CreateUserDtoWithPermissions(user);
-
-                        // Generate real JWT token for dan user
-                        var danToken = _jwtService.GenerateToken(danUser);
-                        var danExpiresAt = DateTime.UtcNow.AddHours(24).ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-
-                        var danResponse = new AuthResponse
-                        {
-                            Token = danToken,
-                            User = danUser,
-                            ExpiresAt = danExpiresAt
-                        };
-
-                        _logger.LogInformation("Demo JWT token generated successfully for existing dan user: {Email}", request.Email);
-                        return Ok(danResponse);
-                    }
-                    // Check for hardcoded superadmin credentials 
-                    else if (request.Email == "superadmin@agentdms.com" && request.Password == "sarasa123")
-                    {
-                        _logger.LogInformation("Hardcoded superadmin authentication successful for existing user: {Email}", request.Email);
-                        
-                        var superAdminUser = CreateUserDtoWithPermissions(user);
-
-                        // Generate real JWT token for superadmin user
-                        var superAdminToken = _jwtService.GenerateToken(superAdminUser);
-                        var superAdminExpiresAt = DateTime.UtcNow.AddHours(24).ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-
-                        var superAdminResponse = new AuthResponse
-                        {
-                            Token = superAdminToken,
-                            User = superAdminUser,
-                            ExpiresAt = superAdminExpiresAt
-                        };
-
-                        _logger.LogInformation("Hardcoded superadmin JWT token generated successfully for existing user: {Email}", request.Email);
-                        return Ok(superAdminResponse);
-                    }
-                    
-                    // Return environment-specific error message for incorrect password
-                    var errorMessage = _environment.IsDevelopment() 
-                        ? "Incorrect password" 
-                        : "Invalid email or password";
+                    // Return consistent error message for incorrect password
+                    var errorMessage = "Invalid email or password";
                     
                     _logger.LogInformation("Returning Unauthorized response for password mismatch. Reason: Incorrect password");
                     return Unauthorized(new { message = errorMessage });
@@ -167,135 +98,11 @@ public class AuthController : ControllerBase
             {
                 _logger.LogWarning("User not found in database for email: {Email}", request.Email);
                 
-                // Check for hardcoded authentication credentials
-                _logger.LogDebug("Attempting hardcoded authentication for email: {Email}", request.Email);
+                // Return consistent error message for user not found
+                var errorMessage = "Invalid email or password";
                 
-                // Check for admin demo credentials
-                if (request.Email == "admin@agentdms.com" && request.Password == "admin123")
-                {
-                    _logger.LogInformation("Demo authentication successful for email: {Email}", request.Email);
-                    
-                    var demoUser = new UserDto
-                    {
-                        Id = "1",
-                        Username = "admin",
-                        Email = request.Email,
-                        Roles = new List<UserRoleDto>
-                        {
-                            new UserRoleDto
-                            {
-                                Id = "1",
-                                UserId = "1",
-                                RoleId = "1",
-                                RoleName = "Administrator",
-                                CreatedAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-                            }
-                        },
-                        Permissions = new List<string> { "workspace.admin" }
-                    };
-
-                    // Generate real JWT token for demo user too
-                    var demoToken = _jwtService.GenerateToken(demoUser);
-                    var demoExpiresAt = DateTime.UtcNow.AddHours(24).ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-
-                    var demoResponse = new AuthResponse
-                    {
-                        Token = demoToken,
-                        User = demoUser,
-                        ExpiresAt = demoExpiresAt
-                    };
-
-                    _logger.LogInformation("Demo JWT token generated successfully for user: {Email}", request.Email);
-                    return Ok(demoResponse);
-                }
-                // Check for dan demo credentials
-                else if (request.Email == "gill.dan2@gmail.com" && request.Password == "admin123")
-                {
-                    _logger.LogInformation("Demo authentication successful for dan user: {Email}", request.Email);
-                    
-                    var danUser = new UserDto
-                    {
-                        Id = "2",
-                        Username = "gill.dan2",
-                        Email = request.Email,
-                        Roles = new List<UserRoleDto>
-                        {
-                            new UserRoleDto
-                            {
-                                Id = "2",
-                                UserId = "2",
-                                RoleId = "2",
-                                RoleName = "User",
-                                CreatedAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-                            }
-                        },
-                        Permissions = new List<string> { "document.view" }
-                    };
-
-                    // Generate real JWT token for dan user
-                    var danToken = _jwtService.GenerateToken(danUser);
-                    var danExpiresAt = DateTime.UtcNow.AddHours(24).ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-
-                    var danResponse = new AuthResponse
-                    {
-                        Token = danToken,
-                        User = danUser,
-                        ExpiresAt = danExpiresAt
-                    };
-
-                    _logger.LogInformation("Demo JWT token generated successfully for dan user: {Email}", request.Email);
-                    return Ok(danResponse);
-                }
-                // Check for hardcoded superadmin credentials
-                else if (request.Email == "superadmin@agentdms.com" && request.Password == "sarasa123")
-                {
-                    _logger.LogInformation("Hardcoded superadmin authentication successful for email: {Email}", request.Email);
-                    
-                    var superAdminUser = new UserDto
-                    {
-                        Id = "0",
-                        Username = "superadmin",
-                        Email = request.Email,
-                        Roles = new List<UserRoleDto>
-                        {
-                            new UserRoleDto
-                            {
-                                Id = "0",
-                                UserId = "0",
-                                RoleId = "0",
-                                RoleName = "Super Admin",
-                                CreatedAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-                            }
-                        },
-                        Permissions = new List<string> { "workspace.admin", "document.view", "document.edit", "document.delete", "document.print", "document.annotate" }
-                    };
-
-                    // Generate real JWT token for superadmin user
-                    var superAdminToken = _jwtService.GenerateToken(superAdminUser);
-                    var superAdminExpiresAt = DateTime.UtcNow.AddHours(24).ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-
-                    var superAdminResponse = new AuthResponse
-                    {
-                        Token = superAdminToken,
-                        User = superAdminUser,
-                        ExpiresAt = superAdminExpiresAt
-                    };
-
-                    _logger.LogInformation("Hardcoded superadmin JWT token generated successfully for user: {Email}", request.Email);
-                    return Ok(superAdminResponse);
-                }
-                else
-                {
-                    _logger.LogDebug("Demo authentication failed for email: {Email} (credentials do not match demo user)", request.Email);
-                    
-                    // Return environment-specific error message for user not found
-                    var errorMessage = _environment.IsDevelopment() 
-                        ? "User not found" 
-                        : "Invalid email or password";
-                    
-                    _logger.LogInformation("Returning Unauthorized response for user not found. Reason: User not found");
-                    return Unauthorized(new { message = errorMessage });
-                }
+                _logger.LogInformation("Returning Unauthorized response for user not found");
+                return Unauthorized(new { message = errorMessage });
             }
         }
         catch (Exception ex)
@@ -328,9 +135,8 @@ public class AuthController : ControllerBase
     /// <summary>
     /// Retrieves the current authenticated user's information.
     /// Validates the JWT token and returns user details.
-    /// Falls back to demo user data for development/demo purposes.
     /// </summary>
-    /// <returns>Current user information or demo user data</returns>
+    /// <returns>Current user information or unauthorized error</returns>
     [HttpGet("me")]
     public ActionResult<UserDto> GetCurrentUser()
     {
@@ -353,35 +159,14 @@ public class AuthController : ControllerBase
             else
             {
                 _logger.LogWarning("JWT token validation failed");
+                return Unauthorized(new { message = "Invalid or expired token" });
             }
         }
         else
         {
-            _logger.LogDebug("No valid Authorization header found, falling back to demo user");
+            _logger.LogDebug("No valid Authorization header found");
+            return Unauthorized(new { message = "Authorization token required" });
         }
-
-        // Fallback to sample user data for demo purposes
-        var demoUser = new UserDto
-        {
-            Id = "1",
-            Username = "admin",
-            Email = "admin@agentdms.com",
-            Roles = new List<UserRoleDto>
-            {
-                new UserRoleDto
-                {
-                    Id = "1",
-                    UserId = "1",
-                    RoleId = "1",
-                    RoleName = "Administrator",
-                    CreatedAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-                }
-            },
-            Permissions = new List<string> { "workspace.admin" }
-        };
-
-        _logger.LogDebug("Returning demo user data");
-        return Ok(demoUser);
     }
 
     /// <summary>

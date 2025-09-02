@@ -132,62 +132,8 @@ public class ProjectsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to retrieve projects from database, falling back to demo data");
-            // Fallback to demo data for development
-            var projects = new List<ProjectDto>
-            {
-                new ProjectDto
-                {
-                    Id = "1",
-                    Name = "Sample Project 1",
-                    Description = "A sample project for testing",
-                    FileName = "DefaultFilename",
-                    CreatedAt = "2024-01-01T00:00:00Z",
-                    ModifiedAt = "2024-01-01T00:00:00Z",
-                    IsActive = true,
-                    IsArchived = false
-                },
-                new ProjectDto
-                {
-                    Id = "2",
-                    Name = "Document Management System",
-                    Description = "Main DMS project",
-                    FileName = "DefaultFilename",
-                    CreatedAt = "2024-01-02T00:00:00Z",
-                    ModifiedAt = "2024-01-02T00:00:00Z",
-                    IsActive = true,
-                    IsArchived = false
-                },
-                new ProjectDto
-                {
-                    Id = "3",
-                    Name = "Enterprise Project",
-                    Description = "Large scale enterprise system",
-                    FileName = "DefaultFilename",
-                    CreatedAt = "2024-01-03T00:00:00Z",
-                    ModifiedAt = "2024-01-03T00:00:00Z",
-                    IsActive = true,
-                    IsArchived = false
-                }
-            };
-
-            var totalCount = projects.Count;
-            var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
-            var pagedProjects = projects
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-
-            var response = new PaginatedResponse<ProjectDto>
-            {
-                Data = pagedProjects,
-                TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize,
-                TotalPages = totalPages
-            };
-
-            return Ok(response);
+            _logger.LogError(ex, "Failed to retrieve projects from database");
+            return StatusCode(500, new { message = "An error occurred while retrieving projects" });
         }
     }
 

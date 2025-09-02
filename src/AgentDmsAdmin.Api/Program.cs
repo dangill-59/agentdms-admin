@@ -89,28 +89,25 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Ensure database is created and seed essential data for all environments
+using (var scope = app.Services.CreateScope())
 {
-    // Ensure database is created and seed data in development
-    using (var scope = app.Services.CreateScope())
-    {
-        var context = scope.ServiceProvider.GetRequiredService<AgentDmsContext>();
-        await context.Database.EnsureCreatedAsync();
-        
-        var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
-        await seeder.SeedSampleDataAsync();
-        await seeder.SeedPermissionsAsync(); // Seed permissions first
-        await seeder.SeedSuperAdminUserAsync(); // Seed Super Admin with all permissions
-        await seeder.SeedAdminUserAsync(); // Seed regular admin user
-        await seeder.SeedGillDanUserAsync(); // Seed gill.dan2@gmail.com user
-        await seeder.SeedUser1Async(); // Seed user1@agentdms.com user
-        await seeder.SetupUserRolePermissionsAsync(); // Ensure User role has basic permissions
-        await seeder.SetupDanUserProjectPermissionsAsync(); // Setup project permissions for dan user
-        await seeder.SetupAdministratorProjectPermissionsAsync(); // Setup Administrator role permissions for all projects
-        
-        // Seed sample documents for testing
-        await AgentDmsAdmin.Api.Scripts.SeedSampleDocuments.SeedDocuments(context);
-    }
+    var context = scope.ServiceProvider.GetRequiredService<AgentDmsContext>();
+    await context.Database.EnsureCreatedAsync();
+    
+    var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
+    
+    // Only seed essential system data (permissions, roles, admin users)
+    await seeder.SeedPermissionsAsync(); // Seed permissions first
+    await seeder.SeedSuperAdminUserAsync(); // Seed Super Admin with all permissions
+    await seeder.SeedAdminUserAsync(); // Seed regular admin user
+    await seeder.SeedGillDanUserAsync(); // Seed gill.dan2@gmail.com user
+    await seeder.SeedUser1Async(); // Seed user1@agentdms.com user
+    await seeder.SetupUserRolePermissionsAsync(); // Ensure User role has basic permissions
+    await seeder.SetupAdministratorProjectPermissionsAsync(); // Setup Administrator role permissions for all projects
+    
+    // Note: Sample data, projects, and documents are NOT seeded in production mode
+    // Users must create their own projects and upload their own documents
 }
 
 // Uncomment the following line if you have HTTPS configured locally.
