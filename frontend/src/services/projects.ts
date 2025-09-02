@@ -277,8 +277,122 @@ export class ProjectService {
 
   // Project custom fields
   public async getProjectCustomFields(projectId: string): Promise<CustomField[]> {
-    const response = await apiService.getDirect<CustomField[]>(`/projects/${projectId}/custom-fields`);
-    return response;
+    try {
+      const response = await apiService.getDirect<CustomField[]>(`/projects/${projectId}/custom-fields`);
+      return response;
+    } catch (error) {
+      console.warn('Failed to fetch custom fields from backend:', error);
+      
+      // Only fall back to demo data if demo mode is enabled
+      if (!config.get('enableDemoMode')) {
+        throw error;
+      }
+      
+      // Fallback to demo custom fields for development
+      const mockCustomFields: CustomField[] = [
+        {
+          id: '1',
+          projectId: projectId,
+          name: 'Customer Name',
+          fieldType: 'Text',
+          isRequired: true,
+          isDefault: false,
+          defaultValue: '',
+          order: 1,
+          roleVisibility: 'all',
+          userListOptions: '',
+          isRemovable: true,
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z',
+          description: 'Name of the customer associated with this document'
+        },
+        {
+          id: '2',
+          projectId: projectId,
+          name: 'Invoice Number',
+          fieldType: 'Text',
+          isRequired: true,
+          isDefault: false,
+          defaultValue: '',
+          order: 2,
+          roleVisibility: 'all',
+          userListOptions: '',
+          isRemovable: true,
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z',
+          description: 'Unique invoice number for identification'
+        },
+        {
+          id: '3',
+          projectId: projectId,
+          name: 'Invoice Date',
+          fieldType: 'Date',
+          isRequired: false,
+          isDefault: false,
+          defaultValue: '',
+          order: 3,
+          roleVisibility: 'all',
+          userListOptions: '',
+          isRemovable: true,
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z',
+          description: 'Date when the invoice was issued'
+        },
+        {
+          id: '4',
+          projectId: projectId,
+          name: 'Amount',
+          fieldType: 'Currency',
+          isRequired: false,
+          isDefault: false,
+          defaultValue: '0.00',
+          order: 4,
+          roleVisibility: 'all',
+          userListOptions: '',
+          isRemovable: true,
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z',
+          description: 'Total amount of the invoice'
+        },
+        {
+          id: '5',
+          projectId: projectId,
+          name: 'Document Type',
+          fieldType: 'UserList',
+          isRequired: false,
+          isDefault: false,
+          defaultValue: '',
+          order: 5,
+          roleVisibility: 'all',
+          userListOptions: 'Invoice,Receipt,Contract,Purchase Order,Quote',
+          isRemovable: true,
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z',
+          description: 'Type of document being uploaded'
+        },
+        {
+          id: '6',
+          projectId: projectId,
+          name: 'Notes',
+          fieldType: 'LongText',
+          isRequired: false,
+          isDefault: false,
+          defaultValue: '',
+          order: 6,
+          roleVisibility: 'all',
+          userListOptions: '',
+          isRemovable: true,
+          createdAt: '2024-01-01T00:00:00Z',
+          modifiedAt: '2024-01-01T00:00:00Z',
+          description: 'Additional notes or comments about the document'
+        }
+      ];
+
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      return mockCustomFields;
+    }
   }
 
   public async createCustomField(projectId: string, request: CreateCustomFieldRequest): Promise<CustomField> {
