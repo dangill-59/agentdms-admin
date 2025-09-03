@@ -282,7 +282,10 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           );
 
         case 'UserList': {
-          const options = field.userListOptions?.split(',') || [];
+          // Get userListOptions from project field definition as fallback
+          const projectField = projectFields.find(pf => pf.id === field.fieldId);
+          const userListOptions = field.userListOptions || projectField?.userListOptions || '';
+          const options = userListOptions.split(',').filter(opt => opt.trim()) || [];
           return (
             <select
               value={fieldValue}
