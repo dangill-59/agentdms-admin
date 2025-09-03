@@ -139,6 +139,18 @@ export interface DocumentMetadata {
   customFields?: DocumentCustomFieldValue[];
 }
 
+export interface UpdateDocumentMetadataRequest {
+  // Dynamic custom field values to update
+  customFieldValues: Record<string, string>;
+  // Legacy fields for backward compatibility (will be removed after frontend update)
+  customerName?: string;
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  docType?: string;
+  status?: string;
+  notes?: string;
+}
+
 export interface DocumentCustomFieldValue {
   fieldId: string;
   fieldName: string;

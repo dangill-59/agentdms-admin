@@ -1,4 +1,4 @@
-import type { Document, DocumentSearchFilters, DocumentSearchResult, DocumentMetadata, PaginatedResponse, CustomField } from '../types/api';
+import type { Document, DocumentSearchFilters, DocumentSearchResult, DocumentMetadata, UpdateDocumentMetadataRequest, PaginatedResponse, CustomField } from '../types/api';
 import { apiService } from './api';
 import { projectService } from './projects';
 
@@ -444,8 +444,13 @@ export class DocumentService {
   // Update document metadata
   public async updateDocumentMetadata(documentId: string, metadata: Partial<DocumentMetadata>): Promise<DocumentMetadata> {
     try {
+      // Transform DocumentMetadata to UpdateDocumentMetadataRequest format
+      const updateRequest: UpdateDocumentMetadataRequest = {
+        customFieldValues: metadata.customFieldValues || {}
+      };
+
       // Use real API only - no demo mode
-      const response = await apiService.put<DocumentMetadata>(`${this.basePath}/${documentId}/metadata`, metadata);
+      const response = await apiService.put<DocumentMetadata>(`${this.basePath}/${documentId}/metadata`, updateRequest);
       return response.data || response;
     } catch (error) {
       console.error('Failed to update document metadata:', error);
