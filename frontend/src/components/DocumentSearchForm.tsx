@@ -238,6 +238,23 @@ const DocumentSearchForm: React.FC<DocumentSearchFormProps> = ({
                     onChange={(e) => handleCustomFieldFilterChange(field.name, e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
+                ) : field.fieldType === 'UserList' ? (
+                  (() => {
+                    const options = (field.userListOptions || '').split(',').filter(opt => opt.trim());
+                    return (
+                      <select
+                        id={`field-${field.id}`}
+                        value={filters.customFieldFilters[field.name] || ''}
+                        onChange={(e) => handleCustomFieldFilterChange(field.name, e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Select {field.name.toLowerCase()}...</option>
+                        {options.map(option => (
+                          <option key={option.trim()} value={option.trim()}>{option.trim()}</option>
+                        ))}
+                      </select>
+                    );
+                  })()
                 ) : (
                   <>
                     <input
