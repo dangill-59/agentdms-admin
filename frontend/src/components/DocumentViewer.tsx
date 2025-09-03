@@ -281,22 +281,17 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             </select>
           );
 
-        case 'UserList': {
-          const options = field.userListOptions?.split(',') || [];
+        case 'UserList':
           return (
-            <select
+            <input
+              type="text"
               value={fieldValue}
               onChange={(e) => handleCustomFieldChange(field.fieldId, e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required={field.isRequired}
-            >
-              <option value="">Select...</option>
-              {options.map(option => (
-                <option key={option} value={option.trim()}>{option.trim()}</option>
-              ))}
-            </select>
+              placeholder="Enter value..."
+            />
           );
-        }
 
         case 'LongText':
           return (
