@@ -156,18 +156,34 @@ public class FieldValueValidationService : IFieldValueValidationService
             return new List<int>();
         }
 
-        // Get user's roles for this project
-        var userProjectRoles = await _context.ProjectRoles
-            .Include(pr => pr.Role)
-            .Where(pr => pr.ProjectId == customField.ProjectId)
-            .Join(_context.UserRoles,
-                pr => pr.RoleId,
-                ur => ur.RoleId,
-                (pr, ur) => new { pr.RoleId, ur.UserId })
-            .Where(x => x.UserId == userId)
-            .Select(x => x.RoleId)
+        // Get user's roles
+        var userRoleIds = await _context.UserRoles
+            .Where(ur => ur.UserId == userId)
+            .Select(ur => ur.RoleId)
             .ToListAsync();
 
-        return userProjectRoles;
+        if (!userRoleIds.Any())
+        {
+            // User has no roles
+            return new List<int>();
+        }
+
+        // Get project's roles
+        var projectRoleIds = await _context.ProjectRoles
+            .Where(pr => pr.ProjectId == customField.ProjectId)
+            .Select(pr => pr.RoleId)
+            .ToListAsync();
+
+        if (!projectRoleIds.Any())
+        {
+            // No roles assigned to this project
+            return new List<int>();
+        }
+
+        // Get intersection of user roles and project roles
+        // This ensures that user permissions are dictated by the project roles they belong to
+        var effectiveRoleIds = userRoleIds.Intersect(projectRoleIds).ToList();
+
+        return effectiveRoleIds;
     }
 }
