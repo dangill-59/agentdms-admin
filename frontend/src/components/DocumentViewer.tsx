@@ -19,6 +19,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const [metadata, setMetadata] = useState<DocumentMetadata | null>(null);
   const [projectFields, setProjectFields] = useState<CustomField[]>([]);
   const [projectPermissions, setProjectPermissions] = useState<ProjectPermissions | null>(null);
+  const [fieldAllowedValues, setFieldAllowedValues] = useState<Record<string, string[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string>('');
@@ -45,6 +46,26 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         setProjectFields(customFields);
         setProjectPermissions(permissions);
         setEditedMetadata(docMetadata);
+
+        // Fetch allowed values for UserList fields that have role-based restrictions
+        const allowedValuesMap: Record<string, string[]> = {};
+        const userListFields = customFields.filter(field => field.fieldType === 'UserList');
+        
+        for (const field of userListFields) {
+          try {
+            const allowedValues = await documentService.getAllowedFieldValues(field.id);
+            // Only use allowed values if there are restrictions (non-empty array)
+            // Empty array means no restrictions, so use original userListOptions
+            if (allowedValues.length > 0) {
+              allowedValuesMap[field.id] = allowedValues;
+            }
+          } catch (err) {
+            console.warn(`Failed to fetch allowed values for field ${field.id}:`, err);
+            // Continue without restrictions for this field
+          }
+        }
+        
+        setFieldAllowedValues(allowedValuesMap);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load document data');
       } finally {
@@ -285,7 +306,13 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           // Get userListOptions from project field definition as fallback
           const projectField = projectFields.find(pf => pf.id === field.fieldId);
           const userListOptions = field.userListOptions || projectField?.userListOptions || '';
-          const options = userListOptions.split(',').filter(opt => opt.trim()) || [];
+          
+          // Use role-based allowed values if available, otherwise use all userListOptions
+          const allowedValues = fieldAllowedValues[field.fieldId];
+          const options = allowedValues && allowedValues.length > 0 
+            ? allowedValues 
+            : userListOptions.split(',').filter(opt => opt.trim());
+            
           return (
             <select
               value={fieldValue}
@@ -295,7 +322,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             >
               <option value="">Select...</option>
               {options.map(option => (
-                <option key={option} value={option.trim()}>{option.trim()}</option>
+                <option key={option} value={typeof option === 'string' ? option.trim() : option}>
+                  {typeof option === 'string' ? option.trim() : option}
+                </option>
               ))}
             </select>
           );
