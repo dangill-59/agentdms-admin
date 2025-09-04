@@ -6,6 +6,7 @@ import type {
   CreateRoleFieldValueRestrictionRequest
 } from '../types/api';
 import { roleService } from '../services/roles';
+import { useHasAdminPermission } from '../hooks/usePermissions';
 
 interface FieldValueRestrictionsProps {
   customField: CustomField;
@@ -16,6 +17,7 @@ const FieldValueRestrictions: React.FC<FieldValueRestrictionsProps> = ({
   customField,
   onRestrictionsChange
 }) => {
+  const hasAdminPermission = useHasAdminPermission();
   const [roles, setRoles] = useState<Role[]>([]);
   const [restrictions, setRestrictions] = useState<RoleFieldValueRestriction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,6 +29,17 @@ const FieldValueRestrictions: React.FC<FieldValueRestrictionsProps> = ({
     values: [''],
     isAllowList: true
   });
+
+  // Only admin users should see field value restrictions
+  if (!hasAdminPermission) {
+    return (
+      <div className="text-center py-4">
+        <p className="text-gray-500 text-sm">
+          Field value restrictions are only available to administrators.
+        </p>
+      </div>
+    );
+  }
 
   const fetchData = useCallback(async () => {
     try {
