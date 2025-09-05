@@ -105,6 +105,7 @@ using (var scope = app.Services.CreateScope())
     await seeder.SeedUser1Async(); // Seed user1@agentdms.com user
     await seeder.SetupUserRolePermissionsAsync(); // Ensure User role has basic permissions
     await seeder.SetupAdministratorProjectPermissionsAsync(); // Setup Administrator role permissions for all projects
+    await seeder.SetupUserRoleProjectPermissionsAsync(); // Setup User role project permissions for available projects
     
     // Note: Sample data, projects, and documents are NOT seeded in production mode
     // Users must create their own projects and upload their own documents

@@ -459,6 +459,36 @@ public class DocumentsController : ControllerBase
         {
             var query = _context.Documents.AsQueryable();
             
+            // Get current user and filter documents by project permissions
+            var currentUser = _authorizationService.GetCurrentUser();
+            if (currentUser != null && int.TryParse(currentUser.Id, out var userId))
+            {
+                // Check if user has workspace.admin permission (admins can see all documents)
+                var isWorkspaceAdmin = await _authorizationService.UserHasPermissionAsync(userId, "workspace.admin");
+                
+                if (!isWorkspaceAdmin)
+                {
+                    // Non-admin users can only see documents from projects they have view access to
+                    // Get user's roles
+                    var userRoleIds = await _context.UserRoles
+                        .Where(ur => ur.UserId == userId)
+                        .Select(ur => ur.RoleId)
+                        .ToListAsync();
+                    
+                    // Get projects where user has roles assigned AND those roles have document.view permission
+                    var accessibleProjectIds = await _context.ProjectRoles
+                        .Where(pr => userRoleIds.Contains(pr.RoleId))
+                        .Where(pr => _context.RolePermissions
+                            .Any(rp => rp.RoleId == pr.RoleId && 
+                                      rp.Permission.Name == "document.view"))
+                        .Select(pr => pr.ProjectId)
+                        .Distinct()
+                        .ToListAsync();
+                    
+                    query = query.Where(d => accessibleProjectIds.Contains(d.ProjectId));
+                }
+            }
+            
             // Filter by project if specified
             if (!string.IsNullOrEmpty(filters.ProjectId) && int.TryParse(filters.ProjectId, out var projectIdInt))
             {
