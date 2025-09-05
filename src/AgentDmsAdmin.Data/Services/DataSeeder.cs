@@ -447,6 +447,49 @@ public class DataSeeder
     }
 
     /// <summary>
+    /// Sets up project-specific permissions for all users with "User" role
+    /// </summary>
+    public async Task SetupUserRoleProjectPermissionsAsync()
+    {
+        // Find User role
+        var userRole = await _context.Roles
+            .FirstOrDefaultAsync(r => r.Name == "User");
+            
+        if (userRole == null)
+        {
+            return; // User role doesn't exist
+        }
+
+        // Find projects to give permissions for
+        var projects = await _context.Projects
+            .Where(p => p.Name == "AP Project" || p.Name == "Sample Project")
+            .ToListAsync();
+
+        foreach (var project in projects)
+        {
+            // Check if project role already exists
+            var existingProjectRole = await _context.ProjectRoles
+                .FirstOrDefaultAsync(pr => pr.ProjectId == project.Id && pr.RoleId == userRole.Id);
+                
+            if (existingProjectRole == null)
+            {
+                var projectRole = new ProjectRole
+                {
+                    ProjectId = project.Id,
+                    RoleId = userRole.Id,
+                    CanView = true,
+                    CanEdit = false, // User role should only have view privileges  
+                    CanDelete = false // Regular users cannot delete anything
+                };
+
+                _context.ProjectRoles.Add(projectRole);
+            }
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
     /// Sets up project-specific permissions for the dan user
     /// </summary>
     public async Task SetupDanUserProjectPermissionsAsync()
