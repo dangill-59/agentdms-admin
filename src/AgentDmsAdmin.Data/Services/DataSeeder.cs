@@ -349,10 +349,7 @@ public class DataSeeder
 
         if (existingUser != null)
         {
-            // Update the password hash if the user exists but has an invalid hash
-            existingUser.PasswordHash = "$2a$11$rVpQmCCHHqEB.se5IpznFuzCkQSaLnuINZ2wKBLuCIm8d/ueDNp0e"; // bcrypt hash for 'admin123'
-            await _context.SaveChangesAsync();
-            return;
+            return; // User already exists, preserve any password changes
         }
 
         // Create the user1@agentdms.com user
