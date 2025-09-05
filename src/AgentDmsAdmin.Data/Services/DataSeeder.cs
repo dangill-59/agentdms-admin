@@ -628,6 +628,38 @@ public class DataSeeder
 
             _context.CustomFields.Add(customField);
             await _context.SaveChangesAsync();
+            
+            // Create some sample documents for testing
+            var sampleDocuments = new List<Document>
+            {
+                new Document
+                {
+                    FileName = "sample-invoice.pdf",
+                    StoragePath = "/uploads/sample-invoice.pdf",
+                    MimeType = "application/pdf",
+                    FileSize = 1024000,
+                    ProjectId = sampleProject.Id
+                },
+                new Document
+                {
+                    FileName = "accounts-payable-doc.pdf", 
+                    StoragePath = "/uploads/ap-doc.pdf",
+                    MimeType = "application/pdf",
+                    FileSize = 2048000,
+                    ProjectId = apProject.Id
+                },
+                new Document
+                {
+                    FileName = "restricted-document.pdf",
+                    StoragePath = "/uploads/restricted.pdf", 
+                    MimeType = "application/pdf",
+                    FileSize = 512000,
+                    ProjectId = apProject.Id
+                }
+            };
+            
+            _context.Documents.AddRange(sampleDocuments);
+            await _context.SaveChangesAsync();
         }
     }
 

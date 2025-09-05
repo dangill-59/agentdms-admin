@@ -104,6 +104,13 @@ using (var scope = app.Services.CreateScope())
     await seeder.SeedGillDanUserAsync(); // Seed gill.dan2@gmail.com user
     await seeder.SeedUser1Async(); // Seed user1@agentdms.com user
     await seeder.SetupUserRolePermissionsAsync(); // Ensure User role has basic permissions
+    
+    // For development/testing, seed sample data
+    if (app.Environment.IsDevelopment())
+    {
+        await seeder.SeedSampleDataAsync(); // Create sample projects for testing
+    }
+    
     await seeder.SetupAdministratorProjectPermissionsAsync(); // Setup Administrator role permissions for all projects
     await seeder.SetupUserRoleProjectPermissionsAsync(); // Setup User role project permissions for available projects
     
